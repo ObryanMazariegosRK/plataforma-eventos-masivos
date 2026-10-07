@@ -1,0 +1,41 @@
+# Pruebas manuales del módulo Reservas.
+# Requiere la extensión "REST Client" de VS Code (humao.rest-client):
+# aparece "Send Request" encima de cada petición.
+#
+# Antes: tener los contenedores arriba y migraciones corridas,
+# y que existan el usuario y el evento que se usan abajo (ver http/README.md).
+
+@baseUrl = http://localhost:8090/api
+@usuarioId = 1
+@eventoId = 4
+
+### 1) Crear reserva válida → 201 Created
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+Accept: application/json
+
+{
+    "usuario_id": {{usuarioId}},
+    "evento_id": {{eventoId}},
+    "total": 250.75
+}
+
+### 2) Faltan campos → 422 con errores de validación
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+Accept: application/json
+
+{
+    "usuario_id": {{usuarioId}}
+}
+
+### 3) Usuario/evento inexistentes y total en 0 → 422
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+Accept: application/json
+
+{
+    "usuario_id": 999999,
+    "evento_id": 999999,
+    "total": 0
+}
