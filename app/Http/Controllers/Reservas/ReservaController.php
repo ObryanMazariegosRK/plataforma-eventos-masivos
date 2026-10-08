@@ -12,7 +12,8 @@ class ReservaController extends Controller
     public function store(CrearReservaRequest $request, ICrearReservaUseCase $crearReserva): JsonResponse
     {
         $dto = new CrearReservaDTO(
-            usuarioId: $request->integer('usuario_id'),
+            // el usuario sale del token, NO del cuerpo: así nadie puede reservar a nombre de otro
+            usuarioId: $request->user()->id,
             eventoId: $request->integer('evento_id'),
             total: $request->float('total'),
             ttlSegundos: config('reservas.ttl_segundos'),

@@ -2,20 +2,34 @@
 # Requiere la extensión "REST Client" de VS Code (humao.rest-client):
 # aparece "Send Request" encima de cada petición.
 #
-# Antes: tener los contenedores arriba y migraciones corridas,
-# y que existan el usuario y el evento que se usan abajo (ver http/README.md).
+# Antes: tener los contenedores arriba y migraciones corridas, un usuario
+# VERIFICADO (créalo con auth.http o en /registro) y un evento (ver http/README.md).
+#
+# Orden: ejecuta primero la 0 (login); las demás usan su token automáticamente.
 
 @baseUrl = http://localhost:8090/api
-@usuarioId = 1
+@email = ana@example.com
+@password = Secreto#123
 @eventoId = 4
 
-### 1) Crear reserva válida → 201 Created
-POST {{baseUrl}}/reservas
+### 0) Login → 200 (guarda el token para las demás peticiones)
+# @name login
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 Accept: application/json
 
 {
-    "usuario_id": {{usuarioId}},
+    "email": "{{email}}",
+    "password": "{{password}}"
+}
+
+### 1) Crear reserva válida → 201 Created (el usuario sale del token)
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
     "evento_id": {{eventoId}},
     "total": 250.75
 }
@@ -24,18 +38,29 @@ Accept: application/json
 POST {{baseUrl}}/reservas
 Content-Type: application/json
 Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
 
 {
-    "usuario_id": {{usuarioId}}
+    "total": 250.75
 }
 
-### 3) Usuario/evento inexistentes y total en 0 → 422
+### 3) Evento inexistente y total en 0 → 422
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+    "evento_id": 999999,
+    "total": 0
+}
+
+### 4) Sin token → 401
 POST {{baseUrl}}/reservas
 Content-Type: application/json
 Accept: application/json
 
 {
-    "usuario_id": 999999,
-    "evento_id": 999999,
-    "total": 0
+    "evento_id": {{eventoId}},
+    "total": 250.75
 }
