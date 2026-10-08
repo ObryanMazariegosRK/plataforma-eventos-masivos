@@ -7,13 +7,12 @@ class CrearReservaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // sin autenticación por ahora (llega con el módulo Auth)
+        return true; // la autenticación la hace auth:sanctum en la ruta
     }
 
     public function rules(): array
     {
         return [
-            'usuario_id' => ['required', 'integer', 'gt:0', 'exists:usuarios,id'],
             'evento_id'  => ['required', 'integer', 'gt:0', 'exists:eventos,id'],
             'total'      => ['required', 'numeric', 'gt:0'],
         ];

@@ -1,0 +1,114 @@
+# Pruebas manuales del módulo Auth (extensión REST Client).
+# Orden: 1 registro → revisar el código en Mailpit (http://localhost:8026)
+#        → 2 verificar → 4 login → 5 perfil → 6 logout
+
+@baseUrl = http://localhost:8090/api
+@email = ana@example.com
+@password = Secreto#123
+# pega aquí el código de 6 dígitos que llegó a Mailpit
+@codigo = 000000
+
+### 1) Registro → 201 (envía el código al correo)
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nombre": "Ana",
+    "apellido": "López",
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "telefono": "55551234"
+}
+
+### 2) Verificar correo → 200 con token
+POST {{baseUrl}}/auth/verificar-correo
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}",
+    "codigo": "{{codigo}}"
+}
+
+### 3) Reenviar código → 200 (máx. 3 por minuto)
+POST {{baseUrl}}/auth/reenviar-codigo
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}"
+}
+
+### 4) Login → 200 con token
+# "@name login" le pone nombre a esta petición; así las de abajo
+# pueden leer el token de su respuesta con {{login.response.body.token}}
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "recordar": false
+}
+
+### 5) Perfil (requiere haber ejecutado el 4) → 200
+GET {{baseUrl}}/auth/perfil
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+### 6) Logout → 200; después, el 5 con el mismo token responde 401
+POST {{baseUrl}}/auth/logout
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+### 7) Login con contraseña incorrecta → 401
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}",
+    "password": "Incorrecta#1"
+}
+
+### 8) Olvidé mi contraseña → 200 (si existe y está verificado, llega un código a Mailpit)
+POST {{baseUrl}}/auth/olvide-password
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}"
+}
+
+### 9) Restablecer contraseña → 200 (cierra TODAS las sesiones; luego login con la nueva)
+# pega el código de recuperación en @codigo antes de enviar
+POST {{baseUrl}}/auth/restablecer-password
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}",
+    "codigo": "{{codigo}}",
+    "password": "Nueva#456",
+    "password_confirmation": "Nueva#456"
+}
+
+### 10) Cambiar contraseña (requiere el login 4) → 200; cierra las OTRAS sesiones
+POST {{baseUrl}}/auth/cambiar-password
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+    "password_actual": "{{password}}",
+    "password": "Nueva#456",
+    "password_confirmation": "Nueva#456"
+}
+
+### 11) Cerrar sesión en TODOS los dispositivos (incluido este) → 200
+POST {{baseUrl}}/auth/logout-todos
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}

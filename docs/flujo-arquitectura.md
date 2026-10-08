@@ -122,6 +122,45 @@ Sin esto, Laravel no sabe qué implementación inyectar cuando alguien pide una 
 **Configuración:** leer valores con `config('modulo.clave')`, nunca `env()` fuera de `config/`
 (con `php artisan config:cache`, `env()` devuelve `null`).
 
+## Errores de negocio (sin try/catch en los controllers)
+
+Cuando una regla de negocio falla, el caso de uso **lanza una excepción propia**; nadie la atrapa en el controller.
+
+1. La excepción vive en `Domain/Exceptions/<Modulo>/` y extiende `ReglaDeNegocioException`:
+   ```php
+   class CredencialesInvalidasException extends ReglaDeNegocioException
+   {
+       public function __construct(string $mensaje = 'Las credenciales proporcionadas son incorrectas.')
+       {
+           parent::__construct($mensaje);
+       }
+   }
+   ```
+2. Se registra **una vez** en el mapa de `bootstrap/app.php` con su código HTTP y un código de error:
+   ```php
+   CredencialesInvalidasException::class => [401, 'credenciales_invalidas'],
+   ```
+3. Laravel la convierte en `{"message": "...", "error": "credenciales_invalidas"}` con status 401.
+
+El dominio no sabe nada de HTTP (el status solo aparece en `bootstrap/app.php`).
+Cualquier otra `DomainException` (p. ej. el `validar()` de una entidad) responde **422**.
+
+## Servicios externos (hash, tokens, correo)
+
+Igual que los repositorios: **interfaz** en `Domain/Abstractions/<Modulo>/`, **implementación** en
+`Infrastructure/<Modulo>/`, y un `bind` en `AppServiceProvider`. Ejemplo en Auth:
+`IPasswordHasher` → `LaravelPasswordHasher`, `ITokenService` → `SanctumTokenService`,
+`IEnviadorCorreoAuth` → `LaravelEnviadorCorreoAuth`. En las pruebas unitarias se reemplazan por
+dobles en memoria (`tests/Fakes/<Modulo>/`), así el caso de uso se prueba sin BD ni Laravel.
+
+## Rutas protegidas
+
+```php
+Route::middleware('auth:sanctum')->group(...);                    // requiere token
+Route::middleware(['auth:sanctum', 'rol:admin,organizador'])...;  // requiere token y rol
+```
+Dentro del controller, `$request->user()` es el usuario autenticado.
+
 ## Convenciones de nombres
 
 | Pieza | Patrón | Ejemplo |
@@ -132,6 +171,8 @@ Sin esto, Laravel no sabe qué implementación inyectar cuando alguien pide una 
 | DTO | `<Verbo><Sustantivo>DTO` | `CrearReservaDTO` |
 | Request | `<Verbo><Sustantivo>Request` | `CrearReservaRequest` |
 | Interfaz repo | `I<Entidad>Repository` | `IReservaRepository` |
+| Excepción de negocio | `<Problema>Exception` | `CredencialesInvalidasException` |
+| DTO de salida | `<Sustantivo>DTO` | `SesionDTO` |
 | Impl repo (en `Data`) | `<Entidad>Repository` | `ReservaRepository` |
 | Modelo | `<Entidad>` (importar con alias `<Entidad>Model`) | `Reserva` |
 | Controller | `<Entidad>Controller` | `ReservaController` |
