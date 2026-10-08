@@ -13,6 +13,7 @@ class UsuarioRepository implements IUsuarioRepository
         $m->nombre              = $usuario->getNombre();
         $m->apellido            = $usuario->getApellido();
         $m->email               = $usuario->getEmail();
+        $m->google_id           = $usuario->getGoogleId();
         $m->telefono            = $usuario->getTelefono();
         $m->password            = $usuario->getPasswordHash();   // ya viene hasheada del caso de uso
         $m->rol                 = $usuario->getRol();
@@ -43,6 +44,13 @@ class UsuarioRepository implements IUsuarioRepository
         return $m ? $this->aEntidad($m) : null;
     }
 
+    public function buscarPorGoogleId(string $googleId): ?Usuario
+    {
+        $m = UsuarioModel::where('google_id', $googleId)->first();
+
+        return $m ? $this->aEntidad($m) : null;
+    }
+
     public function existeEmail(string $email): bool
     {
         // withTrashed: el índice unique de 'email' también cuenta a los eliminados (soft delete)
@@ -67,6 +75,7 @@ class UsuarioRepository implements IUsuarioRepository
             codigoRecuperacion: $m->codigo_recuperacion,
             recuperacionExpiraEn: $m->recuperacion_expira_en?->toDateTimeImmutable(),
             intentosRecuperacion: (int) $m->intentos_recuperacion,
+            googleId: $m->google_id,
         );
     }
 }

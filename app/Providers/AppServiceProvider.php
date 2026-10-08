@@ -81,6 +81,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\Abstractions\Auth\ICerrarTodasLasSesionesUseCase::class,
             \App\Application\UseCases\Auth\CerrarTodasLasSesionesUseCase::class,
         );
+        $this->app->bind(
+            \App\Application\Abstractions\Auth\IIniciarSesionConGoogleUseCase::class,
+            \App\Application\UseCases\Auth\IniciarSesionConGoogleUseCase::class,
+        );
     }
 
     /**

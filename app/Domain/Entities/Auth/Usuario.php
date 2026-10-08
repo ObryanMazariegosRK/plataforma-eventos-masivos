@@ -27,6 +27,7 @@ class Usuario
         private ?string $codigoRecuperacion = null,
         private ?DateTimeImmutable $recuperacionExpiraEn = null,
         private int $intentosRecuperacion = 0,
+        private ?string $googleId = null,
     ) {
         $this->validar();          // la entidad se protege al nacer
     }
@@ -63,6 +64,7 @@ class Usuario
     public function getCodigoRecuperacion(): ?string { return $this->codigoRecuperacion; }
     public function getRecuperacionExpiraEn(): ?DateTimeImmutable { return $this->recuperacionExpiraEn; }
     public function getIntentosRecuperacion(): int { return $this->intentosRecuperacion; }
+    public function getGoogleId(): ?string { return $this->googleId; }
 
     // Comportamiento de negocio
     public function estaBloqueado(): bool
@@ -166,6 +168,38 @@ class Usuario
         $this->codigoRecuperacion = null;
         $this->recuperacionExpiraEn = null;
         $this->intentosRecuperacion = 0;
+    }
+
+    // ---- Login con Google ----
+
+    public function tieneGoogle(): bool
+    {
+        return $this->googleId !== null;
+    }
+
+    /**
+     * Vincula esta cuenta con una cuenta de Google cuyo correo Google ya verificó.
+     *
+     * Si la cuenta local NO estaba verificada, su contraseña se borra: quien la puso
+     * nunca demostró ser dueño del correo. Sin esto, alguien podría registrarse con
+     * el correo de otra persona, esperar a que esa persona entre con Google, y luego
+     * seguir entrando con la contraseña que él puso ("pre-hijacking").
+     */
+    public function vincularGoogle(string $googleId, DateTimeImmutable $ahora): void
+    {
+        if (trim($googleId) === '') {
+            throw new DomainException('El identificador de Google no puede estar vacío.');
+        }
+        if ($this->googleId !== null && $this->googleId !== $googleId) {
+            throw new DomainException('Esta cuenta ya está vinculada con otra cuenta de Google.');
+        }
+
+        if (! $this->estaVerificado()) {
+            $this->passwordHash = null;
+            $this->marcarComoVerificado($ahora);   // Google confirmó que el correo es suyo
+        }
+
+        $this->googleId = $googleId;
     }
 
     // ---- Auxiliares ----
