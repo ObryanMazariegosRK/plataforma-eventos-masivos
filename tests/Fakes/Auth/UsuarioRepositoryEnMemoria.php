@@ -40,6 +40,17 @@ class UsuarioRepositoryEnMemoria implements IUsuarioRepository
         return null;
     }
 
+    public function buscarPorGoogleId(string $googleId): ?Usuario
+    {
+        foreach ($this->usuarios as $usuario) {
+            if ($usuario->getGoogleId() === $googleId) {
+                return clone $usuario;
+            }
+        }
+
+        return null;
+    }
+
     public function existeEmail(string $email): bool
     {
         return $this->buscarPorEmail($email) !== null;

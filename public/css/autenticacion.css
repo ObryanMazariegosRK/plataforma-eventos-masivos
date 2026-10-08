@@ -343,3 +343,37 @@ a:hover, .enlace:hover { text-decoration: underline; }
 }
 
 .acciones .enlace { font-size: 14px; }
+
+/* ---- Login con Google ---- */
+.separador {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--texto-suave);
+    font-size: 13px;
+}
+
+.separador::before,
+.separador::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--borde);
+}
+
+.boton--google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #fff;
+    color: var(--texto);
+    border: 1.5px solid var(--borde);
+    text-decoration: none;
+}
+
+.boton--google:hover {
+    background: #f7f6fb;
+    text-decoration: none;
+}

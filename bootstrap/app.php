@@ -56,6 +56,20 @@ return Application::configure(basePath: dirname(__DIR__))
             PasswordNuevaIgualException::class          => [422, 'password_igual'],
         ];
 
+        // Callback de Google: es una redirección del navegador, no una petición JSON.
+        // Cualquier error (cuenta bloqueada, Google rechazó el código...) regresa al login con un mensaje.
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if (! $request->routeIs('auth.google.callback')) {
+                return null;
+            }
+
+            $mensaje = $e instanceof DomainException
+                ? $e->getMessage()                                  // regla de negocio: mensaje para el usuario
+                : 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';   // error técnico (se registra en el log)
+
+            return redirect('/login?tipo=error&mensaje='.urlencode($mensaje));
+        });
+
         // Las reglas de negocio son respuestas ESPERADAS (contraseña incorrecta, código vencido...),
         // no fallos del sistema: no se escriben en storage/logs/laravel.log.
         $exceptions->dontReport([ReglaDeNegocioException::class]);

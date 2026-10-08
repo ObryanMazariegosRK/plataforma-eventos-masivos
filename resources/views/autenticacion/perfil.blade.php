@@ -17,6 +17,7 @@
             <li><span>Teléfono</span><span id="telefono"></span></li>
             <li><span>Rol</span><span><span class="etiqueta" id="rol"></span></span></li>
             <li><span>Correo verificado</span><span><span class="etiqueta etiqueta--ok" id="verificado"></span></span></li>
+            <li><span>Cuenta de Google</span><span id="google"></span></li>
         </ul>
 
         <p class="ayuda">Tu token (se guarda en el navegador):</p>
@@ -99,6 +100,7 @@
         document.getElementById('telefono').textContent = u.telefono || '—';
         document.getElementById('rol').textContent = u.rol;
         document.getElementById('verificado').textContent = u.verificado ? 'Sí' : 'No';
+        document.getElementById('google').textContent = u.google ? 'Vinculada' : 'No vinculada';
         document.getElementById('token').textContent = Auth.obtenerToken();
         document.getElementById('perfil').hidden = false;
     }

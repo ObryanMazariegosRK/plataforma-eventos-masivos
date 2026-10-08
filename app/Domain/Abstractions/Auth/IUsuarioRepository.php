@@ -11,5 +11,7 @@ interface IUsuarioRepository
 
     public function buscarPorEmail(string $email): ?Usuario;
 
+    public function buscarPorGoogleId(string $googleId): ?Usuario;
+
     public function existeEmail(string $email): bool;
 }

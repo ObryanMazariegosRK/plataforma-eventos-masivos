@@ -165,6 +165,7 @@ class AuthController extends Controller
             'telefono'    => $u->getTelefono(),
             'rol'         => $u->getRol()->value,
             'verificado'  => $u->estaVerificado(),
+            'google'      => $u->tieneGoogle(),
         ];
     }
 }

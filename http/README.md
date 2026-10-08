@@ -54,3 +54,17 @@ UPDATE usuarios SET rol = 'admin' WHERE email = 'ana@example.com';
 UPDATE usuarios SET estado = 'bloqueado' WHERE email = 'ana@example.com';
 UPDATE usuarios SET estado = 'activo'    WHERE email = 'ana@example.com';
 ```
+
+## Login con Google
+
+No se prueba con `.http` (son redirecciones del navegador): abre http://localhost:8090/login
+y usa **Continuar con Google**. Requiere en `.env`:
+
+```
+GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:8090/auth/google/callback
+```
+
+Mientras la app de Google esté en modo **Prueba**, solo pueden entrar las cuentas agregadas
+como *usuarios de prueba* en Google Cloud Console.
