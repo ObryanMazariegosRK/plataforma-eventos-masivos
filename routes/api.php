@@ -31,3 +31,12 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservas', [ReservaController::class, 'store']);
 });
+
+
+// ---- Catalogo de Eventos ----
+
+Route::get('/eventos', [
+    \App\Http\Controllers\Catalogo\CatalogoController::class,
+    'index'
+]);
+

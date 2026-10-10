@@ -19,3 +19,9 @@ Route::view('/restablecer-password', 'autenticacion.restablecer-password')->name
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 Route::view('/oauth/google', 'autenticacion.google-callback');   // guarda el token y entra al perfil
+
+// ---- Catalogo de Eventos ----
+// Pagina publica para consultar los eventos disponibles.
+Route::view('/catalogo', 'catalogo.index')
+    ->name('catalogo.index');
+
