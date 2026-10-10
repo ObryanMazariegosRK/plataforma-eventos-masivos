@@ -1,0 +1,642 @@
+
+/* ===================================
+   CATALOGO DE EVENTOS MASIVOS
+   Modulo 1 - UMG
+=================================== */
+
+:root {
+    --morado-oscuro: #24113f;
+    --morado: #673ab7;
+    --morado-claro: #9565de;
+    --rosado: #e879d5;
+    --fondo: #f7f5fc;
+    --blanco: #ffffff;
+    --texto: #29213a;
+    --gris: #746d80;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    line-height: 1.6;
+}
+
+.contenedor {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* ===================================
+   BARRA DE NAVEGACION
+=================================== */
+
+.navbar {
+    background: var(--morado-oscuro);
+    padding: 18px 0;
+    position: relative;
+    z-index: 10;
+}
+
+.nav-contenido {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.logo {
+    color: white;
+    font-size: 20px;
+    font-weight: 800;
+    text-decoration: none;
+    letter-spacing: 1px;
+}
+
+.logo-icono {
+    color: var(--rosado);
+    font-size: 27px;
+}
+
+.nav-enlaces {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.nav-enlaces a {
+    text-decoration: none;
+    color: #e8dcf5;
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.nav-enlaces a:hover,
+.nav-enlaces .activo {
+    color: white;
+}
+
+.btn-registro {
+    background: var(--morado);
+    padding: 10px 18px;
+    border-radius: 9px;
+}
+
+.nav-enlaces .btn-registro:hover {
+    background: var(--morado-claro);
+}
+
+/* ===================================
+   PORTADA PRINCIPAL
+=================================== */
+
+.hero {
+    background:
+        radial-gradient(
+            circle at 85% 15%,
+            rgba(232, 121, 213, 0.25),
+            transparent 35%
+        ),
+        linear-gradient(
+            135deg,
+            #24113f 0%,
+            #482477 55%,
+            #7043ae 100%
+        );
+
+    color: white;
+    padding: 100px 0 120px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-contenido {
+    max-width: 1200px;
+}
+
+.hero-etiqueta {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 30px;
+    padding: 8px 18px;
+    font-size: 13px;
+    margin-bottom: 25px;
+}
+
+.hero h1 {
+    font-size: clamp(38px, 5vw, 64px);
+    line-height: 1.15;
+    max-width: 700px;
+    font-weight: 800;
+    margin-bottom: 22px;
+}
+
+.hero h1 span {
+    display: block;
+    color: #f0a5e6;
+}
+
+.hero p {
+    max-width: 560px;
+    color: #e3d7f1;
+    font-size: 17px;
+    margin-bottom: 32px;
+}
+
+.btn-hero {
+    display: inline-block;
+    padding: 15px 28px;
+    background: white;
+    color: var(--morado-oscuro);
+    border-radius: 11px;
+    text-decoration: none;
+    font-weight: 700;
+    transition: 0.3s;
+}
+
+.btn-hero:hover {
+    background: #f1dafa;
+    transform: translateY(-3px);
+}
+
+/* ===================================
+   BUSCADOR
+=================================== */
+
+.seccion-busqueda {
+    position: relative;
+    margin-top: -60px;
+    z-index: 2;
+}
+
+.buscador-panel {
+    background: white;
+    border-radius: 18px;
+    padding: 32px;
+    box-shadow: 0 15px 45px rgba(43, 24, 76, 0.12);
+}
+
+.buscador-panel h2 {
+    font-size: 24px;
+    color: var(--morado-oscuro);
+}
+
+.buscador-panel > p {
+    color: var(--gris);
+    margin-bottom: 24px;
+}
+
+.form-busqueda {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    align-items: end;
+    gap: 15px;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.campo label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--texto);
+}
+
+.campo input {
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #ded8e9;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.campo input:focus {
+    border-color: var(--morado);
+    box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.12);
+}
+
+.btn-buscar {
+    background: var(--morado);
+    border: none;
+    border-radius: 9px;
+    padding: 15px 23px;
+    color: white;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-buscar:hover {
+    background: #512a93;
+}
+
+/* ===================================
+   LISTADO DE EVENTOS
+=================================== */
+
+.seccion-eventos {
+    padding: 80px 0 100px;
+}
+
+.eventos-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 35px;
+}
+
+.subtitulo {
+    color: var(--morado);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.eventos-encabezado h2 {
+    font-size: 34px;
+    color: var(--morado-oscuro);
+    margin: 6px 0;
+}
+
+.eventos-encabezado p {
+    color: var(--gris);
+}
+
+.contador-eventos {
+    background: #eee5fa;
+    color: var(--morado);
+    border-radius: 30px;
+    padding: 9px 17px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.grid-eventos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 25px;
+}
+
+/* Tarjetas que generaremos con JavaScript */
+
+.tarjeta-evento {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(38, 24, 65, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.tarjeta-evento:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(38, 24, 65, 0.15);
+}
+
+.evento-imagen {
+    min-height: 190px;
+    background: linear-gradient(135deg, #42206d, #9360cb);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 65px;
+}
+
+.evento-informacion {
+    padding: 23px;
+}
+
+.evento-informacion h3 {
+    font-size: 21px;
+    color: var(--morado-oscuro);
+    margin-bottom: 12px;
+}
+
+.evento-informacion p {
+    color: var(--gris);
+    font-size: 14px;
+    margin-bottom: 9px;
+}
+
+.evento-estado {
+    display: inline-block;
+    background: #e7f7ed;
+    color: #207448;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+.evento-estado.agotado {
+    background: #fff0df;
+    color: #a45b0a;
+}
+
+.btn-detalle {
+    display: block;
+    background: var(--morado);
+    color: white;
+    text-align: center;
+    border-radius: 9px;
+    padding: 12px;
+    text-decoration: none;
+    font-weight: 700;
+    margin-top: 18px;
+}
+
+.btn-detalle:hover {
+    background: #512a93;
+}
+
+.mensaje-carga,
+.mensaje-estado {
+    color: var(--gris);
+    text-align: center;
+    padding: 25px;
+}
+
+.mensaje-carga {
+    grid-column: 1 / -1;
+}
+
+.mensaje-estado:empty {
+    display: none;
+}
+
+/* ===================================
+   PIE DE PAGINA
+=================================== */
+
+.footer {
+    background: var(--morado-oscuro);
+    color: white;
+    padding-top: 50px;
+}
+
+.footer-contenido {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    padding-bottom: 40px;
+}
+
+.footer h3 {
+    margin-bottom: 12px;
+    color: #f0c1ff;
+}
+
+.footer p {
+    color: #c9b8db;
+    font-size: 14px;
+}
+
+.footer-copy {
+    border-top: 1px solid #48345f;
+    text-align: center;
+    padding: 18px;
+    color: #b9a5d0;
+    font-size: 12px;
+}
+
+/* ===================================
+   DISEÑO RESPONSIVE
+=================================== */
+
+@media (max-width: 950px) {
+    .form-busqueda {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-eventos {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .nav-contenido {
+        flex-direction: column;
+    }
+
+    .nav-enlaces {
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .hero {
+        padding: 70px 0 110px;
+    }
+
+    .hero p {
+        font-size: 15px;
+    }
+
+    .buscador-panel {
+        padding: 22px;
+    }
+
+    .form-busqueda,
+    .grid-eventos {
+        grid-template-columns: 1fr;
+    }
+
+    .eventos-encabezado,
+    .footer-contenido {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .eventos-encabezado h2 {
+        font-size: 28px;
+    }
+
+    .btn-buscar {
+        width: 100%;
+    }
+}
+
+
+/* =====================================
+   NUEVA PORTADA - ESTILO EVENTBUX
+===================================== */
+
+.hero {
+    width: 92%;
+    max-width: 1200px;
+    min-height: 480px;
+    margin: 28px auto 0;
+    padding: 85px 0 115px;
+
+    border-radius: 20px;
+    overflow: hidden;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(22, 10, 45, 0.92) 0%,
+            rgba(38, 17, 72, 0.70) 48%,
+            rgba(25, 12, 48, 0.15) 100%
+        ),
+        url('/img/eventos/portada-concierto.jpg');
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    display: flex;
+    align-items: center;
+}
+
+.hero-contenido {
+    width: calc(100% - 70px);
+    max-width: 1100px;
+    margin: auto;
+}
+
+.hero h1 {
+    max-width: 650px;
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 800;
+    line-height: 1.12;
+}
+
+.hero h1 span {
+    color: #e9b6ff;
+}
+
+.hero p {
+    max-width: 480px;
+    color: #f1e9ff;
+}
+
+/* Buscador ligeramente superpuesto */
+
+.seccion-busqueda {
+    margin-top: -55px;
+}
+
+/* Ajuste para celulares */
+
+@media (max-width: 600px) {
+    .hero {
+        width: 94%;
+        min-height: 430px;
+        padding: 65px 0 100px;
+        border-radius: 15px;
+        background-position: center;
+    }
+
+    .hero-contenido {
+        width: calc(100% - 36px);
+    }
+
+    .hero h1 {
+        font-size: 36px;
+    }
+
+    .hero p {
+        font-size: 15px;
+    }
+}
+
+
+/* =====================================
+   NAVEGACION BLANCA - ESTILO EVENTBUX
+===================================== */
+
+body {
+    background: #f8f7fc;
+}
+
+.navbar {
+    background: #ffffff;
+    padding: 18px 0;
+    box-shadow: 0 2px 15px rgba(35, 16, 57, 0.06);
+}
+
+.logo {
+    color: #25133e;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.logo-icono {
+    color: #7428df;
+}
+
+.nav-enlaces a {
+    color: #34264c;
+    font-weight: 600;
+}
+
+.nav-enlaces a:hover,
+.nav-enlaces .activo {
+    color: #7428df;
+}
+
+.nav-enlaces .btn-registro {
+    background: linear-gradient(
+        135deg,
+        #8728ed,
+        #6125ca
+    );
+    color: #ffffff;
+    padding: 12px 22px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(110, 35, 215, 0.18);
+}
+
+.nav-enlaces .btn-registro:hover {
+    color: #ffffff;
+    background: #5220b1;
+    transform: translateY(-2px);
+}
+
+/* Fondo blanco para los eventos */
+
+.seccion-eventos {
+    background: #ffffff;
+}
+
+.tarjeta-evento {
+    border: 1px solid #eee9f5;
+}
+
+@media (max-width: 600px) {
+    .navbar {
+        padding: 15px 0;
+    }
+
+    .logo {
+        font-size: 19px;
+    }
+
+    .nav-enlaces .btn-registro {
+        padding: 10px 14px;
+    }
+}

@@ -85,6 +85,21 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\Abstractions\Auth\IIniciarSesionConGoogleUseCase::class,
             \App\Application\UseCases\Auth\IniciarSesionConGoogleUseCase::class,
         );
+
+        // ---- Catalogo de Eventos ----
+
+        // Repositorio de eventos
+        $this->app->bind(
+            \App\Domain\Abstractions\Catalogo\IEventoRepository::class,
+            \App\Data\Catalogo\EventoRepository::class,
+        );
+
+        // Caso de uso para listar eventos
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IListarEventosUseCase::class,
+            \App\Application\UseCases\Catalogo\ListarEventosUseCase::class,
+        );
+
     }
 
     /**
