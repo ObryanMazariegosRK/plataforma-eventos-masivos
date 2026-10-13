@@ -12,6 +12,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        
+        // ---- Boletos ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Boletos\IBoletoRepository::class,
+            \App\Data\Boletos\BoletoRepository::class,
+        );
+
+         // Caso de uso para emitir boletos
+        $this->app->bind(
+            \App\Application\Abstractions\Boletos\IEmitirBoletosUseCase::class,
+            \App\Application\UseCases\Boletos\EmitirBoletosUseCase::class,
+        );
+
         // ---- Reservas ----
         $this->app->bind(
             \App\Domain\Abstractions\Reservas\IReservaRepository::class,
