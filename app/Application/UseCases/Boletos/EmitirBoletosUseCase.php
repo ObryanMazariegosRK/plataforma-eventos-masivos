@@ -83,6 +83,55 @@ class EmitirBoletosUseCase implements IEmitirBoletosUseCase
                     );
                 }
             }
+    
+            // 6. Comprobar si los boletos ya fueron emitidos.
+            $existentes = [];
+
+            foreach ($inventario as $item) {
+                $existente = $this->boletos
+                    ->buscarPorInventario((int) $item->id);
+
+                if ($existente === null) {
+                    continue;
+                }
+
+                // Comprobar que pertenece a la misma reserva
+                // y al mismo usuario.
+                if (
+                    $existente->getReservaId() !== (int) $reserva->id ||
+                    $existente->getUsuarioId() !== (int) $reserva->usuario_id
+                ) {
+                    throw new DomainException(
+                        'El boleto existente no pertenece a esta reserva.'
+                    );
+                }
+
+                // No devolver boletos eliminados lógicamente.
+                $eliminado = DB::table('boletos')
+                    ->where('id', $existente->getId())
+                    ->whereNotNull('deleted_at')
+                    ->exists();
+
+                if ($eliminado) {
+                    throw new DomainException(
+                        'Existe un boleto eliminado para este inventario.'
+                    );
+                }
+
+                $existentes[] = $existente;
+            }
+
+            // Si todos existen, devolver los mismos boletos.
+            if (count($existentes) === $inventario->count()) {
+                return $existentes;
+            }
+
+            // Si solo algunos existen, evitar una emisión parcial.
+            if (count($existentes) > 0) {
+                throw new DomainException(
+                    'La reserva tiene una emisión de boletos incompleta.'
+                );
+            }
 
             $emitidos = [];
 

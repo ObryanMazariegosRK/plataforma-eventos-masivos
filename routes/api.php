@@ -4,6 +4,9 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Reservas\ReservaController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Boletos\BoletoController;
+
+
 // ---- Auth ----
 // throttle:N,M = máximo N peticiones cada M minutos por IP (si se excede → 429)
 Route::prefix('auth')->group(function () {
@@ -32,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservas', [ReservaController::class, 'store']);
 });
 
+// ---- Boletos ----
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/boletos/{id}/qr', [BoletoController::class, 'qr'])
+        ->whereNumber('id');
+});
 
 // ---- Catalogo de Eventos ----
 

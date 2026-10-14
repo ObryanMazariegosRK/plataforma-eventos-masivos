@@ -39,6 +39,20 @@ class BoletoRepository implements IBoletoRepository
 
         return $modelo ? $this->aEntidad($modelo) : null;
     }
+    
+    public function buscarPorId(int $boletoId): ?Boleto
+    {
+        // Buscar un boleto activo mediante su ID.
+        $modelo = BoletoModel::find($boletoId);
+
+        // Si no existe, devolver null.
+        if ($modelo === null) {
+            return null;
+        }
+
+        // Convertir el modelo en entidad de dominio.
+        return $this->aEntidad($modelo);
+    }
 
     private function aEntidad(BoletoModel $modelo): Boleto
     {

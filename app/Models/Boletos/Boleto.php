@@ -2,6 +2,7 @@
 
 namespace App\Models\Boletos;
 
+use App\Domain\Enums\Boletos\EstadoBoleto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Reservas\Reserva;
@@ -43,4 +44,3 @@ class Boleto extends Model
     }
 }
 
-use App\Domain\Enums\Boletos\EstadoBoleto;

@@ -11,4 +11,10 @@ interface IBoletoRepository
 
     // Buscar un boleto mediante su inventario.
     public function buscarPorInventario(int $inventarioId): ?Boleto;
+
+    // Buscar un boleto mediante su ID.
+    public function buscarPorId(int $boletoId): ?Boleto;
 }
+
+
+    
