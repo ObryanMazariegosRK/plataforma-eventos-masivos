@@ -54,6 +54,16 @@ class BoletoRepository implements IBoletoRepository
         return $this->aEntidad($modelo);
     }
 
+    public function buscarPorCodigoQrBloqueado(string $codigoQr): ?Boleto
+    {
+        $modelo = BoletoModel::query()
+            ->where('codigo_qr', $codigoQr)
+            ->lockForUpdate()
+            ->first();
+
+        return $modelo ? $this->aEntidad($modelo) : null;
+    }
+
     private function aEntidad(BoletoModel $modelo): Boleto
     {
         return new Boleto(

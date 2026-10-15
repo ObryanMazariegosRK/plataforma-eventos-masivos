@@ -14,6 +14,10 @@ interface IBoletoRepository
 
     // Buscar un boleto mediante su ID.
     public function buscarPorId(int $boletoId): ?Boleto;
+
+    // Buscar y bloquear un boleto por su codigo QR.
+    public function buscarPorCodigoQrBloqueado(string $codigoQr): ?Boleto;
+
 }
 
 

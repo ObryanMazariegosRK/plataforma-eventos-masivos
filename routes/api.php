@@ -35,11 +35,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservas', [ReservaController::class, 'store']);
 });
 
-// ---- Boletos ----
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/boletos/{id}/qr', [BoletoController::class, 'qr'])
-        ->whereNumber('id');
-});
+
+    // ---- Boletos ----
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // Consultar el QR del boleto.
+        Route::get('/boletos/{id}/qr', [BoletoController::class, 'qr'])
+            ->whereNumber('id');
+
+        // Validar un boleto en el acceso al evento.
+        Route::post('/boletos/validar', [BoletoController::class, 'validar'])
+            ->middleware('throttle:30,1');
+
+    });
+
 
 // ---- Catalogo de Eventos ----
 
@@ -47,4 +56,28 @@ Route::get('/eventos', [
     \App\Http\Controllers\Catalogo\CatalogoController::class,
     'index'
 ]);
+
+
+// ---- Transacciones e Historial ----
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get(
+        '/transacciones',
+        [
+            \App\Http\Controllers\Transacciones\TransaccionController::class,
+            'index'
+        ]
+    );
+
+});
+
+
+// ---- Historial de Operaciones ----
+Route::middleware('auth:sanctum')->get(
+    '/historial-operaciones',
+    [
+        \App\Http\Controllers\Transacciones\TransaccionController::class,
+        'operaciones'
+    ]
+);
 
