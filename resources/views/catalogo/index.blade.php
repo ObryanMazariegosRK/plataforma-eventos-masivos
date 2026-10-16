@@ -6,27 +6,61 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Catálogo de Eventos | Eventos Masivos</title>
+    <meta name="theme-color" content="#102333">
 
+    <meta name="description"
+          content="PULSO. Descubre conciertos, festivales y experiencias inolvidables. No solo vayas, vívelo.">
+
+    <title>Explora eventos | PULSO.</title>
+
+    <!-- FUENTES -->
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
     <link rel="stylesheet"
           href="{{ asset('css/catalogo.css') }}">
 
-    <script src="{{ asset('js/catalogo.js') }}" defer></script>
+    <!-- JAVASCRIPT -->
+    <script src="{{ asset('js/catalogo.js') }}"
+            defer></script>
 </head>
 
 <body>
 
-    <!-- BARRA DE NAVEGACIÓN -->
+    <!-- =====================================
+         NAVBAR - PULSO
+    ===================================== -->
+
     <header class="navbar">
+
         <div class="contenedor nav-contenido">
 
-            <a href="/catalogo" class="logo">
-                <span class="logo-icono">✦</span>
-                EVENTOS MASIVOS
+            <a class="logo"
+               href="/catalogo"
+               aria-label="PULSO, ir al inicio">
+
+                <span class="logo-icono"
+                      aria-hidden="true">✦</span>
+
+                <span>
+                    PULSO<strong>.</strong>
+                </span>
+
             </a>
 
-            <nav class="nav-enlaces">
-                <a href="/catalogo" class="activo">
+            <nav class="nav-enlaces"
+                 aria-label="Navegación principal">
+
+                <a href="#eventos" class="activo">
                     Eventos
                 </a>
 
@@ -34,168 +68,401 @@
                     Iniciar sesión
                 </a>
 
-                <a href="/registro" class="btn-registro">
+                <a href="/registro"
+                   class="btn-registro">
+
                     Registrarse
+                    <span aria-hidden="true">↗</span>
+
                 </a>
+
             </nav>
 
         </div>
+
     </header>
 
 
-    <!-- SECCIÓN PRINCIPAL -->
-    <section class="hero">
-        <div class="contenedor hero-contenido">
+    <main>
 
-            <span class="hero-etiqueta">
-                ✨ Vive experiencias inolvidables
-            </span>
+        <!-- =====================================
+             PORTADA / CARRUSEL 3D
+        ===================================== -->
 
-            <h1>
-                Descubre tu próximo
-                <span>gran evento</span>
-            </h1>
+        <section id="destacados"
+                 class="seccion-destacados"
+                 aria-labelledby="tituloPortada">
 
-            <p>
-                Encuentra conciertos, festivales y
-                espectáculos increíbles.
-                ¡Tu próxima experiencia comienza aquí!
-            </p>
+            <div class="hero-orbita hero-orbita-a"
+                 aria-hidden="true"></div>
 
-            <a href="#eventos" class="btn-hero">
-                Explorar eventos →
-            </a>
+            <div class="hero-orbita hero-orbita-b"
+                 aria-hidden="true"></div>
 
-        </div>
-    </section>
+            <div class="contenedor portada-contenido">
 
+                <div class="destacados-encabezado">
 
-    <!-- BUSCADOR DE EVENTOS -->
-    <section class="seccion-busqueda">
-        <div class="contenedor">
+                    <span class="eyebrow">
 
-            <div class="buscador-panel">
+                        <span class="eyebrow-punto"
+                              aria-hidden="true"></span>
 
-                <h2>Encuentra tu evento ideal</h2>
+                        TU PRÓXIMA EXPERIENCIA COMIENZA AQUÍ
 
-                <p>
-                    Busca por nombre, ciudad o fecha.
-                </p>
-
-                <form id="formBuscar" class="form-busqueda">
-
-                    <div class="campo">
-                        <label for="nombre">
-                            Nombre del evento
-                        </label>
-
-                        <input
-                            type="text"
-                            id="nombre"
-                            name="nombre"
-                            placeholder="Ej. Concierto">
-                    </div>
-
-                    <div class="campo">
-                        <label for="ciudad">
-                            Ciudad
-                        </label>
-
-                        <input
-                            type="text"
-                            id="ciudad"
-                            name="ciudad"
-                            placeholder="Ej. Guatemala">
-                    </div>
-
-                    <div class="campo">
-                        <label for="fecha">
-                            Fecha
-                        </label>
-
-                        <input
-                            type="date"
-                            id="fecha"
-                            name="fecha">
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="btn-buscar">
-                        🔍 Buscar eventos
-                    </button>
-
-                </form>
-
-            </div>
-
-        </div>
-    </section>
-
-
-    <!-- LISTADO DE EVENTOS -->
-    <main id="eventos" class="seccion-eventos">
-
-        <div class="contenedor">
-
-            <div class="eventos-encabezado">
-
-                <div>
-                    <span class="subtitulo">
-                        NUESTRAS EXPERIENCIAS
                     </span>
 
-                    <h2>Próximos eventos</h2>
+                    <h1 id="tituloPortada"
+                        class="titulo-principal">
+
+                        No solo vayas.
+
+                        <span class="palabra-animada">
+                            Vívelo.
+                        </span>
+
+                    </h1>
 
                     <p>
-                        Descubre los eventos disponibles
-                        y encuentra tu próxima aventura.
+                        La música, la emoción y los mejores
+                        momentos están más cerca de lo que
+                        imaginas. Descubre tu próximo evento.
                     </p>
+
                 </div>
 
-                <span id="contadorEventos"
-                      class="contador-eventos">
-                    Consultando eventos...
-                </span>
 
-            </div>
+                <!-- =====================================
+                     CARRUSEL DE EVENTOS
+                     CARGADO DESDE LA API
+                ===================================== -->
+
+                <div class="coverflow"
+                     id="coverflow"
+                     tabindex="0"
+                     role="region"
+                     aria-roledescription="carrusel"
+                     aria-label="Carrusel de eventos destacados">
+
+                    <div id="listaDestacados"
+                         class="escenario-destacados">
+
+                        <p class="mensaje-carga">
+                            Preparando experiencias...
+                        </p>
+
+                    </div>
+
+                </div>
 
 
-            <!-- AQUÍ JAVASCRIPT MOSTRARÁ LOS EVENTOS -->
-            <div id="listaEventos"
-                 class="grid-eventos"
-                 aria-live="polite">
+                <!-- CONTROLES DEL CARRUSEL -->
 
-                <p class="mensaje-carga">
-                    Cargando eventos disponibles...
+                <div class="carrusel-barra">
+
+                    <button id="btnAnterior"
+                            class="control-carrusel"
+                            type="button"
+                            aria-label="Ver tarjeta anterior">
+
+                        ←
+
+                    </button>
+
+                    <div id="puntosCarrusel"
+                         class="carrusel-puntos"
+                         aria-label="Seleccionar tarjeta del carrusel">
+                    </div>
+
+                    <button id="btnSiguiente"
+                            class="control-carrusel"
+                            type="button"
+                            aria-label="Ver tarjeta siguiente">
+
+                        →
+
+                    </button>
+
+                </div>
+
+                <p id="estadoCarrusel"
+                   class="sr-only"
+                   role="status"
+                   aria-live="polite"></p>
+
+
+                <!-- BOTONES PRINCIPALES -->
+
+                <div class="destacados-acciones">
+
+                    <a href="#eventos"
+                       class="btn-explorar">
+
+                        Explorar eventos
+
+                        <span aria-hidden="true">↗</span>
+
+                    </a>
+
+                    <a href="#busqueda"
+                       class="enlace-secundario">
+
+                        Buscar por ciudad
+
+                        <span aria-hidden="true">↓</span>
+
+                    </a>
+
+                </div>
+
+
+                <p class="nota-demo">
+                    Las tarjetas marcadas como
+                    «Vista de muestra» ilustran el diseño,
+                    no son eventos a la venta.
                 </p>
 
             </div>
 
-            <p id="mensajeEstado"
-               class="mensaje-estado"
-               role="status"
-               aria-live="polite"></p>
+        </section>
+
+
+        <!-- =====================================
+             FRANJA DE EXPERIENCIAS
+        ===================================== -->
+
+        <div class="franja-experiencias"
+             aria-hidden="true">
+
+            <div class="franja-track">
+
+                <span>CONCIERTOS</span>
+                <span>✳</span>
+
+                <span>FESTIVALES</span>
+                <span>✳</span>
+
+                <span>EXPERIENCIAS</span>
+                <span>✳</span>
+
+                <span>ESPECTÁCULOS</span>
+                <span>✳</span>
+
+                <span>CONCIERTOS</span>
+                <span>✳</span>
+
+                <span>FESTIVALES</span>
+                <span>✳</span>
+
+                <span>EXPERIENCIAS</span>
+                <span>✳</span>
+
+                <span>ESPECTÁCULOS</span>
+                <span>✳</span>
+
+            </div>
 
         </div>
+
+
+        <!-- =====================================
+             BUSCADOR DE EVENTOS
+        ===================================== -->
+
+        <section id="busqueda"
+                 class="seccion-busqueda reveal"
+                 aria-labelledby="tituloBusqueda">
+
+            <div class="contenedor">
+
+                <div class="buscador-panel">
+
+                    <div class="buscador-titulo">
+
+                        <span class="label-seccion">
+                            ENCUENTRA TU PLAN
+                        </span>
+
+                        <h2 id="tituloBusqueda">
+                            ¿Qué hacemos hoy?
+                        </h2>
+
+                        <p>
+                            Busca por nombre, ciudad o fecha.
+                            Nosotros encontramos el evento.
+                        </p>
+
+                    </div>
+
+
+                    <form id="formBuscar"
+                          class="form-busqueda">
+
+                        <!-- NOMBRE -->
+
+                        <div class="campo">
+
+                            <label for="nombre">
+                                Nombre del evento
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nombre"
+                                name="nombre"
+                                placeholder="Concierto, festival..."
+                                autocomplete="off">
+
+                        </div>
+
+
+                        <!-- CIUDAD -->
+
+                        <div class="campo">
+
+                            <label for="ciudad">
+                                Ciudad
+                            </label>
+
+                            <input
+                                type="text"
+                                id="ciudad"
+                                name="ciudad"
+                                placeholder="Ej. Guatemala"
+                                autocomplete="address-level2">
+
+                        </div>
+
+
+                        <!-- FECHA -->
+
+                        <div class="campo">
+
+                            <label for="fecha">
+                                Fecha
+                            </label>
+
+                            <input
+                                type="date"
+                                id="fecha"
+                                name="fecha">
+
+                        </div>
+
+
+                        <!-- BOTÓN BUSCAR -->
+
+                        <button type="submit"
+                                class="btn-buscar">
+
+                            Buscar eventos
+
+                            <span aria-hidden="true">↗</span>
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             PRÓXIMOS EVENTOS
+        ===================================== -->
+
+        <section id="eventos"
+                 class="seccion-eventos"
+                 aria-labelledby="tituloEventos">
+
+            <div class="contenedor">
+
+                <div class="eventos-encabezado reveal">
+
+                    <div>
+
+                        <span class="label-seccion">
+                            TODO LO QUE VIENE
+                        </span>
+
+                        <h2 id="tituloEventos">
+                            Próximos <span>eventos.</span>
+                        </h2>
+
+                        <p>
+                            Explora las experiencias publicadas
+                            y encuentra tu próxima historia.
+                        </p>
+
+                    </div>
+
+
+                    <span id="contadorEventos"
+                          class="contador-eventos"
+                          role="status">
+
+                        Consultando eventos...
+
+                    </span>
+
+                </div>
+
+
+                <!-- LISTADO DESDE MYSQL -->
+
+                <div id="listaEventos"
+                     class="grid-eventos"
+                     aria-live="polite">
+
+                    <p class="mensaje-carga">
+                        Cargando eventos disponibles...
+                    </p>
+
+                </div>
+
+
+                <!-- MENSAJES -->
+
+                <p id="mensajeEstado"
+                   class="mensaje-estado"
+                   role="status"
+                   aria-live="polite"></p>
+
+            </div>
+
+        </section>
 
     </main>
 
 
-    <!-- PIE DE PÁGINA -->
+    <!-- =====================================
+         FOOTER - PULSO
+    ===================================== -->
+
     <footer class="footer">
 
         <div class="contenedor footer-contenido">
 
             <div>
-                <h3>✦ EVENTOS MASIVOS</h3>
+
+                <h3>
+                    <span aria-hidden="true">✦</span>
+                    PULSO.
+                </h3>
 
                 <p>
-                    Vive momentos únicos con nosotros.
+                    Los mejores momentos no se cuentan.
+                    Se viven.
                 </p>
+
             </div>
 
-            <div>
+
+            <div class="footer-derecha">
+
                 <p>
                     Plataforma de Eventos Masivos
                 </p>
@@ -203,13 +470,17 @@
                 <p>
                     Universidad Mariano Gálvez
                 </p>
+
             </div>
 
         </div>
 
+
         <div class="footer-copy">
-            © 2026 Eventos Masivos.
-            Proyecto de Análisis de Sistemas II.
+
+            © 2026 PULSO. ·
+            Proyecto de Análisis de Sistemas II
+
         </div>
 
     </footer>
