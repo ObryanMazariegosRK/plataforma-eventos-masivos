@@ -81,3 +81,38 @@ Route::middleware('auth:sanctum')->get(
     ]
 );
 
+
+
+// ---- Reembolsos ----
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Cliente: solicitar un reembolso.
+    Route::post(
+        '/reembolsos',
+        [
+            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
+            'store'
+        ]
+    )->middleware('throttle:10,1');
+
+    // Administrador: aprobar o rechazar.
+    Route::patch(
+        '/reembolsos/{id}/resolver',
+        [
+            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
+            'resolver'
+        ]
+    )->whereNumber('id')
+     ->middleware('throttle:10,1');
+
+    // RF-20: Administrador cancela un evento completo.
+    Route::post(
+        '/eventos/{id}/cancelar',
+        [
+            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
+            'cancelarEvento'
+        ]
+    )->whereNumber('id')
+    ->middleware('throttle:5,1');
+
+});

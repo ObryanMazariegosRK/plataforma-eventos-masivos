@@ -19,6 +19,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
 
+        // ---- Reembolsos ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Reembolsos\IReembolsoRepository::class,
+            \App\Data\Reembolsos\ReembolsoRepository::class,
+        );
+
+        //Transacciones
         $this->app->bind(
             \App\Domain\Abstractions\Transacciones\ITransaccionRepository::class,
             \App\Data\Transacciones\TransaccionRepository::class
@@ -30,7 +37,6 @@ class AppServiceProvider extends ServiceProvider
             GeneradorQrBoletoSvg::class
         );
 
-        
         // Caso de uso para obtener el QR de un boleto.
         $this->app->bind(
             IObtenerQrBoletoUseCase::class,
@@ -49,7 +55,6 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Boletos\EmitirBoletosUseCase::class,
         );
 
-
         // ---- Reservas ----
         $this->app->bind(
             \App\Domain\Abstractions\Reservas\IReservaRepository::class,
@@ -61,7 +66,6 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\Abstractions\Reservas\ICrearReservaUseCase::class,
             \App\Application\UseCases\Transacciones\CrearReservaConHistorialUseCase::class,
         );
-
 
         // ---- Auth ----
         // repositorio y servicios
