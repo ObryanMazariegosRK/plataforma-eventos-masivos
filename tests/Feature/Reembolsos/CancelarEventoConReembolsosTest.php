@@ -349,7 +349,6 @@ class CancelarEventoConReembolsosTest extends TestCase
         $this->assertDatabaseCount('reembolsos', 1);
     }
 
-    
     private function crearBoletoDePrueba(
         int $pagoId,
         int $usuarioId,
@@ -515,111 +514,111 @@ class CancelarEventoConReembolsosTest extends TestCase
         $this->assertDatabaseCount('reembolsos', 1);
     }
     
-public function test_cancelacion_masiva_permite_aprobar_reembolsos_parciales(): void
-{
-    $admin = $this->crearUsuario(
-        'admin-integracion@test.com',
-        RolUsuario::ADMIN
-    );
+    public function test_cancelacion_masiva_permite_aprobar_reembolsos_parciales(): void
+    {
+        $admin = $this->crearUsuario(
+            'admin-integracion@test.com',
+            RolUsuario::ADMIN
+        );
 
-    $cliente = $this->crearUsuario(
-        'cliente-integracion@test.com'
-    );
+        $cliente = $this->crearUsuario(
+            'cliente-integracion@test.com'
+        );
 
-    $eventoId = $this->crearEvento();
+        $eventoId = $this->crearEvento();
 
-    $pagoId = $this->crearPago(
-        $eventoId,
-        $cliente->id,
-        500
-    );
+        $pagoId = $this->crearPago(
+            $eventoId,
+            $cliente->id,
+            500
+        );
 
-    // El cliente solicito Q400 antes de la cancelacion.
-    $this->crearReembolsoPrevio($pagoId, 400);
+        // El cliente solicito Q400 antes de la cancelacion.
+        $this->crearReembolsoPrevio($pagoId, 400);
 
-    // El organizador cancela el evento.
-    $resultado = app(
-        CancelarEventoConReembolsosUseCase::class
-    )->execute($eventoId, $admin->id);
+        // El organizador cancela el evento.
+        $resultado = app(
+            CancelarEventoConReembolsosUseCase::class
+        )->execute($eventoId, $admin->id);
 
-    $this->assertSame(1, $resultado['reembolsos_creados']);
-    $this->assertEquals(100, $resultado['monto_preparado']);
+        $this->assertSame(1, $resultado['reembolsos_creados']);
+        $this->assertEquals(100, $resultado['monto_preparado']);
 
-    $solicitudes = DB::table('reembolsos')
-        ->where('pago_id', $pagoId)
-        ->orderBy('id')
-        ->get();
+        $solicitudes = DB::table('reembolsos')
+            ->where('pago_id', $pagoId)
+            ->orderBy('id')
+            ->get();
 
-    $this->assertCount(2, $solicitudes);
+        $this->assertCount(2, $solicitudes);
 
-    // Ambas solicitudes suman exactamente Q500.
-    $this->assertEquals(
-        500,
-        $solicitudes->sum('monto')
-    );
+        // Ambas solicitudes suman exactamente Q500.
+        $this->assertEquals(
+            500,
+            $solicitudes->sum('monto')
+        );
 
-    $resolver = app(
-        ResolverSolicitudReembolsoUseCase::class
-    );
+        $resolver = app(
+            ResolverSolicitudReembolsoUseCase::class
+        );
 
-    // Ni siquiera la solicitud original puede rechazarse.
-    try {
+        // Ni siquiera la solicitud original puede rechazarse.
+        try {
+            $resolver->execute(
+                $solicitudes[0]->id,
+                'rechazar',
+                $admin->id
+            );
+
+            $this->fail(
+                'Se permitio rechazar una devolucion de evento cancelado.'
+            );
+
+        } catch (DomainException $e) {
+            $this->assertSame(
+                'No se puede rechazar un reembolso de un evento cancelado.',
+                $e->getMessage()
+            );
+        }
+
+        // Aprobar los Q400 originales.
         $resolver->execute(
             $solicitudes[0]->id,
-            'rechazar',
+            'aprobar',
             $admin->id
         );
 
-        $this->fail(
-            'Se permitio rechazar una devolucion de evento cancelado.'
+        // Aprobar los Q100 adicionales.
+        $resolver->execute(
+            $solicitudes[1]->id,
+            'aprobar',
+            $admin->id
         );
 
-    } catch (DomainException $e) {
         $this->assertSame(
-            'No se puede rechazar un reembolso de un evento cancelado.',
-            $e->getMessage()
+            2,
+            DB::table('reembolsos')
+                ->where('pago_id', $pagoId)
+                ->where('estado', 'aprobado')
+                ->count()
+        );
+
+        $this->assertEquals(
+            500,
+            DB::table('reembolsos')
+                ->where('pago_id', $pagoId)
+                ->where('estado', 'aprobado')
+                ->sum('monto')
+        );
+
+        // Todavia no existe confirmacion de devolucion real.
+        $this->assertSame(
+            0,
+            DB::table('reembolsos')
+                ->where('pago_id', $pagoId)
+                ->where('estado', 'procesado')
+                ->count()
         );
     }
-
-    // Aprobar los Q400 originales.
-    $resolver->execute(
-        $solicitudes[0]->id,
-        'aprobar',
-        $admin->id
-    );
-
-    // Aprobar los Q100 adicionales.
-    $resolver->execute(
-        $solicitudes[1]->id,
-        'aprobar',
-        $admin->id
-    );
-
-    $this->assertSame(
-        2,
-        DB::table('reembolsos')
-            ->where('pago_id', $pagoId)
-            ->where('estado', 'aprobado')
-            ->count()
-    );
-
-    $this->assertEquals(
-        500,
-        DB::table('reembolsos')
-            ->where('pago_id', $pagoId)
-            ->where('estado', 'aprobado')
-            ->sum('monto')
-    );
-
-    // Todavia no existe confirmacion de devolucion real.
-    $this->assertSame(
-        0,
-        DB::table('reembolsos')
-            ->where('pago_id', $pagoId)
-            ->where('estado', 'procesado')
-            ->count()
-    );
-}
 
     public function test_reembolso_rechazado_no_reduce_devolucion_masiva(): void
     {
@@ -677,7 +676,6 @@ public function test_cancelacion_masiva_permite_aprobar_reembolsos_parciales(): 
         ]);
     }
 
-    
     public function test_registra_cancelacion_masiva_en_historial(): void
     {
         $admin = $this->crearUsuario(
@@ -813,6 +811,4 @@ public function test_cancelacion_masiva_permite_aprobar_reembolsos_parciales(): 
         // que creamos inicialmente para la prueba.
         $this->assertDatabaseCount('reembolsos', 1);
     }
-
-    
 }

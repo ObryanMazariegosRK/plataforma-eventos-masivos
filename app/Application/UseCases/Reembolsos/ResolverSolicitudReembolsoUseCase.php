@@ -94,7 +94,7 @@ class ResolverSolicitudReembolsoUseCase
                 }
 
                 $reembolso->aprobar();
-            
+
             } else {
 
                 // 4. Comprobar si el organizador ya cancelo el evento.

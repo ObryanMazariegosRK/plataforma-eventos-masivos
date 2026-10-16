@@ -161,7 +161,7 @@ class CancelarEventoConReembolsosUseCase
                     'updated_by' => $administradorId,
                     'updated_at' => now(),
                 ]);
-            
+
             // 7. Registrar la cancelacion masiva en el historial.
             $this->historial->execute(
                 tipo: TipoOperacionHistorial::EVENTO_CANCELADO,

@@ -244,7 +244,7 @@ class ResolverSolicitudReembolsoTest extends TestCase
             'email_verified_at' => now(),
         ]);
     }
-    
+
     public function test_no_permite_rechazar_reembolso_de_evento_cancelado(): void
     {
         $datos = $this->escenario();

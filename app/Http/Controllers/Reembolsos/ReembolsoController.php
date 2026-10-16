@@ -104,7 +104,6 @@ class ReembolsoController extends Controller
         }
     }
 
-    
     // RF-20: Cancelacion masiva de un evento.
     public function cancelarEvento(
         Request $request,
