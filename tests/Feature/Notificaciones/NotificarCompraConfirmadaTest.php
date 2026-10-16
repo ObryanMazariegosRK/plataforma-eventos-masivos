@@ -15,7 +15,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
-
+use App\Application\UseCases\Notificaciones\ProgramarRecordatoriosEventosUseCase;
+use App\Application\UseCases\Notificaciones\NotificarCambioEventoUseCase;
 class NotificarCompraConfirmadaTest extends TestCase
 {
     use RefreshDatabase;
@@ -275,4 +276,137 @@ class NotificarCompraConfirmadaTest extends TestCase
         app(NotificarCompraConfirmadaUseCase::class)
             ->execute($datos['pago_id']);
     }
+
+    public function test_programa_recordatorio_para_evento_proximo(): void
+    {
+        $datos = $this->crearEscenario();
+
+        $eventoId = DB::table('reservas')
+            ->where('id', $datos['reserva_id'])
+            ->value('evento_id');
+
+        // El evento se realizara dentro de 24 horas y 30 minutos.
+        DB::table('eventos')
+            ->where('id', $eventoId)
+            ->update([
+                'fecha_evento' => now()->addHours(24)->addMinutes(30),
+            ]);
+
+        $cantidad = app(
+            ProgramarRecordatoriosEventosUseCase::class
+        )->execute();
+
+        $this->assertSame(1, $cantidad);
+
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $datos['cliente']->id,
+            'clave_idempotencia' =>
+                'recordatorio_24h:evento:'
+                . $eventoId
+                . ':usuario:' . $datos['cliente']->id,
+            'estado' => 'pendiente',
+        ]);
+
+        Queue::assertPushed(
+            EnviarNotificacionCorreoJob::class,
+            1
+        );
+    }
+
+    public function test_no_programa_recordatorios_para_eventos_lejanos(): void
+    {
+        // El escenario original crea un evento a 10 dias.
+        $this->crearEscenario();
+
+        $cantidad = app(
+            ProgramarRecordatoriosEventosUseCase::class
+        )->execute();
+
+        $this->assertSame(0, $cantidad);
+
+        $this->assertDatabaseCount('notificaciones', 0);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_notifica_cancelacion_de_evento(): void
+    {
+        $datos = $this->crearEscenario();
+
+        $eventoId = DB::table('reservas')
+            ->where('id', $datos['reserva_id'])
+            ->value('evento_id');
+
+        // Simular la cancelacion realizada por el sistema.
+        DB::table('eventos')
+            ->where('id', $eventoId)
+            ->update(['estado' => 'cancelado']);
+
+        $casoUso = app(NotificarCambioEventoUseCase::class);
+
+        $cantidad = $casoUso->notificarCancelacion($eventoId);
+
+        $this->assertSame(1, $cantidad);
+
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $datos['cliente']->id,
+            'asunto' => 'Evento cancelado: Concierto de Prueba',
+            'estado' => 'pendiente',
+            'clave_idempotencia' =>
+                'evento_cancelado:' . $eventoId
+                . ':usuario:' . $datos['cliente']->id,
+        ]);
+
+        Queue::assertPushed(
+            EnviarNotificacionCorreoJob::class,
+            1
+        );
+
+        // Repetir el aviso no debe crear otro registro.
+        $casoUso->notificarCancelacion($eventoId);
+
+        $this->assertDatabaseCount('notificaciones', 1);
+    }
+
+    public function test_notifica_cambio_de_fecha_de_evento(): void
+    {
+        $datos = $this->crearEscenario();
+
+        $eventoId = DB::table('reservas')
+            ->where('id', $datos['reserva_id'])
+            ->value('evento_id');
+
+        $fechaAnterior = DB::table('eventos')
+            ->where('id', $eventoId)
+            ->value('fecha_evento');
+
+        $nuevaFecha = now()->addDays(15)->format('Y-m-d H:i:s');
+
+        // Simular que el organizador cambia la fecha.
+        DB::table('eventos')
+            ->where('id', $eventoId)
+            ->update(['fecha_evento' => $nuevaFecha]);
+
+        $cantidad = app(
+            NotificarCambioEventoUseCase::class
+        )->notificarCambioFecha(
+            $eventoId,
+            $fechaAnterior
+        );
+
+        $this->assertSame(1, $cantidad);
+
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $datos['cliente']->id,
+            'asunto' => 'Cambio de fecha: Concierto de Prueba',
+            'estado' => 'pendiente',
+        ]);
+
+        Queue::assertPushed(
+            EnviarNotificacionCorreoJob::class,
+            1
+        );
+    }
+
+
 }

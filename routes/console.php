@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use App\Application\UseCases\Notificaciones\ProgramarRecordatoriosEventosUseCase;
+
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -15,3 +17,12 @@ Artisan::command('inspire', function () {
 // Borra de personal_access_tokens los tokens que vencieron hace más de 24 h
 // (un token vencido ya no sirve, pero su fila se queda en la tabla si nadie la limpia).
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+
+Schedule::call(function (): void {
+    app(ProgramarRecordatoriosEventosUseCase::class)
+        ->execute();
+})
+    ->name('notificaciones.recordatorios.24h')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
