@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
 
+        // ---- Notificaciones ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\INotificacionRepository::class,
+            \App\Data\Notificaciones\NotificacionRepository::class
+        );
+
         // ---- Reembolsos ----
         $this->app->bind(
             \App\Domain\Abstractions\Reembolsos\IReembolsoRepository::class,
