@@ -6,6 +6,9 @@ use App\Http\Controllers\Catalogo\CatalogoController;
 use App\Http\Controllers\Catalogo\DetalleEventoController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Boletos\BoletoController;
+
+
 // ---- Auth ----
 // throttle:N,M = máximo N peticiones cada M minutos por IP
 Route::prefix('auth')->group(function () {
@@ -27,6 +30,80 @@ Route::prefix('auth')->group(function () {
 // ---- Reservas ----
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservas', [ReservaController::class, 'store']);
+});
+
+
+    // ---- Boletos ----
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // Consultar el QR del boleto.
+        Route::get('/boletos/{id}/qr', [BoletoController::class, 'qr'])
+            ->whereNumber('id');
+
+        // Validar un boleto en el acceso al evento.
+        Route::post('/boletos/validar', [BoletoController::class, 'validar'])
+            ->middleware('throttle:30,1');
+
+    });
+
+
+// ---- Transacciones e Historial ----
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get(
+        '/transacciones',
+        [
+            \App\Http\Controllers\Transacciones\TransaccionController::class,
+            'index'
+        ]
+    );
+
+});
+
+
+// ---- Historial de Operaciones ----
+Route::middleware('auth:sanctum')->get(
+    '/historial-operaciones',
+    [
+        \App\Http\Controllers\Transacciones\TransaccionController::class,
+        'operaciones'
+    ]
+);
+
+
+
+// ---- Reembolsos ----
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Cliente: solicitar un reembolso.
+    Route::post(
+        '/reembolsos',
+        [
+            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
+            'store'
+        ]
+    )->middleware('throttle:10,1');
+
+    // Administrador: aprobar o rechazar.
+    Route::patch(
+        '/reembolsos/{id}/resolver',
+        [
+            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
+            'resolver'
+        ]
+    )->whereNumber('id')
+     ->middleware('throttle:10,1');
+
+    // RF-20: Administrador cancela un evento completo.
+    Route::post(
+        '/eventos/{id}/cancelar',
+        [
+            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
+            'cancelarEvento'
+        ]
+    )->whereNumber('id')
+    ->middleware('throttle:5,1');
+
 });
 
 // ---- Catálogo de eventos públicos ----

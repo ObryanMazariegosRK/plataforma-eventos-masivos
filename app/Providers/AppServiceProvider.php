@@ -2,6 +2,12 @@
 
 namespace App\Providers;
 
+use App\Application\Abstractions\Boletos\IGeneradorQrBoleto;
+use App\Infrastructure\Boletos\GeneradorQrBoletoSvg;
+
+use App\Application\Abstractions\Boletos\IObtenerQrBoletoUseCase;
+use App\Application\UseCases\Boletos\ObtenerQrBoletoUseCase;
+
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -12,14 +18,59 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+
+        // ---- Notificaciones ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\INotificacionRepository::class,
+            \App\Data\Notificaciones\NotificacionRepository::class
+        );
+
+        // ---- Reembolsos ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Reembolsos\IReembolsoRepository::class,
+            \App\Data\Reembolsos\ReembolsoRepository::class,
+        );
+
+        //Transacciones
+        $this->app->bind(
+            \App\Domain\Abstractions\Transacciones\ITransaccionRepository::class,
+            \App\Data\Transacciones\TransaccionRepository::class
+        );
+
+        // Caso de uso para emitir boletos
+        $this->app->bind(
+            IGeneradorQrBoleto::class,
+            GeneradorQrBoletoSvg::class
+        );
+
+        // Caso de uso para obtener el QR de un boleto.
+        $this->app->bind(
+            IObtenerQrBoletoUseCase::class,
+            ObtenerQrBoletoUseCase::class
+        );
+
+        // ---- Boletos ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Boletos\IBoletoRepository::class,
+            \App\Data\Boletos\BoletoRepository::class,
+        );
+
+         // Caso de uso para emitir boletos
+        $this->app->bind(
+            \App\Application\Abstractions\Boletos\IEmitirBoletosUseCase::class,
+            \App\Application\UseCases\Boletos\EmitirBoletosUseCase::class,
+        );
+
         // ---- Reservas ----
         $this->app->bind(
             \App\Domain\Abstractions\Reservas\IReservaRepository::class,
             \App\Data\Reservas\ReservaRepository::class,
         );
+
+        // Crear reserva y registrar automáticamente su historial.
         $this->app->bind(
             \App\Application\Abstractions\Reservas\ICrearReservaUseCase::class,
-            \App\Application\UseCases\Reservas\CrearReservaUseCase::class,
+            \App\Application\UseCases\Transacciones\CrearReservaConHistorialUseCase::class,
         );
 
         // ---- Auth ----

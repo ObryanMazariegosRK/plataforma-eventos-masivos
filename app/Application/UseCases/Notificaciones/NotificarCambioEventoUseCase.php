@@ -1,0 +1,169 @@
+<?php
+
+namespace App\Application\UseCases\Notificaciones;
+
+use App\Domain\Abstractions\Notificaciones\INotificacionRepository;
+use App\Domain\Entities\Notificaciones\Notificacion;
+use App\Domain\Enums\Notificaciones\CanalNotificacion;
+use App\Domain\Enums\Notificaciones\EstadoNotificacion;
+use App\Domain\Enums\Pagos\EstadoPago;
+use App\Domain\Enums\Recintos\EstadoEvento;
+use App\Domain\Enums\Reservas\EstadoReserva;
+use App\Jobs\Notificaciones\EnviarNotificacionCorreoJob;
+use Carbon\Carbon;
+use DomainException;
+use Illuminate\Support\Facades\DB;
+
+class NotificarCambioEventoUseCase
+{
+    public function __construct(
+        private readonly INotificacionRepository $notificaciones
+    ) {}
+
+    public function notificarCancelacion(int $eventoId): int
+    {
+        $evento = $this->obtenerEvento($eventoId);
+
+        if ($evento->estado !== EstadoEvento::CANCELADO->value) {
+            throw new DomainException(
+                'El evento todavía no está cancelado.'
+            );
+        }
+
+        return $this->notificarCompradores(
+            eventoId: $eventoId,
+            asunto: 'Evento cancelado: ' . $evento->nombre,
+            mensaje: 'Te informamos que el evento '
+                . $evento->nombre
+                . ' ha sido cancelado. '
+                . 'La gestión de los reembolsos '
+                . 'se realizará según el proceso correspondiente.',
+            claveBase: 'evento_cancelado:' . $eventoId
+        );
+    }
+
+    public function notificarCambioFecha(
+        int $eventoId,
+        string $fechaAnterior
+    ): int {
+        $evento = $this->obtenerEvento($eventoId);
+
+        if (!in_array($evento->estado, [
+            EstadoEvento::PUBLICADO->value,
+            EstadoEvento::AGOTADO->value,
+        ], true)) {
+            throw new DomainException(
+                'El estado del evento no permite este aviso.'
+            );
+        }
+
+        try {
+            $anterior = Carbon::parse($fechaAnterior);
+            $nueva = Carbon::parse($evento->fecha_evento);
+        } catch (\Throwable $e) {
+            throw new DomainException(
+                'La fecha anterior no es válida.',
+                previous: $e
+            );
+        }
+
+        if ($anterior->equalTo($nueva)) {
+            throw new DomainException(
+                'La fecha del evento no ha cambiado.'
+            );
+        }
+
+        return $this->notificarCompradores(
+            eventoId: $eventoId,
+            asunto: 'Cambio de fecha: ' . $evento->nombre,
+            mensaje: 'La fecha del evento '
+                . $evento->nombre
+                . ' ha cambiado. Nueva fecha: '
+                . $nueva->format('d/m/Y H:i')
+                . '. Conserva tu boleto digital '
+                . 'y revisa la información del evento.',
+            claveBase: 'evento_fecha:' . $eventoId
+                . ':' . $nueva->format('YmdHis')
+        );
+    }
+
+    private function obtenerEvento(int $eventoId): object
+    {
+        if ($eventoId <= 0) {
+            throw new DomainException(
+                'El identificador del evento no es válido.'
+            );
+        }
+
+        $evento = DB::table('eventos')
+            ->where('id', $eventoId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($evento === null) {
+            throw new DomainException(
+                'El evento no existe.'
+            );
+        }
+
+        return $evento;
+    }
+
+    private function notificarCompradores(
+        int $eventoId,
+        string $asunto,
+        string $mensaje,
+        string $claveBase
+    ): int {
+        $programados = 0;
+
+        DB::table('reservas as r')
+            ->join('pagos as p', 'p.reserva_id', '=', 'r.id')
+            ->where('r.evento_id', $eventoId)
+            ->where('r.estado', EstadoReserva::CONFIRMADA->value)
+            ->where('p.estado', EstadoPago::APROBADO->value)
+            ->whereNull('r.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->select('r.usuario_id')
+            ->distinct()
+            ->orderBy('r.usuario_id')
+            ->chunk(200, function ($compradores) use (
+                $asunto,
+                $mensaje,
+                $claveBase,
+                &$programados
+            ) {
+                foreach ($compradores as $comprador) {
+                    $usuarioId = (int) $comprador->usuario_id;
+
+                    $notificacion = new Notificacion(
+                        id: null,
+                        usuarioId: $usuarioId,
+                        canal: CanalNotificacion::EMAIL,
+                        asunto: $asunto,
+                        mensaje: $mensaje,
+                        estado: EstadoNotificacion::PENDIENTE
+                    );
+
+                    $guardada = $this->notificaciones->guardarUnica(
+                        notificacion: $notificacion,
+                        claveIdempotencia: $claveBase
+                            . ':usuario:' . $usuarioId
+                    );
+
+                    if (
+                        $guardada->getEstado()
+                        === EstadoNotificacion::PENDIENTE
+                    ) {
+                        EnviarNotificacionCorreoJob::dispatch(
+                            $guardada->getId()
+                        )->afterCommit();
+
+                        $programados++;
+                    }
+                }
+            });
+
+        return $programados;
+    }
+}
