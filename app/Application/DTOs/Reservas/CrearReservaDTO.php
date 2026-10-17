@@ -8,5 +8,7 @@ class CrearReservaDTO
         public readonly int $eventoId,
         public readonly float $total,
         public readonly int $ttlSegundos,
+        public readonly array $inventarioIds = [],
+
     ) {}
 }

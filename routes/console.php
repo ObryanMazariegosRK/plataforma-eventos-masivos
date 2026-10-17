@@ -4,7 +4,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Application\UseCases\Notificaciones\ProgramarRecordatoriosEventosUseCase;
-
+use App\Application\UseCases\Reservas\ExpirarReservasVencidasUseCase;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -25,4 +25,17 @@ Schedule::call(function (): void {
 })
     ->name('notificaciones.recordatorios.24h')
     ->everyFiveMinutes()
+    ->withoutOverlapping();
+
+
+ // ---- Expiración automática de reservas ----
+ // Revisa cada minuto las reservas cuyo TTL terminó.
+ // Libera los elementos de inventario que siguen bloqueados.
+
+Schedule::call(function (): void {
+    app(ExpirarReservasVencidasUseCase::class)
+        ->execute();
+})
+    ->name('reservas.expirar.vencidas')
+    ->everyMinute()
     ->withoutOverlapping();

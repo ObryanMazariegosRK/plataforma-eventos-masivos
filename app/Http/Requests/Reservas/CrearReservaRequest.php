@@ -14,7 +14,14 @@ class CrearReservaRequest extends FormRequest
     {
         return [
             'evento_id'  => ['required', 'integer', 'gt:0', 'exists:eventos,id'],
-            'total'      => ['required', 'numeric', 'gt:0'],
+            'inventario_ids' => ['required', 'array', 'min:1'],
+            'inventario_ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:inventario,id',
+            ],
+
         ];
     }
 }
