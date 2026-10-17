@@ -7,7 +7,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// ---- Autenticación (vistas; toda la lógica va por la API /api/auth/*) ----
+// ---- Autenticación (vistas; la lógica va por /api/auth/*) ----
 Route::view('/login', 'autenticacion.login')->name('login');
 Route::view('/registro', 'autenticacion.registro')->name('registro');
 Route::view('/verificar', 'autenticacion.verificar')->name('verificar');
@@ -18,10 +18,10 @@ Route::view('/restablecer-password', 'autenticacion.restablecer-password')->name
 // ---- Login con Google (OAuth) ----
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
-Route::view('/oauth/google', 'autenticacion.google-callback');   // guarda el token y entra al perfil
+Route::view('/oauth/google', 'autenticacion.google-callback');
 
-// ---- Catalogo de Eventos ----
-// Pagina publica para consultar los eventos disponibles.
-Route::view('/catalogo', 'catalogo.index')
-    ->name('catalogo.index');
-
+// ---- Catálogo público de PULSO ----
+Route::view('/catalogo', 'catalogo.index')->name('catalogo.index');
+Route::view('/eventos/{id}', 'catalogo.detalle')
+    ->whereNumber('id')
+    ->name('catalogo.detalle');
