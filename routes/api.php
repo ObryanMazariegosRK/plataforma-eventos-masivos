@@ -29,10 +29,16 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-// ---- Reservas ----
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/reservas', [ReservaController::class, 'store']);
-});
+
+    // ---- Reservas ----
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/reservas', [ReservaController::class, 'store']);
+
+        Route::delete('/reservas/{id}', [ReservaController::class, 'destroy'])
+            ->whereNumber('id')
+            ->middleware('throttle:10,1');
+    });
+
 
 
     // ---- Boletos ----
@@ -47,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('throttle:30,1');
 
     });
+
+
 
 
 // ---- Transacciones e Historial ----

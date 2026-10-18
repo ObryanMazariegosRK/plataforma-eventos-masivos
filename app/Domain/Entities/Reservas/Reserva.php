@@ -31,31 +31,63 @@ class Reserva
         return $this->estado === EstadoReserva::ACTIVA;
     }
 
+
     public function haVencido(DateTimeImmutable $ahora): bool
     {
-        return $this->estado === EstadoReserva::ACTIVA && $this->expiraEn < $ahora;
+        return $this->estado === EstadoReserva::ACTIVA
+            && $this->expiraEn <= $ahora;
     }
+
+
 
     public function confirmar(): void
     {
         if ($this->estado !== EstadoReserva::ACTIVA) {
-            throw new DomainException('Solo se puede confirmar una reserva activa.');
+            throw new DomainException(
+                'Solo se puede confirmar una reserva activa.'
+            );
         }
+
+        if ($this->haVencido(new DateTimeImmutable())) {
+            throw new DomainException(
+                'No se puede confirmar una reserva vencida.'
+            );
+        }
+
         $this->estado = EstadoReserva::CONFIRMADA;
     }
 
+
+
     public function cancelar(): void
     {
-        if ($this->estado === EstadoReserva::CONFIRMADA) {
-            throw new DomainException('No se puede cancelar una reserva ya confirmada.');
+        if ($this->estado !== EstadoReserva::ACTIVA) {
+            throw new DomainException(
+                'Solo se puede cancelar una reserva activa.'
+            );
         }
+
+        if ($this->haVencido(new DateTimeImmutable())) {
+            throw new DomainException(
+                'La reserva ya ha vencido.'
+            );
+        }
+
         $this->estado = EstadoReserva::CANCELADA;
     }
 
+
     public function vencer(): void
     {
+        if ($this->estado !== EstadoReserva::ACTIVA) {
+            throw new DomainException(
+                'Solo se puede vencer una reserva activa.'
+            );
+        }
+
         $this->estado = EstadoReserva::VENCIDA;
     }
+
 
     // Getters
     public function getId(): ?int { return $this->id; }
