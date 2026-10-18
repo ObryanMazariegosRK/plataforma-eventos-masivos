@@ -1,0 +1,49 @@
+# Pruebas manuales del módulo Pagos (pasarela simulada).
+# Lo más cómodo es probar en el navegador: http://localhost:8090/pagar?reserva=ID
+# Este archivo sirve para ver las respuestas de la API paso a paso.
+#
+# Antes: `php artisan db:seed --class=PasarelaSeeder`, un usuario verificado y una
+# reserva ACTIVA suya (créala con reservas.http). Ver http/README.md.
+
+@baseUrl = http://localhost:8090/api
+@email = ana@example.com
+@password = Secreto#123
+@reservaId = 1
+
+### 0) Login → guarda el token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}"
+}
+
+### 1) Pasarelas disponibles (público)
+GET {{baseUrl}}/pasarelas
+Accept: application/json
+
+### 2) Iniciar pago → 201 {pago_id, url_aprobacion}
+# Abre url_aprobacion en el NAVEGADOR y elige Aprobar / Rechazar / Cancelar.
+# @name iniciar
+POST {{baseUrl}}/pagos
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+    "reserva_id": {{reservaId}},
+    "pasarela": "simulada"
+}
+
+### 3) Confirmar (cobrar) → 200 aprobado | 402 pago_rechazado
+POST {{baseUrl}}/pagos/{{iniciar.response.body.pago_id}}/confirmar
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+### 4) Consultar el pago
+GET {{baseUrl}}/pagos/{{iniciar.response.body.pago_id}}
+Accept: application/json
+Authorization: Bearer {{login.response.body.token}}

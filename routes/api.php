@@ -7,6 +7,8 @@ use App\Http\Controllers\Catalogo\DetalleEventoController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Boletos\BoletoController;
+use App\Http\Controllers\Pagos\PagoController;
+use App\Http\Controllers\Pasarelas\PasarelaController;
 
 
 // ---- Auth ----
@@ -110,3 +112,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/eventos', [CatalogoController::class, 'index']);
 Route::get('/eventos/{id}', [DetalleEventoController::class, 'show'])
     ->whereNumber('id');
+
+// ---- Pagos ----
+Route::get('/pasarelas', [PasarelaController::class, 'index']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/pagos', [PagoController::class, 'iniciar'])->middleware('throttle:10,1');
+    Route::post('/pagos/{id}/confirmar', [PagoController::class, 'confirmar'])
+        ->whereNumber('id')->middleware('throttle:20,1');
+    Route::get('/pagos/{id}', [PagoController::class, 'mostrar'])->whereNumber('id');
+});

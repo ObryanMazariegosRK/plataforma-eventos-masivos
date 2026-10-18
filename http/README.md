@@ -68,3 +68,18 @@ GOOGLE_REDIRECT_URI=http://localhost:8090/auth/google/callback
 
 Mientras la app de Google esté en modo **Prueba**, solo pueden entrar las cuentas agregadas
 como *usuarios de prueba* en Google Cloud Console.
+
+## Pagos (pasarela simulada)
+
+1. Una vez: `docker compose exec app php artisan db:seed --class=PasarelaSeeder` (crea la pasarela `simulada`).
+2. Crea una reserva con `reservas.http` y anota su `id`.
+3. En el navegador (con sesión iniciada): http://localhost:8090/pagar?reserva=ID → **Ir a pagar**
+   → en la pasarela simulada elige **Aprobar**, **Rechazar** o **Cancelar**.
+
+Para que se emitan boletos, la reserva debe tener asientos en `inventario` (`reserva_id` = la reserva,
+`estado` = `bloqueado`). Mientras Reservas no los asigne, insértalos a mano en Adminer:
+
+```sql
+INSERT INTO inventario (evento_id, localidad_id, estado, reserva_id, bloqueado_hasta, created_at, updated_at)
+VALUES (<evento_id>, <localidad_id>, 'bloqueado', <reserva_id>, NOW() + INTERVAL 10 MINUTE, NOW(), NOW());
+```
