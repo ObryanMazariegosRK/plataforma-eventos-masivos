@@ -177,11 +177,15 @@ class PagoSimuladoTest extends TestCase
             ]);
         }
 
-        return $this->withToken($this->token)
+        $respuesta = $this->withToken($this->token)
             ->postJson('/api/reservas', ['evento_id' => $this->eventoId, 'inventario_ids' => $inventarioIds])
-            ->assertCreated()
-            ->assertJsonPath('total', 125.0 * $asientos)
-            ->json('id');
+            ->assertCreated();
+
+        // assertEquals (no assertSame): en JSON, 250.0 llega como 250 y 250.50 como 250.5;
+        // importa el valor, no si PHP lo lee como entero o decimal.
+        $this->assertEquals(125 * $asientos, $respuesta->json('total'));
+
+        return $respuesta->json('id');
     }
 
     private function crearUsuario(string $email): UsuarioModel
