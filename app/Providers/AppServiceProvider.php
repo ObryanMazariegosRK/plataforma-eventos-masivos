@@ -151,6 +151,54 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Catalogo\ListarEventosUseCase::class,
         );
 
+        // ---- Pagos y Pasarelas ----
+        // repositorios
+        $this->app->bind(
+            \App\Domain\Abstractions\Pagos\IPagoRepository::class,
+            \App\Data\Pagos\PagoRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Pasarelas\IPasarelaRepository::class,
+            \App\Data\Pasarelas\PasarelaRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Inventario\IInventarioRepository::class,
+            \App\Data\Inventario\InventarioRepository::class,
+        );
+        // servicios
+        $this->app->bind(
+            \App\Domain\Abstractions\Shared\IUnidadDeTrabajo::class,
+            \App\Infrastructure\Shared\UnidadDeTrabajoLaravel::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Pasarelas\IPasarelaPagoResolver::class,
+            \App\Infrastructure\Pasarelas\PasarelaPagoResolver::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Pagos\IRegistroVenta::class,
+            \App\Infrastructure\Pagos\RegistroVentaTransacciones::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Pagos\IProcesadorPostVenta::class,
+            \App\Infrastructure\Pagos\ProcesadorPostVentaEnCola::class,
+        );
+        // casos de uso
+        $this->app->bind(
+            \App\Application\Abstractions\Pagos\IIniciarPagoUseCase::class,
+            \App\Application\UseCases\Pagos\IniciarPagoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Pagos\IConfirmarPagoUseCase::class,
+            \App\Application\UseCases\Pagos\ConfirmarPagoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Pagos\IConsultarPagoUseCase::class,
+            \App\Application\UseCases\Pagos\ConsultarPagoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Pasarelas\IListarPasarelasUseCase::class,
+            \App\Application\UseCases\Pasarelas\ListarPasarelasUseCase::class,
+        );
     }
 
     /**

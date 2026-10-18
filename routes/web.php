@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Pasarelas\PasarelaSimuladaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -25,3 +26,14 @@ Route::view('/catalogo', 'catalogo.index')->name('catalogo.index');
 Route::view('/eventos/{id}', 'catalogo.detalle')
     ->whereNumber('id')
     ->name('catalogo.detalle');
+
+// ---- Pagos (vistas) ----
+Route::view('/pagar', 'pagos.pagar')->name('pagos.pagar');
+Route::view('/pagos/retorno', 'pagos.retorno')->name('pagos.retorno');       // la pasarela regresa aquí
+Route::view('/pagos/cancelado', 'pagos.cancelado')->name('pagos.cancelado');
+
+// ---- Pasarela simulada (imita la página externa de una pasarela; solo para pruebas) ----
+Route::get('/pasarela-simulada/{orden}', [PasarelaSimuladaController::class, 'mostrar'])
+    ->name('pasarela-simulada.mostrar');
+Route::post('/pasarela-simulada/{orden}', [PasarelaSimuladaController::class, 'decidir'])
+    ->name('pasarela-simulada.decidir');

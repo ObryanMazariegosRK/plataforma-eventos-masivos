@@ -11,6 +11,12 @@ use App\Domain\Exceptions\Auth\PasswordActualIncorrectaException;
 use App\Domain\Exceptions\Auth\PasswordNuevaIgualException;
 use App\Domain\Exceptions\Auth\UsuarioBloqueadoException;
 use App\Domain\Exceptions\Auth\UsuarioNoEncontradoException;
+use App\Domain\Exceptions\Pagos\PagoNoEncontradoException;
+use App\Domain\Exceptions\Pagos\PagoRechazadoException;
+use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
+use App\Domain\Exceptions\Pagos\ReservaNoEncontradaException;
+use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
+use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
 use App\Domain\Exceptions\ReglaDeNegocioException;
 use App\Http\Middleware\VerificarRol;
 use App\Http\Middleware\VerificarUsuarioActivo;
@@ -54,6 +60,13 @@ return Application::configure(basePath: dirname(__DIR__))
             // 422 y no 401: un 401 haría que el frontend creyera que la sesión expiró
             PasswordActualIncorrectaException::class    => [422, 'password_actual_incorrecta'],
             PasswordNuevaIgualException::class          => [422, 'password_igual'],
+            // ---- Pagos ----
+            ReservaNoEncontradaException::class         => [404, 'reserva_no_encontrada'],
+            PagoNoEncontradoException::class            => [404, 'pago_no_encontrado'],
+            ReservaNoPagableException::class            => [409, 'reserva_no_pagable'],
+            ReservaYaPagadaException::class             => [409, 'reserva_ya_pagada'],
+            PasarelaNoDisponibleException::class        => [422, 'pasarela_no_disponible'],
+            PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
         ];
 
         // Callback de Google: es una redirección del navegador, no una petición JSON.

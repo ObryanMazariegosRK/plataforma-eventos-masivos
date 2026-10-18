@@ -121,7 +121,8 @@ body {
 
 .campo .opcional { font-weight: 400; color: var(--texto-suave); }
 
-.campo input {
+.campo input,
+.campo select {
     width: 100%;
     padding: 12px 14px;
     font-size: 15px;
@@ -132,7 +133,8 @@ body {
     transition: border-color .15s, box-shadow .15s;
 }
 
-.campo input:focus {
+.campo input:focus,
+.campo select:focus {
     outline: none;
     border-color: var(--primario);
     box-shadow: 0 0 0 3px rgba(109, 40, 217, .15);

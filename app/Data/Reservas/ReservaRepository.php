@@ -23,6 +23,15 @@ class ReservaRepository implements IReservaRepository
         return $this->aEntidad($m);
     }
 
+    public function buscarPorIdParaActualizar(int $id): ?Reserva
+    {
+        // lockForUpdate: nadie más puede modificar esta reserva hasta que termine la transacción
+        // (por ejemplo, el proceso que vence reservas mientras alguien la está pagando)
+        $m = ReservaModel::whereKey($id)->lockForUpdate()->first();
+
+        return $m ? $this->aEntidad($m) : null;
+    }
+
     public function buscarPorId(int $id): ?Reserva
     {
         $m = ReservaModel::find($id);
