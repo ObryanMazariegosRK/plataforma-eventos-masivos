@@ -10,28 +10,40 @@ responde con redirección (302) en vez del JSON 422.
 
 1. **Usuario:** `POST /api/reservas` requiere token, así que el usuario debe estar
    **registrado y verificado**. Créalo con `auth.http` o en http://localhost:8090/registro.
-   (No lo insertes por SQL: no tendría un password hasheado ni el correo verificado,
-   y no podría iniciar sesión.)
-2. **Evento:** se crea a mano desde Adminer
+   (No lo insertes por SQL: no tendría un password hasheado ni el correo verificado.)
+2. **Evento con asientos y precio:** la reserva se hace eligiendo filas de `inventario`
+   en estado `disponible`, y el total sale de la tabla `precios`. Desde Adminer
    (http://localhost:8082 → servidor `mysql`, usuario `eventos`, contraseña `root`, base `eventos`)
-   con **SQL command**:
+   → **SQL command**, para un evento existente (cambia `4` por su id):
 
 ```sql
-INSERT INTO recintos (nombre, direccion, ciudad, created_at, updated_at)
-VALUES ('Estadio', 'Zona 1', 'Guatemala', NOW(), NOW());
+-- localidad (zona) en el recinto del evento, si no tiene ninguna
+INSERT INTO localidades (recinto_id, nombre, tipo, capacidad, created_at, updated_at)
+SELECT e.recinto_id, 'General', 'general', 100, NOW(), NOW()
+FROM eventos e
+WHERE e.id = 4 AND NOT EXISTS (SELECT 1 FROM localidades l WHERE l.recinto_id = e.recinto_id);
 
-INSERT INTO eventos (recinto_id, nombre, fecha_evento, estado, created_at, updated_at)
-SELECT id, 'Concierto', NOW() + INTERVAL 30 DAY, 'publicado', NOW(), NOW()
-FROM recintos WHERE nombre = 'Estadio' ORDER BY id DESC LIMIT 1;
+-- precio de esa localidad para el evento
+INSERT INTO precios (evento_id, localidad_id, precio, created_at, updated_at)
+SELECT 4, l.id, 125, NOW(), NOW()
+FROM localidades l JOIN eventos e ON e.recinto_id = l.recinto_id
+WHERE e.id = 4 AND NOT EXISTS (SELECT 1 FROM precios p WHERE p.evento_id = 4 AND p.localidad_id = l.id)
+LIMIT 1;
 
--- ver el id del evento para ponerlo en el .http
-SELECT MAX(id) AS evento_id FROM eventos;
+-- 5 cupos disponibles (localidad general, sin asiento numerado)
+INSERT INTO inventario (evento_id, localidad_id, estado, created_at, updated_at)
+SELECT 4, l.id, 'disponible', NOW(), NOW()
+FROM localidades l JOIN eventos e ON e.recinto_id = l.recinto_id
+CROSS JOIN (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) cinco
+WHERE e.id = 4
+LIMIT 5;
+
+-- ids disponibles para poner en @inventarioIds
+SELECT id FROM inventario WHERE evento_id = 4 AND estado = 'disponible';
 ```
 
-(No se usa `LAST_INSERT_ID()` porque Adminer abre una conexión nueva en cada ejecución y
-ese valor solo vive dentro de la misma conexión.)
-
-Luego ajusta `@eventoId`, `@email` y `@password` en `reservas.http` y ejecuta primero la petición 0 (login).
+Luego ajusta `@eventoId`, `@inventarioIds`, `@email` y `@password` en `reservas.http` y ejecuta primero la petición 0 (login).
+Las reservas vencen en 5 minutos y sus asientos vuelven a `disponible` (tarea programada de Reservas).
 
 ## `auth.http`
 
@@ -72,14 +84,8 @@ como *usuarios de prueba* en Google Cloud Console.
 ## Pagos (pasarela simulada)
 
 1. Una vez: `docker compose exec app php artisan db:seed --class=PasarelaSeeder` (crea la pasarela `simulada`).
-2. Crea una reserva con `reservas.http` y anota su `id`.
+2. Crea una reserva con `reservas.http` (con asientos, ver arriba) y anota su `id`.
 3. En el navegador (con sesión iniciada): http://localhost:8090/pagar?reserva=ID → **Ir a pagar**
    → en la pasarela simulada elige **Aprobar**, **Rechazar** o **Cancelar**.
 
-Para que se emitan boletos, la reserva debe tener asientos en `inventario` (`reserva_id` = la reserva,
-`estado` = `bloqueado`). Mientras Reservas no los asigne, insértalos a mano en Adminer:
-
-```sql
-INSERT INTO inventario (evento_id, localidad_id, estado, reserva_id, bloqueado_hasta, created_at, updated_at)
-VALUES (<evento_id>, <localidad_id>, 'bloqueado', <reserva_id>, NOW() + INTERVAL 10 MINUTE, NOW(), NOW());
-```
+Al aprobar se emiten los boletos (`SELECT * FROM boletos WHERE reserva_id = ID;`) y llega el correo a Mailpit.

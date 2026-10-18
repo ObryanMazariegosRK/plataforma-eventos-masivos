@@ -172,7 +172,7 @@ class PagoUseCasesTest extends TestCase
 
     public function test_confirmar_dos_veces_no_cobra_dos_veces(): void
     {
-        $this->crearReserva();
+        $this->crearAsientos($this->crearReserva(), 1);
         $pagoId = $this->iniciar->execute($this->dtoIniciar())->pagoId;
 
         $this->confirmar->execute(new ConfirmarPagoDTO(self::DUENO, $pagoId));
@@ -180,6 +180,20 @@ class PagoUseCasesTest extends TestCase
 
         $this->assertSame(EstadoPago::APROBADO, $segunda->getEstado());
         $this->assertCount(1, $this->pasarela->capturas);
+    }
+
+    public function test_sin_asientos_no_se_cobra(): void
+    {
+        $this->crearReserva();
+        $pagoId = $this->iniciar->execute($this->dtoIniciar())->pagoId;
+
+        try {
+            $this->confirmar->execute(new ConfirmarPagoDTO(self::DUENO, $pagoId));
+            $this->fail('Debió lanzar excepción');
+        } catch (ReservaNoPagableException) {
+            $this->assertSame([], $this->pasarela->capturas);
+            $this->assertSame(EstadoPago::PENDIENTE, $this->pagos->buscarPorId($pagoId)->getEstado());
+        }
     }
 
     public function test_no_se_puede_confirmar_el_pago_de_otra_persona(): void

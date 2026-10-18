@@ -39,7 +39,12 @@ class PagoSimuladoTest extends TestCase
             'estado' => 'publicado', 'created_at' => now(), 'updated_at' => now(),
         ]);
         $this->localidadId = DB::table('localidades')->insertGetId([
-            'recinto_id' => $recintoId, 'nombre' => 'General', 'tipo' => 'general', 'capacidad' => 100,
+            'recinto_id' => $recintoId, 'nombre' => 'Platea', 'tipo' => 'numerada', 'capacidad' => 100,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        // precio oficial de la localidad: Reservas calcula el total con esta tabla
+        DB::table('precios')->insert([
+            'evento_id' => $this->eventoId, 'localidad_id' => $this->localidadId, 'precio' => 125,
             'created_at' => now(), 'updated_at' => now(),
         ]);
     }
@@ -154,24 +159,29 @@ class PagoSimuladoTest extends TestCase
 
     // ---- Ayudantes ----
 
-    // La reserva se crea por la API real; los asientos se insertan a mano porque
-    // CrearReserva todavía no los asigna (lo está haciendo el módulo de Reservas).
+    // Igual que el frontend: hay asientos DISPONIBLES, el cliente elige cuáles
+    // y la API de Reservas los bloquea y calcula el total (125 por asiento).
     private function crearReservaConAsientos(int $asientos): int
     {
-        $reservaId = $this->withToken($this->token)
-            ->postJson('/api/reservas', ['evento_id' => $this->eventoId, 'total' => 250])
-            ->assertCreated()
-            ->json('id');
+        static $numero = 0;
+        $inventarioIds = [];
 
         for ($i = 0; $i < $asientos; $i++) {
-            DB::table('inventario')->insert([
-                'evento_id' => $this->eventoId, 'localidad_id' => $this->localidadId, 'asiento_id' => null,
-                'estado' => 'bloqueado', 'reserva_id' => $reservaId, 'bloqueado_hasta' => now()->addMinutes(5),
+            $asientoId = DB::table('asientos')->insertGetId([
+                'localidad_id' => $this->localidadId, 'fila' => 'A', 'numero' => ++$numero,
                 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $inventarioIds[] = DB::table('inventario')->insertGetId([
+                'evento_id' => $this->eventoId, 'localidad_id' => $this->localidadId, 'asiento_id' => $asientoId,
+                'estado' => 'disponible', 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
 
-        return $reservaId;
+        return $this->withToken($this->token)
+            ->postJson('/api/reservas', ['evento_id' => $this->eventoId, 'inventario_ids' => $inventarioIds])
+            ->assertCreated()
+            ->assertJsonPath('total', 125.0 * $asientos)
+            ->json('id');
     }
 
     private function crearUsuario(string $email): UsuarioModel

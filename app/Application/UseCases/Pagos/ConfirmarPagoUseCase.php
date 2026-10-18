@@ -15,6 +15,7 @@ use App\Domain\Entities\Pagos\Pago;
 use App\Domain\Exceptions\Pagos\PagoNoEncontradoException;
 use App\Domain\Exceptions\Pagos\PagoRechazadoException;
 use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
+use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use DateTimeImmutable;
 
 /**
@@ -85,12 +86,17 @@ class ConfirmarPagoUseCase implements IConfirmarPagoUseCase
         $codigoPasarela = $this->pasarelas->buscarPorId($pago->getPasarelaId())?->getCodigo()
             ?? throw new PasarelaNoDisponibleException();
 
+        // Sin asientos no hay boletos que emitir: no se cobra.
+        $asientos = $this->inventario->buscarPorReserva($reserva->getId(), bloquear: true);
+        if ($asientos === []) {
+            throw new ReservaNoPagableException('La reserva no tiene asientos asignados. No se realizó ningún cobro.');
+        }
+
         // ---- cambios (se deshacen si el cobro falla) ----
         $reserva->confirmar();
         $this->reservas->guardar($reserva);
 
-        // TODO: cuando Reservas asigne asientos, exigir que la reserva tenga al menos uno.
-        foreach ($this->inventario->buscarPorReserva($reserva->getId(), bloquear: true) as $item) {
+        foreach ($asientos as $item) {
             $item->vender();
             $this->inventario->guardar($item);
         }
