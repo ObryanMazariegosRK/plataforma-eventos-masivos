@@ -14,6 +14,7 @@ class Pago
         private int $intento = 1,
         private ?int $pasarelaId = null,
         private ?string $referenciaExterna = null,
+        private ?string $ordenExterna = null,
     ) {
         $this->validar();
     }
@@ -29,6 +30,23 @@ class Pago
     }
 
     // Comportamiento
+    public function estaPendiente(): bool
+    {
+        return $this->estado === EstadoPago::PENDIENTE;
+    }
+
+    /** Paso 1: la pasarela creó la orden que la persona va a aprobar. */
+    public function asignarOrdenExterna(string $ordenExterna): void
+    {
+        if (! $this->estaPendiente()) {
+            throw new DomainException('Solo un pago pendiente puede recibir una orden de la pasarela.');
+        }
+        if (trim($ordenExterna) === '') {
+            throw new DomainException('La orden de la pasarela no puede estar vacía.');
+        }
+        $this->ordenExterna = $ordenExterna;
+    }
+
     public function fueAprobado(): bool
     {
         return $this->estado === EstadoPago::APROBADO;
@@ -59,4 +77,5 @@ class Pago
     public function getIntento(): int { return $this->intento; }
     public function getPasarelaId(): ?int { return $this->pasarelaId; }
     public function getReferenciaExterna(): ?string { return $this->referenciaExterna; }
+    public function getOrdenExterna(): ?string { return $this->ordenExterna; }
 }

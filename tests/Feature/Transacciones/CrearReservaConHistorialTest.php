@@ -47,6 +47,15 @@ class CrearReservaConHistorialTest extends TestCase
 
         $this->assertDatabaseCount('reservas', 1);
         $this->assertDatabaseCount('historial_operaciones', 1);
+
+        $this->assertSame(150.00, $reserva->getTotal());
+
+        $this->assertDatabaseHas('inventario', [
+            'id' => $dto->inventarioIds[0],
+            'estado' => 'bloqueado',
+            'reserva_id' => $reserva->getId(),
+        ]);
+
     }
 
     public function test_revierte_reserva_si_falla_historial(): void
@@ -87,6 +96,14 @@ class CrearReservaConHistorialTest extends TestCase
 
         // Tampoco deben existir registros de historial.
         $this->assertDatabaseCount('historial_operaciones', 0);
+
+        $this->assertDatabaseHas('inventario', [
+            'id' => $dto->inventarioIds[0],
+            'estado' => 'disponible',
+            'reserva_id' => null,
+            'bloqueado_hasta' => null,
+        ]);
+
     }
 
     private function prepararEscenario(): CrearReservaDTO
@@ -118,11 +135,43 @@ class CrearReservaConHistorialTest extends TestCase
             'updated_at' => now(),
         ]);
 
+
+        // Crear una localidad para el evento.
+        $localidadId = DB::table('localidades')->insertGetId([
+            'recinto_id' => $recintoId,
+            'nombre' => 'Localidad General',
+            'tipo' => 'general',
+            'capacidad' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Configurar el precio oficial de la localidad.
+        DB::table('precios')->insert([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'precio' => 150.00,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Crear un elemento de inventario disponible.
+        $inventarioId = DB::table('inventario')->insertGetId([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'asiento_id' => null,
+            'estado' => 'disponible',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         return new CrearReservaDTO(
             usuarioId: $usuario->id,
             eventoId: $eventoId,
-            total: 150.00,
+            total: 0.0,
             ttlSegundos: 300,
+            inventarioIds: [$inventarioId],
         );
+
     }
 }

@@ -3,7 +3,8 @@
 # aparece "Send Request" encima de cada petición.
 #
 # Antes: tener los contenedores arriba y migraciones corridas, un usuario
-# VERIFICADO (créalo con auth.http o en /registro) y un evento (ver http/README.md).
+# VERIFICADO (créalo con auth.http o en /registro) y un evento con asientos
+# DISPONIBLES y precio por localidad (ver http/README.md).
 #
 # Orden: ejecuta primero la 0 (login); las demás usan su token automáticamente.
 
@@ -11,6 +12,8 @@
 @email = ana@example.com
 @password = Secreto#123
 @eventoId = 4
+# ids de filas de `inventario` con estado 'disponible' de ese evento
+@inventarioIds = 1, 2
 
 ### 0) Login → 200 (guarda el token para las demás peticiones)
 # @name login
@@ -23,7 +26,8 @@ Accept: application/json
     "password": "{{password}}"
 }
 
-### 1) Crear reserva válida → 201 Created (el usuario sale del token)
+### 1) Crear reserva válida → 201 Created
+# el usuario sale del token y el total lo calcula el servidor con la tabla `precios`
 POST {{baseUrl}}/reservas
 Content-Type: application/json
 Accept: application/json
@@ -31,7 +35,7 @@ Authorization: Bearer {{login.response.body.token}}
 
 {
     "evento_id": {{eventoId}},
-    "total": 250.75
+    "inventario_ids": [{{inventarioIds}}]
 }
 
 ### 2) Faltan campos → 422 con errores de validación
@@ -41,10 +45,10 @@ Accept: application/json
 Authorization: Bearer {{login.response.body.token}}
 
 {
-    "total": 250.75
+    "evento_id": {{eventoId}}
 }
 
-### 3) Evento inexistente y total en 0 → 422
+### 3) Evento y asiento inexistentes → 422
 POST {{baseUrl}}/reservas
 Content-Type: application/json
 Accept: application/json
@@ -52,7 +56,7 @@ Authorization: Bearer {{login.response.body.token}}
 
 {
     "evento_id": 999999,
-    "total": 0
+    "inventario_ids": [999999]
 }
 
 ### 4) Sin token → 401
@@ -62,5 +66,5 @@ Accept: application/json
 
 {
     "evento_id": {{eventoId}},
-    "total": 250.75
+    "inventario_ids": [{{inventarioIds}}]
 }
