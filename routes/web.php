@@ -1,42 +1,123 @@
 <?php
 
-use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
+
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Pasarelas\PasarelaSimuladaController;
+
+/*
+|--------------------------------------------------------------------------
+| RUTAS WEB - SOIRÉE
+|--------------------------------------------------------------------------
+| Vistas públicas, autenticación, catálogo,
+| administración y pasarelas de pago.
+|--------------------------------------------------------------------------
+*/
+
+
+// ======================================================
+// 1. PÁGINA PRINCIPAL
+// ======================================================
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-// ---- Autenticación (vistas; la lógica va por /api/auth/*) ----
-Route::view('/login', 'autenticacion.login')->name('login');
-Route::view('/registro', 'autenticacion.registro')->name('registro');
-Route::view('/verificar', 'autenticacion.verificar')->name('verificar');
-Route::view('/perfil', 'autenticacion.perfil')->name('perfil');
-Route::view('/olvide-password', 'autenticacion.olvide-password')->name('olvide-password');
-Route::view('/restablecer-password', 'autenticacion.restablecer-password')->name('restablecer-password');
 
-// ---- Login con Google (OAuth) ----
-Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
-Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+// ======================================================
+// 2. AUTENTICACIÓN
+// ======================================================
+
+Route::view('/login', 'autenticacion.login')
+    ->name('login');
+
+Route::view('/registro', 'autenticacion.registro')
+    ->name('registro');
+
+Route::view('/verificar', 'autenticacion.verificar')
+    ->name('verificar');
+
+Route::view('/perfil', 'autenticacion.perfil')
+    ->name('perfil');
+
+Route::view('/olvide-password', 'autenticacion.olvide-password')
+    ->name('olvide-password');
+
+Route::view('/restablecer-password', 'autenticacion.restablecer-password')
+    ->name('restablecer-password');
+
+
+// ======================================================
+// 3. AUTENTICACIÓN CON GOOGLE
+// ======================================================
+
+Route::get('/auth/google/redirect', [
+    GoogleAuthController::class,
+    'redirect'
+])->name('auth.google.redirect');
+
+Route::get('/auth/google/callback', [
+    GoogleAuthController::class,
+    'callback'
+])->name('auth.google.callback');
+
 Route::view('/oauth/google', 'autenticacion.google-callback');
 
-// ---- Catálogo público de PULSO ----
-Route::view('/catalogo', 'catalogo.index')->name('catalogo.index');
+
+// ======================================================
+// 4. CATÁLOGO PÚBLICO
+// ======================================================
+
+Route::view('/catalogo', 'catalogo.index')
+    ->name('catalogo.index');
+
 Route::view('/eventos/{id}', 'catalogo.detalle')
     ->whereNumber('id')
     ->name('catalogo.detalle');
 
-// ---- Pagos (vistas) ----
-Route::view('/pagar', 'pagos.pagar')->name('pagos.pagar');
-Route::view('/pagos/retorno', 'pagos.retorno')->name('pagos.retorno');       // la pasarela regresa aquí
-Route::view('/pagos/cancelado', 'pagos.cancelado')->name('pagos.cancelado');
 
-// ---- Pasarela simulada (imita la página externa de una pasarela; solo para pruebas) ----
-Route::get('/pasarela-simulada/{orden}', [PasarelaSimuladaController::class, 'mostrar'])
-    ->name('pasarela-simulada.mostrar');
-Route::post('/pasarela-simulada/{orden}', [PasarelaSimuladaController::class, 'decidir'])
-    ->name('pasarela-simulada.decidir');
+// ======================================================
+// 5. PANEL ADMINISTRATIVO - SOIRÉE
+// ======================================================
 
-// ---- Landing (prueba del recorrido con scroll) ----
-Route::view('/experiencia', 'landing.experiencia')->name('landing.experiencia');
+Route::view('/admin', 'admin.index')
+    ->name('admin.index');
+
+
+// ======================================================
+// 6. VISTAS DE PAGOS
+// ======================================================
+
+Route::view('/pagar', 'pagos.pagar')
+    ->name('pagos.pagar');
+
+Route::view('/pagos/retorno', 'pagos.retorno')
+    ->name('pagos.retorno');
+
+Route::view('/pagos/cancelado', 'pagos.cancelado')
+    ->name('pagos.cancelado');
+
+
+// ======================================================
+// 7. PASARELA SIMULADA
+// ======================================================
+
+// Mostrar la pasarela simulada.
+Route::get('/pasarela-simulada/{orden}', [
+    PasarelaSimuladaController::class,
+    'mostrar'
+])->name('pasarela-simulada.mostrar');
+
+// Procesar decisión en la pasarela simulada.
+Route::post('/pasarela-simulada/{orden}', [
+    PasarelaSimuladaController::class,
+    'decidir'
+])->name('pasarela-simulada.decidir');
+
+
+// ======================================================
+// 8. LANDING (recorrido por scroll)
+// ======================================================
+
+Route::view('/experiencia', 'landing.experiencia')
+    ->name('landing.experiencia');

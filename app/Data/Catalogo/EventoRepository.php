@@ -9,10 +9,21 @@ use Illuminate\Support\Facades\DB;
 
 class EventoRepository implements IEventoRepository
 {
+    /**
+     * Lista los eventos publicados y vigentes.
+     *
+     * Incluye la imagen de cada evento,
+     * pero no expone precios al público.
+     */
     public function listarPublicados(array $filtros = []): array
     {
         $consulta = Evento::query()
-            ->join('recintos', 'eventos.recinto_id', '=', 'recintos.id')
+            ->join(
+                'recintos',
+                'eventos.recinto_id',
+                '=',
+                'recintos.id'
+            )
             ->whereIn('eventos.estado', [
                 EstadoEvento::PUBLICADO->value,
                 EstadoEvento::AGOTADO->value,
@@ -24,6 +35,7 @@ class EventoRepository implements IEventoRepository
                 'eventos.id',
                 'eventos.nombre',
                 'eventos.descripcion',
+                'eventos.imagen_url',
                 'eventos.fecha_evento',
                 'eventos.estado',
                 'recintos.nombre as recinto',
@@ -31,15 +43,26 @@ class EventoRepository implements IEventoRepository
             ]);
 
         if (!empty($filtros['nombre'])) {
-            $consulta->where('eventos.nombre', 'like', '%' . $filtros['nombre'] . '%');
+            $consulta->where(
+                'eventos.nombre',
+                'like',
+                '%' . $filtros['nombre'] . '%'
+            );
         }
 
         if (!empty($filtros['ciudad'])) {
-            $consulta->where('recintos.ciudad', 'like', '%' . $filtros['ciudad'] . '%');
+            $consulta->where(
+                'recintos.ciudad',
+                'like',
+                '%' . $filtros['ciudad'] . '%'
+            );
         }
 
         if (!empty($filtros['fecha'])) {
-            $consulta->whereDate('eventos.fecha_evento', $filtros['fecha']);
+            $consulta->whereDate(
+                'eventos.fecha_evento',
+                $filtros['fecha']
+            );
         }
 
         return $consulta
@@ -48,12 +71,25 @@ class EventoRepository implements IEventoRepository
             ->toArray();
     }
 
+    /**
+     * Obtiene el detalle público de un evento.
+     *
+     * Devuelve su fotografía y las localidades,
+     * pero NO devuelve los precios.
+     *
+     * Los precios se consultan por:
+     * GET /api/eventos/{id}/precios
+     * con autenticación Sanctum.
+     */
     public function obtenerPublicadoPorId(int $id): ?array
     {
-        // La consulta utiliza el modelo con SoftDeletes: eventos eliminados
-        // no aparecen. Se exige el mismo criterio del listado público.
         $evento = Evento::query()
-            ->join('recintos', 'eventos.recinto_id', '=', 'recintos.id')
+            ->join(
+                'recintos',
+                'eventos.recinto_id',
+                '=',
+                'recintos.id'
+            )
             ->where('eventos.id', $id)
             ->whereIn('eventos.estado', [
                 EstadoEvento::PUBLICADO->value,
@@ -67,6 +103,7 @@ class EventoRepository implements IEventoRepository
                 'eventos.recinto_id',
                 'eventos.nombre',
                 'eventos.descripcion',
+                'eventos.imagen_url',
                 'eventos.fecha_evento',
                 'eventos.estado',
                 'recintos.nombre as recinto',
@@ -79,47 +116,47 @@ class EventoRepository implements IEventoRepository
             return null;
         }
 
-        // Un precio solo puede mostrarse si pertenece a una localidad
-        // del mismo recinto del evento. Se respetan los SoftDeletes.
-        $localidades = DB::table('precios')
-            ->join('localidades', 'precios.localidad_id', '=', 'localidades.id')
-            ->where('precios.evento_id', $evento->id)
-            ->where('localidades.recinto_id', $evento->recinto_id)
-            ->whereNull('precios.deleted_at')
-            ->whereNull('localidades.deleted_at')
-            ->orderBy('precios.precio')
+        /*
+         * Localidades públicas.
+         *
+         * No consultar la tabla precios aquí.
+         */
+        $localidades = DB::table('localidades')
+            ->where('recinto_id', $evento->recinto_id)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
             ->select([
-                'localidades.id',
-                'localidades.nombre',
-                'localidades.tipo',
-                'localidades.capacidad',
-                'localidades.color',
-                'precios.precio',
+                'id',
+                'nombre',
+                'tipo',
+                'color',
             ])
             ->get()
             ->map(fn ($localidad) => [
-                'id' => $localidad->id,
+                'id' => (int) $localidad->id,
                 'nombre' => $localidad->nombre,
                 'tipo' => $localidad->tipo,
-                // Capacidad física configurada, NO cupos disponibles.
-                'capacidad' => (int) $localidad->capacidad,
                 'color' => $localidad->color,
-                'precio' => (string) $localidad->precio,
             ])
             ->all();
 
         return [
-            'id' => $evento->id,
+            'id' => (int) $evento->id,
             'nombre' => $evento->nombre,
             'descripcion' => $evento->descripcion,
-            'fecha_evento' => $evento->fecha_evento?->toIso8601String(),
+
+            // Fotografía guardada en MySQL.
+            'imagen_url' => $evento->imagen_url,
+
+            'fecha_evento' =>
+                $evento->fecha_evento?->toIso8601String(),
+
             'estado' => $evento->estado,
             'recinto' => $evento->recinto,
             'ciudad' => $evento->ciudad,
             'direccion' => $evento->direccion,
-            // Campo preparado para la API de administración: cuando
-            // se implemente, se podrá consultar desde este repositorio.
-            'imagen_url' => null,
+
+            // Localidades sin precios.
             'localidades' => $localidades,
         ];
     }
