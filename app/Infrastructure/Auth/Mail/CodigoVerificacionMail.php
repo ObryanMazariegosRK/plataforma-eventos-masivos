@@ -21,7 +21,7 @@ class CodigoVerificacionMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Tu código de verificación');
+        return new Envelope(subject: 'Tu código de verificación · '.config('marca.nombre'));
     }
 
     public function content(): Content

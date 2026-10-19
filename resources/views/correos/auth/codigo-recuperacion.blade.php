@@ -6,5 +6,6 @@
     <p>Recibimos una solicitud para restablecer tu contraseña. Tu código es:</p>
     <p style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">{{ $codigo }}</p>
     <p>El código vence en {{ $minutosValidez }} minutos. Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>
+    <p style="margin-top: 28px; color: #777;">— El equipo de {{ config('marca.nombre') }}</p>
 </body>
 </html>

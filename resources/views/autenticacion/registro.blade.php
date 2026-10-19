@@ -21,14 +21,15 @@
             </div>
         </div>
 
-        <div class="campo">
-            <label for="email">Correo electrónico</label>
-            <input type="email" id="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
-        </div>
-
-        <div class="campo">
-            <label for="telefono">Teléfono <span class="opcional">(opcional)</span></label>
-            <input type="tel" id="telefono" placeholder="55551234" inputmode="numeric" autocomplete="tel">
+        <div class="fila fila--ancha-angosta">
+            <div class="campo">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
+            </div>
+            <div class="campo">
+                <label for="telefono">Teléfono <span class="opcional">(opcional)</span></label>
+                <input type="tel" id="telefono" placeholder="55551234" inputmode="numeric" autocomplete="tel">
+            </div>
         </div>
 
         <div class="campo">

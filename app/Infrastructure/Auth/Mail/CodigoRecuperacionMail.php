@@ -21,7 +21,7 @@ class CodigoRecuperacionMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Recupera tu contraseña');
+        return new Envelope(subject: 'Recupera tu contraseña · '.config('marca.nombre'));
     }
 
     public function content(): Content
