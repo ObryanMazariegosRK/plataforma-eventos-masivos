@@ -25,3 +25,5 @@ Route::view('/catalogo', 'catalogo.index')->name('catalogo.index');
 Route::view('/eventos/{id}', 'catalogo.detalle')
     ->whereNumber('id')
     ->name('catalogo.detalle');
+
+\Illuminate\Support\Facades\Route::view('/admin', 'admin.index')->name('admin.index');

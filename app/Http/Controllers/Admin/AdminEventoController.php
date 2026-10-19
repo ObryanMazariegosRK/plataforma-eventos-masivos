@@ -1,0 +1,200 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Application\UseCases\Admin\Eventos\CrearEventoUseCase;
+use App\Application\UseCases\Admin\Eventos\EditarEventoUseCase;
+use App\Application\UseCases\Admin\Eventos\PublicarEventoUseCase;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\GuardarEventoRequest;
+use App\Models\Recintos\Evento;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class AdminEventoController extends Controller
+{
+    /**
+     * Lista todos los eventos del panel administrativo.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $eventos = Evento::query()
+            ->leftJoin(
+                'recintos',
+                'eventos.recinto_id',
+                '=',
+                'recintos.id'
+            )
+            ->select([
+                'eventos.id',
+                'eventos.recinto_id',
+                'eventos.nombre',
+                'eventos.descripcion',
+                'eventos.imagen_url',
+                'eventos.fecha_evento',
+                'eventos.estado',
+                'eventos.fecha_publicacion',
+                'recintos.nombre as recinto',
+                'recintos.ciudad',
+            ])
+            ->orderByDesc('eventos.created_at')
+            ->paginate(10);
+
+        return response()->json($eventos);
+    }
+
+    /**
+     * Lista recintos activos.
+     */
+    public function recintos(): JsonResponse
+    {
+        $recintos = DB::table('recintos')
+            ->where('estado', 'activo')
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
+            ->get([
+                'id',
+                'nombre',
+                'ciudad',
+            ]);
+
+        return response()->json([
+            'data' => $recintos,
+        ]);
+    }
+
+    /**
+     * Obtiene la información de un evento.
+     */
+    public function show(int $id): JsonResponse
+    {
+        $evento = Evento::findOrFail($id);
+
+        return response()->json([
+            'data' => $evento,
+        ]);
+    }
+
+    /**
+     * Crea un evento como borrador.
+     */
+    public function store(
+        GuardarEventoRequest $request,
+        CrearEventoUseCase $crearEvento
+    ): JsonResponse {
+        $evento = $crearEvento->ejecutar(
+            $request->validated(),
+            (int) $request->user()->id
+        );
+
+        return response()->json([
+            'message' => 'Evento creado correctamente como borrador.',
+            'data' => $evento,
+        ], 201);
+    }
+
+    /**
+     * Edita únicamente eventos en borrador.
+     */
+    public function update(
+        GuardarEventoRequest $request,
+        int $id,
+        EditarEventoUseCase $editarEvento
+    ): JsonResponse {
+        $evento = $editarEvento->ejecutar(
+            $id,
+            $request->validated(),
+            (int) $request->user()->id
+        );
+
+        return response()->json([
+            'message' => 'Evento actualizado correctamente.',
+            'data' => $evento,
+        ]);
+    }
+
+    /**
+     * Publica un evento.
+     */
+    public function publicar(
+        Request $request,
+        int $id,
+        PublicarEventoUseCase $publicarEvento
+    ): JsonResponse {
+        $evento = $publicarEvento->ejecutar(
+            $id,
+            (int) $request->user()->id
+        );
+
+        return response()->json([
+            'message' => 'Evento publicado correctamente.',
+            'data' => $evento,
+        ]);
+    }
+
+    /**
+     * Cambia únicamente la fotografía.
+     *
+     * Se permite actualizar la imagen de eventos
+     * publicados sin modificar fecha, recinto,
+     * precios, reservas o boletos.
+     */
+    public function actualizarImagen(
+        Request $request,
+        int $id
+    ): JsonResponse {
+        $datos = $request->validate([
+            'imagen_url' => [
+                'present',
+                'nullable',
+                'string',
+                'url',
+                'starts_with:https://',
+                'max:2048',
+            ],
+        ], [
+            'imagen_url.present' =>
+                'Debes enviar el campo imagen_url.',
+
+            'imagen_url.url' =>
+                'La dirección de la imagen no es válida.',
+
+            'imagen_url.starts_with' =>
+                'La imagen debe utilizar HTTPS.',
+
+            'imagen_url.max' =>
+                'La URL de la imagen no puede superar 2048 caracteres.',
+        ]);
+
+        $evento = DB::transaction(function () use (
+            $id,
+            $datos,
+            $request
+        ) {
+            $evento = Evento::query()
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            $evento->imagen_url = $datos['imagen_url'];
+
+            $evento->updated_by =
+                (int) $request->user()->id;
+
+            $evento->save();
+
+            return $evento->refresh();
+        });
+
+        return response()->json([
+            'message' =>
+                'Fotografía actualizada correctamente.',
+
+            'data' => [
+                'id' => (int) $evento->id,
+                'nombre' => $evento->nombre,
+                'imagen_url' => $evento->imagen_url,
+            ],
+        ]);
+    }
+}

@@ -15,6 +15,7 @@ class Evento extends Model
         'recinto_id',
         'nombre',
         'descripcion',
+        'imagen_url',
         'fecha_evento',
         'estado',
         'fecha_publicacion',

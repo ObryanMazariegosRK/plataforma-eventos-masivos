@@ -77,10 +77,18 @@
         Auth.cargando(boton, false);
 
         if (respuesta.ok) {
-            Auth.guardarToken(respuesta.data.token);
-            window.location.href = '/perfil';
-            return;
-        }
+    const redirigido = Auth.procesarInicioSesion(respuesta.data);
+
+    if (!redirigido) {
+        Auth.mostrar(
+            alerta,
+            'No se pudo identificar el rol de tu cuenta. Contacta al administrador.',
+            'error'
+        );
+    }
+
+    return;
+}
 
         // Cuenta sin verificar → lo mandamos a ingresar el código
         if (respuesta.data.error === 'correo_no_verificado') {
