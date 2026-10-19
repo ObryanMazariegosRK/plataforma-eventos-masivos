@@ -1,132 +1,274 @@
+
 <?php
+
+use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Reservas\ReservaController;
 use App\Http\Controllers\Catalogo\CatalogoController;
 use App\Http\Controllers\Catalogo\DetalleEventoController;
-use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Precios\PrecioEventoController;
 use App\Http\Controllers\Boletos\BoletoController;
 use App\Http\Controllers\Pagos\PagoController;
 use App\Http\Controllers\Pasarelas\PasarelaController;
+use App\Http\Controllers\Transacciones\TransaccionController;
+use App\Http\Controllers\Reembolsos\ReembolsoController;
+
+/*
+|--------------------------------------------------------------------------
+| API - SOIRÉE
+|--------------------------------------------------------------------------
+| Plataforma de Eventos Masivos
+|
+| Autenticación, catálogo, reservas, boletos, precios,
+| pagos, pasarelas, transacciones, reembolsos y administración.
+|--------------------------------------------------------------------------
+*/
 
 
-// ---- Auth ----
-// throttle:N,M = máximo N peticiones cada M minutos por IP
+// ======================================================
+// 1. AUTENTICACIÓN
+// ======================================================
+
 Route::prefix('auth')->group(function () {
-    Route::post('/registro', [AuthController::class, 'registro']);
-    Route::post('/verificar-correo', [AuthController::class, 'verificarCorreo'])->middleware('throttle:10,1');
-    Route::post('/reenviar-codigo', [AuthController::class, 'reenviarCodigo'])->middleware('throttle:3,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-    Route::post('/olvide-password', [AuthController::class, 'solicitarRecuperacion'])->middleware('throttle:3,1');
-    Route::post('/restablecer-password', [AuthController::class, 'restablecerPassword'])->middleware('throttle:10,1');
+
+    Route::post('/registro', [
+        AuthController::class,
+        'registro'
+    ]);
+
+    Route::post('/verificar-correo', [
+        AuthController::class,
+        'verificarCorreo'
+    ])->middleware('throttle:10,1');
+
+    Route::post('/reenviar-codigo', [
+        AuthController::class,
+        'reenviarCodigo'
+    ])->middleware('throttle:3,1');
+
+    Route::post('/login', [
+        AuthController::class,
+        'login'
+    ])->middleware('throttle:10,1');
+
+    Route::post('/olvide-password', [
+        AuthController::class,
+        'solicitarRecuperacion'
+    ])->middleware('throttle:3,1');
+
+    Route::post('/restablecer-password', [
+        AuthController::class,
+        'restablecerPassword'
+    ])->middleware('throttle:10,1');
+
+
+    // Acciones de usuarios autenticados.
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::post('/logout-todos', [AuthController::class, 'logoutTodos']);
-        Route::get('/perfil', [AuthController::class, 'perfil']);
-        Route::post('/cambiar-password', [AuthController::class, 'cambiarPassword'])->middleware('throttle:5,1');
+
+        Route::post('/logout', [
+            AuthController::class,
+            'logout'
+        ]);
+
+        Route::post('/logout-todos', [
+            AuthController::class,
+            'logoutTodos'
+        ]);
+
+        Route::get('/perfil', [
+            AuthController::class,
+            'perfil'
+        ]);
+
+        Route::post('/cambiar-password', [
+            AuthController::class,
+            'cambiarPassword'
+        ])->middleware('throttle:5,1');
+
     });
+
 });
 
 
-    // ---- Reservas ----
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/reservas', [ReservaController::class, 'store']);
+// ======================================================
+// 2. CATÁLOGO PÚBLICO
+// ======================================================
 
-        Route::delete('/reservas/{id}', [ReservaController::class, 'destroy'])
-            ->whereNumber('id')
-            ->middleware('throttle:10,1');
-    });
+Route::get('/eventos', [
+    CatalogoController::class,
+    'index'
+]);
 
-
-
-    // ---- Boletos ----
-    Route::middleware('auth:sanctum')->group(function () {
-
-        // Consultar el QR del boleto.
-        Route::get('/boletos/{id}/qr', [BoletoController::class, 'qr'])
-            ->whereNumber('id');
-
-        // Validar un boleto en el acceso al evento.
-        Route::post('/boletos/validar', [BoletoController::class, 'validar'])
-            ->middleware('throttle:30,1');
-
-    });
+Route::get('/eventos/{id}', [
+    DetalleEventoController::class,
+    'show'
+])->whereNumber('id');
 
 
+// ======================================================
+// 3. PRECIOS POR LOCALIDAD
+// ======================================================
 
-
-// ---- Transacciones e Historial ----
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::get(
-        '/transacciones',
-        [
-            \App\Http\Controllers\Transacciones\TransaccionController::class,
-            'index'
-        ]
-    );
+    Route::get('/eventos/{id}/precios', [
+        PrecioEventoController::class,
+        'index'
+    ])
+    ->whereNumber('id')
+    ->name('eventos.precios');
 
 });
 
 
-// ---- Historial de Operaciones ----
-Route::middleware('auth:sanctum')->get(
-    '/historial-operaciones',
-    [
-        \App\Http\Controllers\Transacciones\TransaccionController::class,
+// ======================================================
+// 4. RESERVAS
+// ======================================================
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Crear reserva.
+    Route::post('/reservas', [
+        ReservaController::class,
+        'store'
+    ]);
+
+    // Cancelar reserva.
+    Route::delete('/reservas/{id}', [
+        ReservaController::class,
+        'destroy'
+    ])
+    ->whereNumber('id')
+    ->middleware('throttle:10,1');
+
+});
+
+
+// ======================================================
+// 5. BOLETOS
+// ======================================================
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Obtener QR del boleto.
+    Route::get('/boletos/{id}/qr', [
+        BoletoController::class,
+        'qr'
+    ])->whereNumber('id');
+
+    // Validar boleto.
+    Route::post('/boletos/validar', [
+        BoletoController::class,
+        'validar'
+    ])->middleware('throttle:30,1');
+
+});
+
+
+// ======================================================
+// 6. PASARELAS DE PAGO
+// ======================================================
+
+// Consultar pasarelas disponibles.
+Route::get('/pasarelas', [
+    PasarelaController::class,
+    'index'
+]);
+
+
+// ======================================================
+// 7. PAGOS
+// ======================================================
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Iniciar pago.
+    Route::post('/pagos', [
+        PagoController::class,
+        'iniciar'
+    ])->middleware('throttle:10,1');
+
+    // Confirmar pago.
+    Route::post('/pagos/{id}/confirmar', [
+        PagoController::class,
+        'confirmar'
+    ])
+    ->whereNumber('id')
+    ->middleware('throttle:20,1');
+
+    // Consultar pago.
+    Route::get('/pagos/{id}', [
+        PagoController::class,
+        'mostrar'
+    ])->whereNumber('id');
+
+});
+
+
+// ======================================================
+// 8. TRANSACCIONES E HISTORIAL
+// ======================================================
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/transacciones', [
+        TransaccionController::class,
+        'index'
+    ]);
+
+    Route::get('/historial-operaciones', [
+        TransaccionController::class,
         'operaciones'
-    ]
-);
+    ]);
+
+});
 
 
+// ======================================================
+// 9. REEMBOLSOS
+// ======================================================
 
-// ---- Reembolsos ----
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Cliente: solicitar un reembolso.
-    Route::post(
-        '/reembolsos',
-        [
-            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
-            'store'
-        ]
-    )->middleware('throttle:10,1');
+    // Solicitar reembolso.
+    Route::post('/reembolsos', [
+        ReembolsoController::class,
+        'store'
+    ])->middleware('throttle:10,1');
 
-    // Administrador: aprobar o rechazar.
-    Route::patch(
-        '/reembolsos/{id}/resolver',
-        [
-            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
-            'resolver'
-        ]
-    )->whereNumber('id')
-     ->middleware('throttle:10,1');
+    // Resolver reembolso.
+    Route::patch('/reembolsos/{id}/resolver', [
+        ReembolsoController::class,
+        'resolver'
+    ])
+    ->whereNumber('id')
+    ->middleware('throttle:10,1');
 
-    // RF-20: Administrador cancela un evento completo.
-    Route::post(
-        '/eventos/{id}/cancelar',
-        [
-            \App\Http\Controllers\Reembolsos\ReembolsoController::class,
-            'cancelarEvento'
-        ]
-    )->whereNumber('id')
+    // Cancelar evento y procesar reembolsos.
+    Route::post('/eventos/{id}/cancelar', [
+        ReembolsoController::class,
+        'cancelarEvento'
+    ])
+    ->whereNumber('id')
     ->middleware('throttle:5,1');
 
 });
 
-// ---- Catálogo de eventos públicos ----
-Route::get('/eventos', [CatalogoController::class, 'index']);
-Route::get('/eventos/{id}', [DetalleEventoController::class, 'show'])
-    ->whereNumber('id');
 
-// ---- Pagos ----
-Route::get('/pasarelas', [PasarelaController::class, 'index']);
+// ======================================================
+// 10. ADMINISTRACIÓN - SOIRÉE
+// ======================================================
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/pagos', [PagoController::class, 'iniciar'])->middleware('throttle:10,1');
-    Route::post('/pagos/{id}/confirmar', [PagoController::class, 'confirmar'])
-        ->whereNumber('id')->middleware('throttle:20,1');
-    Route::get('/pagos/{id}', [PagoController::class, 'mostrar'])->whereNumber('id');
-});
+/*
+| Las rutas administrativas se encuentran en:
+|
+| routes/admin-api.php
+|
+| Sus operaciones deben estar protegidas mediante
+| auth:sanctum y rol:admin.
+|
+*/
+
+require __DIR__ . '/admin-api.php';

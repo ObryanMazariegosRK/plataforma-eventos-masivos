@@ -1,0 +1,96 @@
+/* Soirée — capa visual sobre admin.css, sin alterar APIs ni IDs */
+:root {
+    --navy: #191126;
+    --navy-dark: #140e20;
+    --navy-light: #3b285b;
+    --teal: #6843b8;
+    --mint: #dbc9fc;
+    --coral: #f38a91;
+    --blue: #6843b8;
+    --ink: #282032;
+    --muted: #6e6678;
+    --background: #fbf8fc;
+    --line: #eee7f1;
+    --shadow: 0 12px 30px rgba(40, 26, 53, .055);
+    --radius: 14px;
+}
+html {scroll-behavior:smooth}
+body {background:var(--background);color:var(--ink);font-size:14px}
+::selection {background:#e1d1fc;color:#191126}
+.sidebar {background:#191126;scrollbar-color:#65537b transparent}
+.brand {letter-spacing:-.035em;font-weight:800}
+.brand-spark,.brand-dot {color:#f38a91}
+.brand-subtitle {color:#e6d8fa}
+.sidebar-caption {color:#c6b8d2}
+.nav-item {color:#ddd4e7;transition:background-color .15s ease,color .15s ease}
+.nav-item:hover {transform:none;background:#332441;color:white}
+.nav-item.selected {background:#463063;color:#fff;border-color:#695087;box-shadow:none}
+.nav-item.selected .nav-icon {color:#f3c3cc}
+.nav-soon {color:#b7a9c6}
+.sidebar-bottom a {color:#efe7f7}
+.sidebar-bottom small {color:#c4b5d1}
+.sidebar-promo {border:0; background:linear-gradient(0deg,rgba(25,17,38,.94),rgba(25,17,38,.15)),url('/img/admin/concierto.jpg') center/cover,#352244}
+.utility-bar {min-height:76px}
+.top-search {border-color:#eee7f1;box-shadow:0 8px 22px rgba(36,21,55,.04)}
+.avatar {background:#6843b8}
+.hero {background:#fff;border:1px solid #eee7f1;min-height:130px;box-shadow:none}
+.hero h1 em {color:#6843b8}
+.hero p {color:#655a73}
+.eyebrow,.section-kicker {color:#6743a8}
+.user-pill {border-color:#e8daf7;background:#f5effe;color:#583799}
+.metric,.panel {box-shadow:none;border-color:#eee7f1}
+.metric::before {background:var(--accent,#6843b8)}
+.metric:hover {transform:none;box-shadow:0 6px 24px rgba(40,26,53,.06)}
+.primary,button.primary {background:#6843b8;border-color:#6843b8;color:white}
+.primary:hover,button.primary:hover {background:#5834a8;border-color:#5834a8}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible {outline:3px solid #8863d1;outline-offset:3px}
+button,input,textarea,select {accent-color:#6843b8}
+.eventos-row-actions {display:flex;flex-wrap:wrap;gap:6px}
+.evento-action {white-space:nowrap}
+.evento-action:hover {transform:none}
+.status {font-weight:700}
+.table-scroll,.table-responsive {overflow-x:auto}
+table {font-variant-numeric:tabular-nums}
+tbody tr {transition:background-color .15s ease}
+tbody tr:hover {background:#faf6ff}
+.so-event-name {display:flex;align-items:center;gap:11px;min-width:176px}
+.so-event-thumb {width:48px;height:48px;flex:0 0 48px;border-radius:12px;background:#efe6fb;color:#6d47b2;display:grid;place-items:center;overflow:hidden;font-size:22px}
+.so-event-thumb img {display:block;width:100%;height:100%;object-fit:cover}
+.so-event-label {display:grid;gap:3px;min-width:0}
+.so-event-label strong {font-size:13px;color:#282032;font-weight:750;overflow-wrap:anywhere}
+.so-event-label small {color:#7a6c83;font-size:11px}
+.so-event-dialog {position:fixed;inset:0 0 0 auto;margin:0 0 0 auto;max-width:min(100%,560px);width:560px;height:100dvh;max-height:100dvh;padding:0;border:0;border-radius:20px 0 0 20px;background:white;color:#282032;box-shadow:-14px 0 55px rgba(25,17,38,.18);overflow:auto;overscroll-behavior:contain}
+.so-event-dialog::backdrop {background:rgba(20,12,29,.55)}
+.so-dialog-shell {display:flex;flex-direction:column;min-height:100%}
+.so-dialog-header {position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:23px 25px 18px;background:white;border-bottom:1px solid #f0eaf4}
+.so-dialog-caption {display:block;font-size:11px;letter-spacing:.04em;color:#745f87;font-weight:700;margin-bottom:5px}
+.so-dialog-header h2 {font:750 21px/1.2 'Outfit','DM Sans',sans-serif;margin:0;color:#21182d}
+.so-icon-close {width:38px;height:38px;border-radius:10px;border:1px solid #e9e1ed;background:white;color:#392b45;font-size:25px;line-height:1}
+.so-icon-close:hover {background:#f9f5fc}
+.so-dialog-content {padding:22px 25px 25px;display:grid;align-content:start;gap:20px}
+.so-dialog-cover {height:230px;background:linear-gradient(130deg,#342047,#7650ae);border-radius:14px;overflow:hidden;display:grid;place-items:center;color:#fff;font:800 36px 'Outfit',sans-serif;letter-spacing:-.04em}
+.so-dialog-cover img {width:100%;height:100%;display:block;object-fit:cover}
+.so-dialog-intro {display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.so-dialog-intro h3 {font:800 clamp(24px,4vw,32px)/1.15 'Outfit',sans-serif;margin:0}
+.so-event-status {border-radius:999px;padding:6px 11px;background:#f1e8ff;color:#5a359e;font-size:12px;font-weight:750;text-transform:capitalize}
+.so-event-status[data-status="publicado"] {background:#e2f6ee;color:#14654f}
+.so-event-status[data-status="cancelado"] {background:#ffe6ea;color:#a22642}
+.so-dialog-detail-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.so-detail-row {border:1px solid #eee7f1;border-radius:12px;padding:14px;display:grid;gap:6px}
+.so-detail-row span {color:#776984;font-size:11px;font-weight:700}
+.so-detail-row strong {font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.so-dialog-about h4 {font:750 16px 'Outfit',sans-serif;margin:0 0 8px}
+.so-dialog-about p {color:#665a73;font-size:14px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.so-dialog-actions {position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:10px;padding:16px 25px 20px;background:white;border-top:1px solid #f0eaf4;margin-top:auto}
+.so-button-quiet,.so-button-primary {padding:11px 17px;border-radius:10px;font-weight:750;border:1px solid #e5ddea}
+.so-button-quiet {background:white;color:#3b2a4b}
+.so-button-primary {background:#6843b8;border-color:#6843b8;color:white}
+.so-button-primary:hover {background:#5834a8}
+@media(max-width:650px) {
+ .so-event-dialog {width:100%;max-width:100%;border-radius:0}
+ .so-dialog-content {padding:16px}
+ .so-dialog-header,.so-dialog-actions {padding-left:16px;padding-right:16px}
+ .so-dialog-detail-grid {grid-template-columns:1fr}
+ .so-dialog-cover {height:190px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto} .nav-item,tbody tr{transition:none}}

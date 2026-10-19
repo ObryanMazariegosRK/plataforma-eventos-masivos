@@ -1,0 +1,78 @@
+/* SOIRÉE — Admin v4 | Capa visual no destructiva
+   Requiere admin.css + admin-soiree.css + admin-soiree-v2.css existentes.
+   No cambia rutas ni operaciones de base de datos. */
+:root {
+  --so-lilac-50:#fdfaff; --so-lilac-100:#f4ecfa; --so-lilac-200:#ead9f4;
+  --so-plum:#28163b; --so-violet:#6932a2; --so-violet-hover:#552588;
+  --so-rose:#c64f97; --so-neutral:#73657f; --so-ink:#30203e;
+  --so-outline:#e9deee; --so-ease:cubic-bezier(.23,1,.32,1);
+}
+body { color:var(--so-ink); background:#fcfafd; }
+.shell { min-height:100vh; }
+.sidebar { background:#f4eff9; border-right:1px solid var(--so-outline); }
+.brand { color:var(--so-plum); font-size:27px; letter-spacing:-.045em; }
+.brand-dot,.brand-spark { color:var(--so-rose); }
+.brand-subtitle { color:#6d477d; }
+.nav-item { min-height:44px; border-radius:11px; color:#58426f; transition:background-color 150ms ease,color 150ms ease; }
+.nav-item:hover { background:#e9dbf4; transform:none; color:#4b246e; }
+.nav-item.selected { background:#e3d0f0; color:#512073; border:1px solid transparent; box-shadow:none; }
+.nav-item.selected .nav-icon { color:#643492; }
+.nav-divider { background:#e3d5ed; }
+.sidebar-bottom a { color:#5d367b; }
+.content { padding-inline:clamp(14px,2.6vw,36px); }
+.utility-bar { min-height:78px; }
+.top-search { background:white; border:1px solid var(--so-outline); border-radius:12px; box-shadow:none; }
+.top-search:focus-within { border-color:#ab7bd1; box-shadow:0 0 0 3px #eeddf8; }
+.avatar { background:#7041a8; color:#fff; }
+.hero { background:#fff; border:1px solid var(--so-outline); border-radius:16px; box-shadow:none; min-height:132px; }
+.hero h1 { color:var(--so-plum); font-weight:850; }
+.hero h1 em { color:var(--so-violet); }
+.hero p,.data-card p,.panel-heading p { color:var(--so-neutral); }
+.user-pill { background:#f6ecfc; color:#603286; border-color:#e9d5f4; }
+.eyebrow,.section-kicker { color:#8053a2; }
+.panel,.metric { background:#fff; border:1px solid var(--so-outline); box-shadow:none; border-radius:15px; }
+.metric { min-height:112px; padding:18px; }
+.metric:hover { transform:none; box-shadow:0 9px 26px rgba(53,26,70,.055); }
+.metric::before { height:2px; }
+.metric-copy strong { font-variant-numeric:tabular-nums; letter-spacing:-.035em; }
+.primary,button.primary { background:var(--so-violet); border-color:var(--so-violet); color:#fff; box-shadow:none; border-radius:10px; transition:background-color 150ms ease,box-shadow 150ms ease; }
+.primary:hover,button.primary:hover { background:var(--so-violet-hover); border-color:var(--so-violet-hover); box-shadow:0 5px 16px rgba(85,37,136,.14); }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:3px solid #a276ce; outline-offset:2px; }
+.data-card { overflow:hidden; }
+.table-wrap { overflow-x:auto; }
+.table-wrap table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+.table-wrap thead th { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#675570; background:#faf7fc; }
+.table-wrap tbody td { color:#3b3044; vertical-align:middle; }
+.table-wrap tbody tr { transition:background-color 130ms ease; }
+.table-wrap tbody tr:hover { background:#fcf7ff; }
+.so-event-name { display:flex; align-items:center; gap:12px; min-width:190px; }
+.so-event-thumb { width:58px; height:54px; flex:0 0 58px; display:grid; place-items:center; overflow:hidden; border-radius:11px; background:#ecdef7; color:#71369c; }
+.so-event-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.so-event-label { display:grid; gap:2px; min-width:0; }
+.so-event-label strong { font-size:13px; color:var(--so-ink); }
+.so-event-label small { color:var(--so-neutral); font-size:11px; }
+.eventos-row-actions { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.evento-action { border-radius:9px; min-height:35px; white-space:nowrap; transition:background-color 140ms ease,border-color 140ms ease; }
+.evento-action:active:not(:disabled) { transform:scale(.98); }
+/* Details drawer uses the native <dialog> populated by admin.js. */
+.so-event-dialog { position:fixed; inset:0 0 0 auto; margin:0; padding:0; width:min(100vw,570px); max-width:570px; height:100dvh; max-height:100dvh; border:0; border-radius:18px 0 0 18px; background:#fff; color:var(--so-ink); overflow-y:auto; overscroll-behavior:contain; box-shadow:-16px 0 58px rgba(35,17,53,.18); }
+.so-event-dialog::backdrop { background:rgba(29,14,45,.52); }
+.so-event-dialog[open] { animation:so-v4-enter 230ms var(--so-ease) both; }
+@keyframes so-v4-enter { from { opacity:.85; transform:translateX(22px); } to { opacity:1; transform:translateX(0); } }
+.so-dialog-shell { display:flex; flex-direction:column; min-height:100%; }
+.so-dialog-header { position:sticky; top:0; z-index:2; padding:22px 26px; background:white; border-bottom:1px solid var(--so-outline); }
+.so-dialog-caption { font-size:11px; color:#775889; }
+.so-dialog-header h2 { color:var(--so-plum); }
+.so-icon-close { width:38px; height:38px; border-radius:10px; background:#f6eefb; color:var(--so-plum); }
+.so-icon-close:hover { background:#ecdcf6; }
+.so-dialog-content { padding:23px 26px; gap:20px; }
+.so-dialog-cover { height:235px; border-radius:14px; background:linear-gradient(125deg,#2c163f,#7845ae); }
+.so-dialog-intro h3 { color:var(--so-plum); letter-spacing:-.025em; }
+.so-detail-row { background:var(--so-lilac-50); border:1px solid var(--so-outline); border-radius:11px; }
+.so-dialog-about p { color:#5d5267; line-height:1.65; }
+.so-dialog-actions { position:sticky; bottom:0; margin-top:auto; padding:16px 26px; background:#fff; border-top:1px solid var(--so-outline); }
+.so-button-primary { background:var(--so-violet); border-color:var(--so-violet); color:#fff; }
+.so-button-primary:hover { background:var(--so-violet-hover); }
+.so-button-quiet { color:#50365d; }
+@media (max-width:720px) { .so-event-dialog { max-width:100vw; width:100vw; border-radius:0; } .so-dialog-header,.so-dialog-content,.so-dialog-actions { padding-inline:17px; } .so-dialog-detail-grid { grid-template-columns:1fr; } .so-dialog-cover { height:205px; } .content { padding-inline:12px; } }
+@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .so-event-dialog[open] { animation:none; } .nav-item,.metric,.evento-action,.primary,button.primary,.table-wrap tbody tr { transition:none; } }
