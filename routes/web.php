@@ -37,3 +37,6 @@ Route::get('/pasarela-simulada/{orden}', [PasarelaSimuladaController::class, 'mo
     ->name('pasarela-simulada.mostrar');
 Route::post('/pasarela-simulada/{orden}', [PasarelaSimuladaController::class, 'decidir'])
     ->name('pasarela-simulada.decidir');
+
+// ---- Landing (prueba del recorrido con scroll) ----
+Route::view('/experiencia', 'landing.experiencia')->name('landing.experiencia');
