@@ -37,6 +37,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'rol' => VerificarRol::class,
         ]);
 
+        // Detrás de un proxy (ngrok, Coolify) la visita llega por https pero el proxy la pasa por http.
+        // Confiar en sus cabeceras X-Forwarded-* hace que Laravel genere los enlaces con https.
+        $middleware->trustProxies(at: '*');
+
         // En todas las rutas /api: un usuario bloqueado pierde el acceso aunque su token siga vigente.
         $middleware->api(append: [VerificarUsuarioActivo::class]);
     })
