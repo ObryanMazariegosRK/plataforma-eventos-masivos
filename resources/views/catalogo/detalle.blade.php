@@ -58,6 +58,8 @@
                                 </div>
                             </div>
                             <a class="detalle-ir-zonas" href="#zonas">Consultar zonas y precios <span aria-hidden="true">↓</span></a>
+                            {{-- Mapa de asientos (módulo Inventario): elegir lugares y reservar --}}
+                            <a class="detalle-ir-zonas" href="{{ route('asientos.seleccion', ['eventoId' => request()->route('id')]) }}">Elegir asientos <span aria-hidden="true">→</span></a>
                         </div>
                     </div>
                 </div>

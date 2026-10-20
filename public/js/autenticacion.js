@@ -36,7 +36,11 @@ const Auth = {
         }
 
         if (rol === 'cliente') {
-            window.location.replace('/catalogo');
+            // ?volver=/eventos/5/asientos → regresa a donde estaba (p. ej. eligiendo asientos).
+            // Solo rutas internas ("/algo", nunca "//otro-sitio.com"): evita redirecciones a sitios externos.
+            const volver = new URLSearchParams(window.location.search).get('volver') || '';
+            const destino = /^\/(?!\/)/.test(volver) ? volver : '/catalogo';
+            window.location.replace(destino);
             return true;
         }
 

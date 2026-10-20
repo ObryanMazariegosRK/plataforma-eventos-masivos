@@ -417,6 +417,12 @@
                     'evento-action',
                     () => editEvent(item.id)
                 ),
+                // Inventario: sin precio en todas las localidades no se puede publicar
+                actionButton(
+                    'Precios',
+                    'evento-action',
+                    () => openPrices(item.id)
+                ),
                 actionButton(
                     'Publicar',
                     'evento-action publish',
@@ -429,6 +435,12 @@
                     'Cambiar imagen',
                     'evento-action',
                     () => changeEventImage(item.id)
+                ),
+                // Inventario: plano de ocupación en vivo
+                actionButton(
+                    'Ver asientos',
+                    'evento-action',
+                    () => { window.location.href = '/admin/eventos/' + item.id + '/asientos'; }
                 )
             );
         }
@@ -999,6 +1011,10 @@
                     editEvent(evento.id);
                 }));
             } else {
+                // Inventario: plano de ocupación en vivo
+                actions.append(actionButton('Ver asientos', 'so-button-quiet', () => {
+                    window.location.href = '/admin/eventos/' + evento.id + '/asientos';
+                }));
                 actions.append(actionButton('Cambiar imagen', 'so-button-primary', () => {
                     dialog.close();
                     changeEventImage(evento.id);
@@ -1007,6 +1023,129 @@
             dialog.showModal();
         } catch (error) {
             feedback(error.message, true);
+        }
+    }
+
+    // =====================================================
+    // PRECIOS POR LOCALIDAD
+    // Conecta el panel #evento-precios-panel con
+    // GET / PUT /api/admin/eventos/{id}/precios.
+    // Al publicar, Inventario exige precio en todas las localidades.
+    // =====================================================
+
+    let preciosEventoId = null;
+
+    function preciosFeedback(message, error = false) {
+        const node = $('evento-precios-feedback');
+        if (!node) return;
+
+        node.textContent = message;
+        node.className =
+            'evento-form-feedback' + (error ? ' error' : '');
+        node.hidden = false;
+    }
+
+    function closePrices() {
+        show('evento-precios-panel', false);
+        preciosEventoId = null;
+    }
+
+    async function openPrices(id) {
+        clearFeedback();
+        preciosEventoId = id;
+
+        const lista = $('evento-precios-lista');
+        const guardar = $('btn-guardar-precios');
+
+        lista.replaceChildren(el('p', 'Cargando localidades…'));
+        guardar.disabled = true;
+        show('evento-precios-feedback', false);
+        show('evento-precios-panel', true);
+        $('evento-precios-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        try {
+            const data = await (await api('eventos/' + id + '/precios')).json();
+
+            $('evento-precios-subtitle').textContent =
+                data.evento.nombre +
+                ': define el precio de cada sección del recinto. ' +
+                'Todas deben tener precio para poder publicar.';
+
+            lista.replaceChildren();
+
+            if (!data.localidades.length) {
+                lista.append(el('p', 'El recinto de este evento no tiene localidades configuradas.'));
+                return;
+            }
+
+            data.localidades.forEach(localidad => {
+                const fila = el('div', undefined, 'evento-precio-fila');
+
+                const info = el('div');
+                info.append(
+                    el('strong', localidad.nombre),
+                    el(
+                        'small',
+                        (localidad.tipo === 'numerada' ? 'Asientos numerados' : 'Zona general') +
+                        ' · capacidad ' + localidad.capacidad
+                    )
+                );
+
+                const label = el('label', 'Precio (Q)');
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '0.01';
+                input.step = '0.01';
+                input.required = true;
+                input.placeholder = '0.00';
+                input.value = localidad.precio ?? '';
+                input.dataset.localidadId = localidad.id;
+                input.disabled = !data.editable;
+                label.append(input);
+
+                fila.append(info, label);
+                lista.append(fila);
+            });
+
+            guardar.disabled = !data.editable;
+
+            if (!data.editable) {
+                preciosFeedback('El evento ya está publicado: sus precios no se pueden cambiar.');
+            }
+        } catch (error) {
+            preciosFeedback(error.message, true);
+        }
+    }
+
+    async function savePrices(event) {
+        event.preventDefault();
+        if (!preciosEventoId) return;
+
+        const precios = [...$('evento-precios-lista').querySelectorAll('input[data-localidad-id]')]
+            .map(input => ({
+                localidad_id: Number(input.dataset.localidadId),
+                precio: input.value
+            }));
+
+        if (!precios.length || precios.some(p => !(Number(p.precio) > 0))) {
+            preciosFeedback('Escribe un precio mayor a cero para cada localidad.', true);
+            return;
+        }
+
+        const guardar = $('btn-guardar-precios');
+        guardar.disabled = true;
+
+        try {
+            const result = await (await api('eventos/' + preciosEventoId + '/precios', {
+                method: 'PUT',
+                body: JSON.stringify({ precios })
+            })).json();
+
+            preciosFeedback(result.message || 'Precios guardados correctamente.');
+        } catch (error) {
+            preciosFeedback(error.message, true);
+        } finally {
+            guardar.disabled = false;
         }
     }
 
@@ -1055,6 +1194,21 @@
     // =====================================================
     // FORMULARIO DE EVENTOS
     // =====================================================
+
+    const formPrecios = $('evento-precios-form');
+
+    if (formPrecios) {
+        formPrecios.addEventListener('submit', savePrices);
+    }
+
+    ['btn-cerrar-precios', 'btn-cancelar-precios']
+        .forEach(id => {
+            const button = $(id);
+
+            if (button) {
+                button.addEventListener('click', closePrices);
+            }
+        });
 
     const newEventButton = $('btn-nuevo-evento');
 

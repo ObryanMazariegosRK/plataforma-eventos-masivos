@@ -98,7 +98,7 @@
 
     // ---- Scroll suave con Lenis (si cargó y la persona no pidió "reducir movimiento") ----
     const lenis = window.Lenis && !sinMovimiento
-        ? new window.Lenis({ lerp: LENIS_LERP, smoothWheel: true })   // el táctil queda nativo (por defecto)
+        ? new window.Lenis({ lerp: LENIS_LERP, smoothWheel: true, anchors: true })   // táctil nativo; enlaces #ancla suaves
         : null;
 
     // ---- Bucle de animación ----

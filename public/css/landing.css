@@ -232,6 +232,13 @@ em { font-style: italic; }
     will-change: transform;
 }
 
+.entrada__detalle {
+    margin: 22px 0 0;
+    font-size: 14px;
+    letter-spacing: .06em;
+    color: var(--piedra);
+}
+
 .entrada__linea {
     display: block;
     width: 1px;

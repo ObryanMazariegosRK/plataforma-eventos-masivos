@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Pasarelas\PasarelaSimuladaController;
+use App\Http\Controllers\Inventario\ExperienciaEventoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -121,3 +122,24 @@ Route::post('/pasarela-simulada/{orden}', [
 
 Route::view('/experiencia', 'landing.experiencia')
     ->name('landing.experiencia');
+
+
+// ======================================================
+// 9. MAPA DE ASIENTOS
+// ======================================================
+
+// Cliente: elegir asientos (el mapa es público; para reservar se pide iniciar sesión).
+Route::view('/eventos/{eventoId}/asientos', 'asientos.seleccion')
+    ->whereNumber('eventoId')
+    ->name('asientos.seleccion');
+
+// Admin: ocupación en vivo (la vista comprueba el rol con la API).
+Route::view('/admin/eventos/{eventoId}/asientos', 'asientos.admin')
+    ->whereNumber('eventoId')
+    ->name('asientos.admin');
+
+// Experiencia del evento: recorrido por el teatro y, al final, el plano para elegir asientos.
+// (El catálogo enlaza aquí desde "Ver evento".)
+Route::get('/eventos/{eventoId}/experiencia', [ExperienciaEventoController::class, 'show'])
+    ->whereNumber('eventoId')
+    ->name('eventos.experiencia');

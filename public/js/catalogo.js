@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         verEvento.href =
-            `/eventos/${encodeURIComponent(evento.id)}`;
+            `/eventos/${encodeURIComponent(evento.id)}/experiencia`;   // recorrido + plano de asientos
 
         informacion.append(
             estado,
@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             enlace.href =
-                `/eventos/${encodeURIComponent(datos.evento.id)}`;
+                `/eventos/${encodeURIComponent(datos.evento.id)}/experiencia`;   // recorrido + plano de asientos
 
             cuerpo.appendChild(enlace);
         }
