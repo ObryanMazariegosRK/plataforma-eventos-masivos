@@ -70,7 +70,7 @@
         if (respuesta.ok) {
             Auth.guardarToken(respuesta.data.token);   // la verificación ya inicia sesión
             Auth.mostrar(alerta, '¡Correo verificado! Entrando...', 'exito');
-            setTimeout(() => window.location.href = '/perfil', 1000);
+            setTimeout(async () => { if (!(await Auth.entrarConSesion())) window.location.href = '/catalogo'; }, 1000);
             return;
         }
 

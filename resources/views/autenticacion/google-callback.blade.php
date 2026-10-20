@@ -5,7 +5,7 @@
 
 @section('contenido')
     <h1>Iniciando sesión con Google...</h1>
-    <p class="subtitulo">Te llevaremos a tu perfil en un instante.</p>
+    <p class="subtitulo">Te llevaremos a la cartelera en un instante.</p>
 @endsection
 
 @push('scripts')
@@ -16,8 +16,9 @@
 
     if (token) {
         Auth.guardarToken(token);
-        // replace(): borra esta URL (con el token) del historial, así "Atrás" no la muestra
-        location.replace('/perfil');
+        // Borra esta URL (con el token) del historial, así "Atrás" no la muestra
+        history.replaceState(null, '', '/oauth/google');
+        Auth.entrarConSesion().then((entro) => { if (!entro) location.replace('/catalogo'); });
     } else {
         location.replace('/login?tipo=error&mensaje=' + encodeURIComponent('No se pudo iniciar sesión con Google.'));
     }

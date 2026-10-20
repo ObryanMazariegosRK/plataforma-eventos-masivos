@@ -26,9 +26,12 @@
     <link rel="stylesheet" href="{{ asset('css/admin-soiree-v2.css') }}?v=1">
     <!-- Funcionalidad administrativa existente -->
     <link rel="stylesheet" href="{{ asset('css/admin-soiree-v4.css') }}?v=1">
-    <script defer src="{{ asset('js/admin.js') }}?v=14"></script>
+    <script defer src="{{ asset('js/admin.js') }}?v=15"></script>
     <link rel="stylesheet" href="{{ asset('css/admin-soiree-final.css') }}?v=1">
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
+    <!-- Banner del catálogo (imagen o video de fondo) -->
+    <link rel="stylesheet" href="{{ asset('css/admin-banner.css') }}?v={{ filemtime(public_path('css/admin-banner.css')) }}">
+    <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
     <!-- Estilos exclusivos de la vista previa de imagen -->
     <style>
@@ -93,6 +96,12 @@
     <symbol id="i-users" viewBox="0 0 24 24">
         <circle cx="9" cy="8" r="4"/>
         <path d="M2 21v-2a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v2zM16 4a4 4 0 0 1 0 8M18 14a5 5 0 0 1 4 5v2"/>
+    </symbol>
+
+    <symbol id="i-image" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <circle cx="9" cy="10" r="2"/>
+        <path d="m21 16-5-5L5 20"/>
     </symbol>
 
     <symbol id="i-calendar" viewBox="0 0 24 24">
@@ -232,6 +241,17 @@
                 </svg>
 
                 <span>Usuarios</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
+                    data-section="banner">
+
+                <svg class="nav-icon">
+                    <use href="#i-image"/>
+                </svg>
+
+                <span>Banner</span>
             </button>
 
             <div class="nav-divider"></div>
@@ -819,6 +839,56 @@
 
             </article>
 
+        </section>
+
+        <!-- =================================================
+             BANNER DEL CATÁLOGO (admin-banner.js)
+        ================================================= -->
+
+        <section id="banner-panel"
+                 class="panel banner-panel"
+                 data-max-mb="{{ config('catalogo.banner.max_mb') }}"
+                 data-max-segundos="{{ config('catalogo.banner.max_segundos_video') }}"
+                 hidden>
+
+            <div class="banner-encabezado">
+                <div>
+                    <div class="section-kicker">PORTADA DEL CATÁLOGO</div>
+                    <h2>Fondo del catálogo</h2>
+                    <p class="muted">
+                        Elige una imagen o un video corto. Se muestra detrás del carrusel
+                        con el tono oscuro del catálogo; así se verá:
+                    </p>
+                </div>
+                <a class="text-link" href="{{ route('catalogo.index') }}" target="_blank" rel="noopener">Ver el catálogo ↗</a>
+            </div>
+
+            {{-- Vista previa con el mismo tratamiento oscuro que catalogo.css --}}
+            <div class="banner-vista">
+                <div class="banner-vista__fondo" id="banner-vista-fondo"></div>
+                <div class="banner-vista__texto" aria-hidden="true">
+                    <span>Temporada {{ now()->year }}</span>
+                    <strong>Una noche que se <em>recuerda.</em></strong>
+                </div>
+                <span class="banner-vista__estado" id="banner-estado">Cargando…</span>
+            </div>
+
+            <label class="banner-zona" id="banner-zona">
+                <input type="file"
+                       id="banner-archivo"
+                       accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+                <strong>Arrastra aquí una imagen o un video</strong>
+                <span>o haz clic para elegirlo · JPG, PNG, WEBP, MP4 o WEBM ·
+                    máx. {{ config('catalogo.banner.max_mb') }} MB · videos de hasta {{ config('catalogo.banner.max_segundos_video') }} s</span>
+            </label>
+
+            <p id="banner-mensaje" class="banner-mensaje" role="status" aria-live="polite"></p>
+
+            <div class="banner-acciones">
+                <button type="button" class="primary" id="banner-publicar" hidden>Publicar en el catálogo</button>
+                <button type="button" class="banner-boton" id="banner-cancelar" hidden>Cancelar</button>
+                <button type="button" class="banner-boton banner-boton--quitar" id="banner-quitar" hidden>Quitar y usar la foto por defecto</button>
+            </div>
         </section>
 
         <!-- =================================================

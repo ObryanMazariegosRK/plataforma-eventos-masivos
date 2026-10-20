@@ -10,18 +10,11 @@
     <div id="perfil" hidden>
         <div class="perfil__avatar" id="avatar"></div>
         <h1 id="nombreCompleto"></h1>
-        <p class="subtitulo">Estos datos vienen de <code>GET /api/auth/perfil</code> usando tu token.</p>
 
         <ul class="datos">
             <li><span>Correo</span><span id="email"></span></li>
             <li><span>Teléfono</span><span id="telefono"></span></li>
-            <li><span>Rol</span><span><span class="etiqueta" id="rol"></span></span></li>
-            <li><span>Correo verificado</span><span><span class="etiqueta etiqueta--ok" id="verificado"></span></span></li>
-            <li><span>Cuenta de Google</span><span id="google"></span></li>
         </ul>
-
-        <p class="ayuda">Tu token (se guarda en el navegador):</p>
-        <div class="token" id="token"></div>
 
         {{-- <details> se abre/cierra solo, sin JavaScript --}}
         <details class="seccion">
@@ -98,10 +91,6 @@
         document.getElementById('nombreCompleto').textContent = `${u.nombre} ${u.apellido}`;
         document.getElementById('email').textContent = u.email;
         document.getElementById('telefono').textContent = u.telefono || '—';
-        document.getElementById('rol').textContent = u.rol;
-        document.getElementById('verificado').textContent = u.verificado ? 'Sí' : 'No';
-        document.getElementById('google').textContent = u.google ? 'Vinculada' : 'No vinculada';
-        document.getElementById('token').textContent = Auth.obtenerToken();
         document.getElementById('perfil').hidden = false;
     }
 

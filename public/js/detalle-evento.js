@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const zonas = document.getElementById('detalleLocalidades');
     const imagen = document.getElementById('detalleImagen');
     const etiquetaFoto = document.getElementById('detalleFotoNota');
-    const imagenRespaldo = '/img/eventos/demo-04.jpg';
+    const imagenRespaldo = '/img/landing/auditorio-general.jpg';
 
     const texto = (id, valor) => {
         const nodo = document.getElementById(id);
@@ -34,12 +34,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const origen = typeof evento.imagen_url === 'string' ? evento.imagen_url.trim() : '';
         const imagenValida = /^(https?:\/\/|\/(?!\/))/i.test(origen);
         imagen.src = imagenValida ? origen : imagenRespaldo;
-        imagen.alt = imagenValida ? `Afiche de ${evento.nombre}` : 'Fotografía ilustrativa de concierto';
+        imagen.alt = imagenValida ? `Afiche de ${evento.nombre}` : 'Fotografía ilustrativa de un teatro';
         etiquetaFoto.hidden = imagenValida;
         imagen.onerror = () => {
             imagen.onerror = null;
             imagen.src = imagenRespaldo;
-            imagen.alt = 'Fotografía ilustrativa de concierto';
+            imagen.alt = 'Fotografía ilustrativa de un teatro';
             etiquetaFoto.hidden = false;
         };
     }
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const identidad = crear('div', '');
             identidad.append(
                 crear('strong', '', localidad.nombre || 'Localidad'),
-                crear('span', 'tipo', localidad.tipo ? `Tipo: ${localidad.tipo}` : 'Tipo no especificado')
+                crear('span', 'tipo', localidad.tipo === 'general' ? 'Admisión general' : localidad.tipo === 'numerada' ? 'Butacas numeradas' : (localidad.tipo || ''))
             );
             const valor = Number(localidad.precio);
             const precio = crear('span', 'precio',
@@ -82,9 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (cuerpo.success !== true || !cuerpo.data) throw new Error('Respuesta inesperada del servidor.');
         const evento = cuerpo.data;
 
-        document.title = `${evento.nombre || 'Evento'} | PULSO`;
+        document.title = `${evento.nombre || 'Evento'} · ${document.body.dataset.marca || ''}`;
         texto('detalleNombre', evento.nombre || 'Evento sin nombre');
-        texto('detalleEstado', evento.estado === 'agotado' ? 'Entradas agotadas' : 'Evento publicado');
+        texto('detalleEstado', evento.estado === 'agotado' ? 'Entradas agotadas' : 'En venta');
         document.getElementById('detalleEstado')?.classList.toggle('agotado', evento.estado === 'agotado');
         texto('detalleFecha', fechaGT(evento.fecha_evento));
         texto('detalleLugar', [evento.recinto, evento.ciudad].filter(Boolean).join(' · ') || 'Lugar por confirmar');
