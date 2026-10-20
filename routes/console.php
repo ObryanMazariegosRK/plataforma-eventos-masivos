@@ -46,3 +46,67 @@ Artisan::command('inventario:generar {evento : id del evento}', function (int $e
     $creados = app(\App\Application\Abstractions\Inventario\IGenerarInventarioEventoUseCase::class)->execute($evento);
     $this->info($creados > 0 ? "Se crearon {$creados} lugares para el evento {$evento}." : "El evento {$evento} ya tenía inventario.");
 })->purpose('Crea los lugares a la venta de un evento a partir de su recinto');
+
+// Crea un administrador (ya verificado y activo) o convierte en admin una cuenta que ya existe.
+// Uso: php artisan usuario:crear-admin            → pregunta los datos
+//      php artisan usuario:crear-admin --email=ana@correo.com --nombre=Ana --apellido=López
+// La contraseña siempre se pide oculta (nunca como parámetro, para que no quede en el historial).
+Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=} {--telefono=}', function () {
+    $email = strtolower(trim($this->option('email') ?: $this->ask('Correo')));
+
+    if (\Illuminate\Support\Facades\Validator::make(['email' => $email], ['email' => 'required|email'])->fails()) {
+        $this->error('El correo no es válido.');
+        return 1;
+    }
+
+    $usuario = \App\Models\Auth\Usuario::withTrashed()->where('email', $email)->first();
+
+    // La cuenta ya existe: se promueve a admin (sin tocar su contraseña salvo que se pida)
+    if ($usuario) {
+        $this->warn("Ya existe una cuenta con {$email} ({$usuario->nombre} {$usuario->apellido}, rol {$usuario->rol->value}).");
+        if (!$this->confirm('¿Convertirla en administrador, verificada y activa?', true)) {
+            return 0;
+        }
+        $cambiarPassword = $this->confirm('¿Cambiarle también la contraseña?', false);
+    }
+
+    // Una cuenta existente conserva sus datos; para una nueva se piden
+    $datos = $usuario ? $usuario->only(['nombre', 'apellido', 'telefono']) : [
+        'nombre'   => $this->option('nombre') ?: $this->ask('Nombre'),
+        'apellido' => $this->option('apellido') ?: $this->ask('Apellido'),
+        'telefono' => $this->option('telefono') ?: $this->ask('Teléfono (opcional)', ''),
+    ];
+
+    $password = null;
+    if (!$usuario || $cambiarPassword) {
+        $password = $this->secret('Contraseña');
+        $validacion = \Illuminate\Support\Facades\Validator::make(
+            ['password' => $password, 'password_confirmation' => $this->secret('Repite la contraseña')],
+            ['password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()]],
+        );
+        if ($validacion->fails()) {
+            foreach ($validacion->errors()->all() as $error) {
+                $this->error($error);
+            }
+            return 1;
+        }
+    }
+
+    $usuario ??= new \App\Models\Auth\Usuario(['email' => $email]);
+    $usuario->fill([
+        'nombre'            => $datos['nombre'],
+        'apellido'          => $datos['apellido'],
+        'telefono'          => $datos['telefono'] ?: null,
+        'rol'               => \App\Domain\Enums\Auth\RolUsuario::ADMIN,
+        'estado'            => \App\Domain\Enums\Auth\EstadoUsuario::ACTIVO,
+        'email_verified_at' => $usuario->email_verified_at ?? now(),
+    ]);
+    if ($password !== null) {
+        $usuario->password = \Illuminate\Support\Facades\Hash::make($password);
+    }
+    $usuario->deleted_at = null;   // por si la cuenta estaba eliminada
+    $usuario->save();
+
+    $this->info("Listo: {$usuario->email} es administrador. Inicia sesión en /login y entrarás a /admin.");
+    return 0;
+})->purpose('Crea un usuario administrador o promueve una cuenta existente');
