@@ -151,6 +151,28 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Catalogo\ListarEventosUseCase::class,
         );
 
+        // ---- Catálogo: banner de la portada ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Catalogo\IBannerRepository::class,
+            \App\Data\Catalogo\BannerRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Catalogo\IAlmacenMultimedia::class,
+            \App\Infrastructure\Catalogo\AlmacenMultimediaLaravel::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IObtenerBannerCatalogoUseCase::class,
+            \App\Application\UseCases\Catalogo\ObtenerBannerCatalogoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IActualizarBannerCatalogoUseCase::class,
+            \App\Application\UseCases\Catalogo\ActualizarBannerCatalogoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IEliminarBannerCatalogoUseCase::class,
+            \App\Application\UseCases\Catalogo\EliminarBannerCatalogoUseCase::class,
+        );
+
         // ---- Inventario ----
         $this->app->bind(
             \App\Application\Abstractions\Inventario\IGenerarInventarioEventoUseCase::class,

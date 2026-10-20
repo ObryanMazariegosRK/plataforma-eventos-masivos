@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Reservas\ReservaController;
 use App\Http\Controllers\Catalogo\CatalogoController;
 use App\Http\Controllers\Catalogo\DetalleEventoController;
+use App\Http\Controllers\Catalogo\BannerController;
 use App\Http\Controllers\Precios\PrecioEventoController;
 use App\Http\Controllers\Boletos\BoletoController;
 use App\Http\Controllers\Pagos\PagoController;
@@ -105,6 +106,9 @@ Route::get('/eventos/{id}', [
     DetalleEventoController::class,
     'show'
 ])->whereNumber('id');
+
+// Fondo de la portada del catálogo (imagen o video); data = null → foto por defecto
+Route::get('/catalogo/banner', [BannerController::class, 'show']);
 
 
 // ======================================================

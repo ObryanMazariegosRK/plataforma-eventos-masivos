@@ -28,6 +28,10 @@
             'Registro de pagos',
             'Consulta los pagos y sus estados.'
         ],
+        banner: [
+            'Banner del catálogo',
+            'Imagen o video de fondo de la portada del catálogo.'
+        ],
         reportes: [
             'Centro de reportes',
             'Exporta información de la plataforma.'
@@ -622,9 +626,11 @@
         const isOverview = section === 'resumen';
         const isEvents = section === 'eventos';
         const isReports = section === 'reportes';
+        const isBanner = section === 'banner';   // lo maneja admin-banner.js
         const isPending = pendingSections.has(section);
 
-        show('dashboard', !isReports && !isPending);
+        show('dashboard', !isReports && !isPending && !isBanner);
+        show('banner-panel', isBanner);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
@@ -1336,7 +1342,8 @@
 
         if (
             pendingSections.has(section) ||
-            section === 'reportes'
+            section === 'reportes' ||
+            section === 'banner'
         ) {
             clearFeedback();
             return;

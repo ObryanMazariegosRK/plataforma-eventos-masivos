@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdministracionController;
+use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminEventoController;
 use App\Http\Controllers\Admin\AdminPrecioEventoController;
 use Illuminate\Support\Facades\Route;
@@ -111,6 +112,15 @@ Route::middleware(['auth:sanctum', 'rol:admin'])
         ])
             ->whereNumber('id')
             ->name('eventos.imagen');
+
+        // =================================================
+        // BANNER DEL CATÁLOGO (una imagen o un video corto)
+        // =================================================
+
+        Route::get('/banner', [AdminBannerController::class, 'show'])->name('banner');
+        // POST (no PUT): los formularios multipart con archivo solo viajan bien por POST
+        Route::post('/banner', [AdminBannerController::class, 'update'])->name('banner.actualizar');
+        Route::delete('/banner', [AdminBannerController::class, 'destroy'])->name('banner.eliminar');
 
         // =================================================
         // RESERVAS
