@@ -20,18 +20,53 @@ class CrearReservaUseCase implements ICrearReservaUseCase
     public function execute(CrearReservaDTO $dto): Reserva
     {
         $ids = $dto->inventarioIds;
+        $cupos = $dto->cupos;
 
-        // Debe seleccionar al menos un elemento de inventario.
-        if (empty($ids) || count($ids) !== count(array_unique($ids))) {
+        // Debe seleccionar al menos un asiento o un cupo, y los asientos sin repetir.
+        if ((empty($ids) && empty($cupos)) || count($ids) !== count(array_unique($ids))) {
             throw ValidationException::withMessages([
                 'inventario_ids' => 'Seleccione elementos de inventario válidos y sin repetir.',
             ]);
         }
 
-        // Ordenar los identificadores reduce el riesgo de deadlocks.
-        sort($ids, SORT_NUMERIC);
+        // Límite de lugares por reserva: una sola cuenta no puede acaparar la localidad.
+        $cantidadTotal = count($ids) + array_sum(array_column($cupos, 'cantidad'));
+        if ($cantidadTotal > $dto->maxAsientos) {
+            throw ValidationException::withMessages([
+                'asientos' => "Puedes reservar como máximo {$dto->maxAsientos} lugares por compra.",
+            ]);
+        }
 
-        return DB::transaction(function () use ($dto, $ids): Reserva {
+        return DB::transaction(function () use ($dto, $ids, $cupos): Reserva {
+
+            // 0. Localidades generales: el cliente pide una CANTIDAD y aquí se eligen los lugares.
+            //    SKIP LOCKED salta las filas que otra transacción está tomando en este instante:
+            //    con muchos compradores a la vez, cada uno se lleva lugares distintos sin esperar
+            //    ni chocar (sin él, todos intentarían los mismos "primeros libres").
+            foreach ($cupos as $cupo) {
+                $libres = DB::table('inventario')
+                    ->where('evento_id', $dto->eventoId)
+                    ->where('localidad_id', $cupo['localidad_id'])
+                    ->whereNull('asiento_id')   // solo localidades generales; las numeradas se eligen por asiento
+                    ->where('estado', EstadoAsiento::DISPONIBLE->value)
+                    ->whereNull('deleted_at')
+                    ->orderBy('id')
+                    ->limit($cupo['cantidad'])
+                    ->lock('for update skip locked')
+                    ->pluck('id')
+                    ->all();
+
+                if (count($libres) < $cupo['cantidad']) {
+                    throw ValidationException::withMessages([
+                        'cupos' => 'No hay suficientes lugares disponibles en la localidad seleccionada.',
+                    ]);
+                }
+
+                $ids = array_merge($ids, $libres);
+            }
+
+            // Ordenar los identificadores reduce el riesgo de deadlocks.
+            sort($ids, SORT_NUMERIC);
 
             // 1. Verificar que el evento permita reservas.
             $evento = DB::table('eventos')

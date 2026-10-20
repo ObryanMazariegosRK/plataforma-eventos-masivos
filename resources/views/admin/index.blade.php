@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="{{ asset('css/admin-soiree-v2.css') }}?v=1">
     <!-- Funcionalidad administrativa existente -->
     <link rel="stylesheet" href="{{ asset('css/admin-soiree-v4.css') }}?v=1">
-    <script defer src="{{ asset('js/admin.js') }}?v=12"></script>
+    <script defer src="{{ asset('js/admin.js') }}?v=14"></script>
     <link rel="stylesheet" href="{{ asset('css/admin-soiree-final.css') }}?v=1">
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
 

@@ -8,42 +8,18 @@ responde con redirección (302) en vez del JSON 422.
 
 ## Datos mínimos para `reservas.http`
 
-1. **Usuario:** `POST /api/reservas` requiere token, así que el usuario debe estar
-   **registrado y verificado**. Créalo con `auth.http` o en http://localhost:8090/registro.
-   (No lo insertes por SQL: no tendría un password hasheado ni el correo verificado.)
-2. **Evento con asientos y precio:** la reserva se hace eligiendo filas de `inventario`
-   en estado `disponible`, y el total sale de la tabla `precios`. Desde Adminer
-   (http://localhost:8082 → servidor `mysql`, usuario `eventos`, contraseña `root`, base `eventos`)
-   → **SQL command**, para un evento existente (cambia `4` por su id):
+Los recintos son fijos y el inventario se crea solo al publicar un evento:
 
-```sql
--- localidad (zona) en el recinto del evento, si no tiene ninguna
-INSERT INTO localidades (recinto_id, nombre, tipo, capacidad, created_at, updated_at)
-SELECT e.recinto_id, 'General', 'general', 100, NOW(), NOW()
-FROM eventos e
-WHERE e.id = 4 AND NOT EXISTS (SELECT 1 FROM localidades l WHERE l.recinto_id = e.recinto_id);
+1. Una vez: `docker compose exec app php artisan db:seed --class=RecintoSeeder`
+   (Teatro Soirée y Auditorio Central, con sus zonas y asientos).
+2. En el panel de administración (`/admin`): crea un evento eligiendo uno de esos recintos,
+   pon **precio a todas sus zonas** y **publícalo**. Al publicar se generan sus lugares a la venta.
+3. Mira el mapa en `/eventos/{id}/asientos` o pide `GET /api/eventos/{id}/disponibilidad`
+   para conocer los `inventario_id` disponibles.
 
--- precio de esa localidad para el evento
-INSERT INTO precios (evento_id, localidad_id, precio, created_at, updated_at)
-SELECT 4, l.id, 125, NOW(), NOW()
-FROM localidades l JOIN eventos e ON e.recinto_id = l.recinto_id
-WHERE e.id = 4 AND NOT EXISTS (SELECT 1 FROM precios p WHERE p.evento_id = 4 AND p.localidad_id = l.id)
-LIMIT 1;
+Para un evento que ya estaba publicado antes de esto: `docker compose exec app php artisan inventario:generar {id}`.
 
--- 5 cupos disponibles (localidad general, sin asiento numerado)
-INSERT INTO inventario (evento_id, localidad_id, estado, created_at, updated_at)
-SELECT 4, l.id, 'disponible', NOW(), NOW()
-FROM localidades l JOIN eventos e ON e.recinto_id = l.recinto_id
-CROSS JOIN (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) cinco
-WHERE e.id = 4
-LIMIT 5;
-
--- ids disponibles para poner en @inventarioIds
-SELECT id FROM inventario WHERE evento_id = 4 AND estado = 'disponible';
-```
-
-Luego ajusta `@eventoId`, `@inventarioIds`, `@email` y `@password` en `reservas.http` y ejecuta primero la petición 0 (login).
-Las reservas vencen en 5 minutos y sus asientos vuelven a `disponible` (tarea programada de Reservas).
+El usuario debe estar **registrado y verificado** (créalo con `auth.http` o en `/registro`).
 
 ## `auth.http`
 

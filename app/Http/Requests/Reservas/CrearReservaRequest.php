@@ -14,13 +14,17 @@ class CrearReservaRequest extends FormRequest
     {
         return [
             'evento_id'  => ['required', 'integer', 'gt:0', 'exists:eventos,id'],
-            'inventario_ids' => ['required', 'array', 'min:1'],
+            // Asientos numerados (por id) y/o cupos de localidades generales (por cantidad): al menos uno
+            'inventario_ids' => ['required_without:cupos', 'array'],
             'inventario_ids.*' => [
                 'required',
                 'integer',
                 'distinct',
                 'exists:inventario,id',
             ],
+            'cupos' => ['required_without:inventario_ids', 'array'],
+            'cupos.*.localidad_id' => ['required', 'integer', 'distinct', 'exists:localidades,id'],
+            'cupos.*.cantidad' => ['required', 'integer', 'min:1'],
 
         ];
     }
