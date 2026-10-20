@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -114,3 +113,11 @@ Route::post('/pasarela-simulada/{orden}', [
     PasarelaSimuladaController::class,
     'decidir'
 ])->name('pasarela-simulada.decidir');
+
+
+// ======================================================
+// 8. LANDING (recorrido por scroll)
+// ======================================================
+
+Route::view('/experiencia', 'landing.experiencia')
+    ->name('landing.experiencia');

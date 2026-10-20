@@ -30,7 +30,7 @@
         <div class="aviso">Entorno de pruebas: aquí no se cobra dinero real.</div>
 
         <div class="cuerpo">
-            <div>Pagar a <strong>Eventos Masivos</strong></div>
+            <div>Pagar a <strong>{{ config('marca.nombre') }}</strong></div>
             <div class="monto">{{ $datos['moneda'] }} {{ number_format($datos['monto'], 2) }}</div>
 
             <dl>

@@ -2,31 +2,24 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('titulo') · Eventos Masivos</title>
-    <link rel="stylesheet" href="{{ asset('css/autenticacion.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    {{-- La página ya es oscura: evita que el "modo oscuro automático" del navegador la recoloree --}}
+    <meta name="color-scheme" content="dark">
+    <title>@yield('titulo') · {{ config('marca.nombre') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    {{-- ?v=: cambia cuando cambia el archivo, así el navegador no usa una versión vieja --}}
+    <link rel="stylesheet" href="{{ asset('css/autenticacion.css') }}?v={{ filemtime(public_path('css/autenticacion.css')) }}">
 </head>
 <body>
     <main class="auth">
-        {{-- Columna izquierda: marca (igual en todas las páginas) --}}
+        {{-- Columna izquierda: solo la foto del teatro y la marca (igual en todas las páginas) --}}
         <section class="auth__marca">
-            <div class="auth__logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/>
-                    <path d="M13 6v2M13 11v2M13 16v2"/>
-                </svg>
-                Eventos Masivos
-            </div>
-
-            <div class="auth__eslogan">
-                <h2>@yield('eslogan', 'Tu lugar en el próximo gran evento.')</h2>
-                <p>Compra boletos de forma segura, sin sobreventa y con tu asiento reservado mientras pagas.</p>
-            </div>
-
-            <div class="boleto" aria-hidden="true">
-                <div><small>EVENTO</small><strong>Concierto 2026</strong></div>
-                <div><small>LOCALIDAD</small><strong>VIP · A-12</strong></div>
-            </div>
+            {{-- <img> y no background-image: los modos oscuros de algunos navegadores quitan los fondos --}}
+            <img class="auth__foto" src="{{ asset('img/landing/auditorio-general.jpg') }}" alt="" aria-hidden="true">
+            <div class="auth__sombra" aria-hidden="true"></div>
+            <a href="{{ route('landing.experiencia') }}" class="auth__logo">{{ config('marca.nombre') }}</a>
         </section>
 
         {{-- Columna derecha: el formulario de cada página --}}
@@ -35,7 +28,7 @@
         </section>
     </main>
 
-    <script src="{{ asset('js/autenticacion.js') }}"></script>
+    <script src="{{ asset('js/autenticacion.js') }}?v={{ filemtime(public_path('js/autenticacion.js')) }}"></script>
     @stack('scripts')
 </body>
 </html>

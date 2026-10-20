@@ -6,5 +6,6 @@
     <p>Tu código para verificar tu cuenta es:</p>
     <p style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">{{ $codigo }}</p>
     <p>El código vence en {{ $minutosValidez }} minutos. Si no creaste una cuenta, ignora este correo.</p>
+    <p style="margin-top: 28px; color: #777;">— El equipo de {{ config('marca.nombre') }}</p>
 </body>
 </html>
