@@ -48,8 +48,8 @@
 
 @push('scripts')
 <script>
-    // Si ya hay sesión, directo al perfil
-    if (Auth.obtenerToken()) window.location.href = '/perfil';
+    // Si ya hay sesión, directo a su inicio (catálogo o panel); si el token venció, se queda aquí
+    if (Auth.obtenerToken()) Auth.entrarConSesion();
 
     Auth.activarVerPassword();
 

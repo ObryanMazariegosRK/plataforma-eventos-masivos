@@ -48,6 +48,14 @@ const Auth = {
         return false;
     },
 
+    // Con un token ya guardado (Google, verificación de correo o sesión abierta):
+    // consulta el perfil y manda al usuario a su inicio según el rol.
+    // Devuelve false si el token ya no sirve, para que la vista decida qué hacer.
+    async entrarConSesion() {
+        const respuesta = await this.api('/auth/perfil', { metodo: 'GET', conToken: true });
+        return respuesta.ok && this.redirigirSegunRol(respuesta.data);
+    },
+
     // Procesa la respuesta de un inicio de sesión exitoso.
     // Guarda el token y redirige al usuario según su rol.
     procesarInicioSesion(data) {
