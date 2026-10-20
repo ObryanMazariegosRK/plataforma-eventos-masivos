@@ -17,6 +17,9 @@ use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
 use App\Domain\Exceptions\Pagos\ReservaNoEncontradaException;
 use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
+use App\Domain\Exceptions\Inventario\EventoNoDisponibleException;
+use App\Domain\Exceptions\Inventario\LocalidadesSinPrecioException;
+use App\Domain\Exceptions\Inventario\RecintoSinLugaresException;
 use App\Domain\Exceptions\ReglaDeNegocioException;
 use App\Http\Middleware\VerificarRol;
 use App\Http\Middleware\VerificarUsuarioActivo;
@@ -71,6 +74,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ReservaYaPagadaException::class             => [409, 'reserva_ya_pagada'],
             PasarelaNoDisponibleException::class        => [422, 'pasarela_no_disponible'],
             PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
+            // ---- Inventario ----
+            EventoNoDisponibleException::class          => [404, 'evento_no_disponible'],
+            LocalidadesSinPrecioException::class        => [422, 'localidades_sin_precio'],
+            RecintoSinLugaresException::class           => [422, 'recinto_sin_lugares'],
         ];
 
         // Callback de Google: es una redirección del navegador, no una petición JSON.
@@ -85,6 +92,17 @@ return Application::configure(basePath: dirname(__DIR__))
                 : 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';   // error técnico (se registra en el log)
 
             return redirect('/login?tipo=error&mensaje='.urlencode($mensaje));
+        });
+
+        // Página web de un evento que no está a la venta → 404 (en la API ya responde JSON 404)
+        $exceptions->render(function (EventoNoDisponibleException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return null;
+            }
+
+            // se convierte en un 404 normal de Laravel, que muestra su página de "no encontrado"
+            return app(\Illuminate\Contracts\Debug\ExceptionHandler::class)
+                ->render($request, new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException($e->getMessage(), $e));
         });
 
         // Las reglas de negocio son respuestas ESPERADAS (contraseña incorrecta, código vencido...),

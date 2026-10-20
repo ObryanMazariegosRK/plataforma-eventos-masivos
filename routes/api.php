@@ -10,6 +10,7 @@ use App\Http\Controllers\Precios\PrecioEventoController;
 use App\Http\Controllers\Boletos\BoletoController;
 use App\Http\Controllers\Pagos\PagoController;
 use App\Http\Controllers\Pasarelas\PasarelaController;
+use App\Http\Controllers\Inventario\DisponibilidadController;
 use App\Http\Controllers\Transacciones\TransaccionController;
 use App\Http\Controllers\Reembolsos\ReembolsoController;
 
@@ -128,11 +129,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Crear reserva.
+    // Crear reserva (máx. 10 por minuto POR USUARIO: frena scripts sin afectar a otros compradores).
     Route::post('/reservas', [
         ReservaController::class,
         'store'
-    ]);
+    ])->middleware('throttle:10,1');
 
     // Cancelar reserva.
     Route::delete('/reservas/{id}', [
@@ -271,3 +272,6 @@ Route::middleware('auth:sanctum')->group(function () {
 */
 
 require __DIR__ . '/admin-api.php';
+
+// ---- Inventario: lugares disponibles de un evento (para el mapa de asientos) ----
+Route::get('/eventos/{id}/disponibilidad', [DisponibilidadController::class, 'show'])->whereNumber('id');

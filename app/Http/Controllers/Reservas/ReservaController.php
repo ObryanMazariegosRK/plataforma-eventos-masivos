@@ -24,6 +24,11 @@ class ReservaController extends Controller
                 'intval',
                 $request->validated('inventario_ids', [])
             ),
+            cupos: array_map(fn (array $cupo) => [
+                'localidad_id' => (int) $cupo['localidad_id'],
+                'cantidad'     => (int) $cupo['cantidad'],
+            ], $request->validated('cupos', [])),
+            maxAsientos: config('reservas.max_asientos_por_reserva'),
 
         );
 

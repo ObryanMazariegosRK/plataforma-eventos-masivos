@@ -39,3 +39,10 @@ Schedule::call(function (): void {
     ->name('reservas.expirar.vencidas')
     ->everyMinute()
     ->withoutOverlapping();
+
+// Genera el inventario de un evento que se publicó antes de que existiera la generación automática.
+// Uso: php artisan inventario:generar 4
+Artisan::command('inventario:generar {evento : id del evento}', function (int $evento) {
+    $creados = app(\App\Application\Abstractions\Inventario\IGenerarInventarioEventoUseCase::class)->execute($evento);
+    $this->info($creados > 0 ? "Se crearon {$creados} lugares para el evento {$evento}." : "El evento {$evento} ya tenía inventario.");
+})->purpose('Crea los lugares a la venta de un evento a partir de su recinto');

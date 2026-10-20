@@ -2,6 +2,7 @@
 
 namespace App\Application\UseCases\Admin\Eventos;
 
+use App\Application\Abstractions\Inventario\IGenerarInventarioEventoUseCase;
 use App\Domain\Enums\Recintos\EstadoEvento;
 use App\Models\Recintos\Evento;
 use Illuminate\Support\Facades\DB;
@@ -9,6 +10,11 @@ use Illuminate\Validation\ValidationException;
 
 class PublicarEventoUseCase
 {
+    public function __construct(
+        // Inventario: crea los lugares a la venta del evento al publicarlo
+        private IGenerarInventarioEventoUseCase $generarInventario,
+    ) {}
+
     /**
      * Publica un evento que se encuentra en borrador.
      *
@@ -57,6 +63,10 @@ class PublicarEventoUseCase
                     ],
                 ]);
             }
+
+            // Crea los lugares a la venta (exige precio en todas las localidades).
+            // Va dentro de esta transacción: si falla, el evento NO se publica.
+            $this->generarInventario->execute($evento->id);
 
             $evento->estado = EstadoEvento::PUBLICADO->value;
             $evento->fecha_publicacion = now();

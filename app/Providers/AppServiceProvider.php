@@ -151,6 +151,16 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Catalogo\ListarEventosUseCase::class,
         );
 
+        // ---- Inventario ----
+        $this->app->bind(
+            \App\Application\Abstractions\Inventario\IGenerarInventarioEventoUseCase::class,
+            \App\Application\UseCases\Inventario\GenerarInventarioEventoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Inventario\IConsultarDisponibilidadUseCase::class,
+            \App\Application\UseCases\Inventario\ConsultarDisponibilidadUseCase::class,
+        );
+
         // ---- Pagos y Pasarelas ----
         // repositorios
         $this->app->bind(
