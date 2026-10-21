@@ -1,0 +1,140 @@
+/* Mis compras — usa los tokens y la cabecera de catalogo.css */
+
+.compras { padding: 64px 0 110px; }
+.compras__encabezado { padding-bottom: 22px; margin-bottom: 36px; border-bottom: 1px solid var(--hilo); }
+.compras__encabezado h1 { margin: 14px 0 0; font-size: clamp(40px, 5vw, 60px); line-height: 1; }
+.compras__aviso { color: var(--piedra); font-family: var(--titulo); font-size: 22px; font-style: italic; }
+.compras__aviso[hidden] { display: none; }
+
+/* Pestañas Próximas / Pasadas: texto con una línea champán bajo la activa */
+.compras__pestanas { display: flex; gap: 34px; margin: -14px 0 8px; border-bottom: 1px solid var(--hilo); }
+.compras__pestanas[hidden] { display: none; }
+.compras__pestanas button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0 16px;
+    border: 0;
+    background: none;
+    color: var(--tenue);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color .3s ease;
+}
+.compras__pestanas button::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: var(--champan);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .5s var(--curva);
+}
+.compras__pestanas button:hover { color: var(--piedra); }
+.compras__pestanas button[aria-selected="true"] { color: var(--marfil); }
+.compras__pestanas button[aria-selected="true"]::after { transform: scaleX(1); }
+.compras__cuenta { min-width: 22px; padding: 2px 7px; border: 1px solid var(--hilo); border-radius: 999px; font-size: 10px; letter-spacing: 0; text-align: center; }
+.compras__pestanas button[aria-selected="true"] .compras__cuenta { border-color: rgba(200, 180, 140, .5); color: var(--champan); }
+
+.compras__sin { padding: 36px 0; color: var(--piedra); font-family: var(--titulo); font-size: 22px; font-style: italic; }
+
+/* "Ver más": de 5 en 5 */
+.compras__mas { display: flex; justify-content: center; margin-top: 36px; }
+.compras__ver-mas {
+    padding: 13px 26px;
+    border: 1px solid var(--hilo);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--marfil);
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color .3s ease, background-color .3s ease;
+}
+.compras__ver-mas:hover { border-color: var(--champan); background: var(--champan-suave); }
+.compras__ver-mas span { color: var(--tenue); letter-spacing: .08em; text-transform: none; }
+
+/* Cada compra: fecha | evento y lugares | total y boletos */
+.compra {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) auto;
+    gap: 28px;
+    align-items: start;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--hilo);
+    animation: aparecer .8s var(--curva) both;
+}
+@keyframes aparecer { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.compra__fecha { text-align: center; padding-top: 4px; }
+.compra__dia { display: block; font-family: var(--titulo); font-size: 44px; line-height: .9; }
+.compra__mes { display: block; margin-top: 6px; color: var(--champan); font-size: 10.5px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
+
+.compra__lugar { display: block; margin-bottom: 8px; color: var(--piedra); font-size: 12.5px; }
+.compra__nombre { margin: 0 0 14px; font-size: clamp(26px, 3vw, 34px); line-height: 1.05; }
+.compra__lugares { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.compra__lugares li {
+    padding: 6px 12px;
+    border: 1px solid var(--hilo);
+    border-radius: 999px;
+    color: var(--marfil);
+    font-size: 12.5px;
+}
+.compra__lugares li span { color: var(--tenue); }
+
+.compra__lado { display: grid; justify-items: end; gap: 6px; text-align: right; }
+.compra__total { font-family: var(--titulo); font-size: 28px; font-weight: 400; line-height: 1; }
+.compra__pagado { color: var(--tenue); font-size: 12px; }
+
+/* Espacio para "Ver boletos" (módulo Boletos): mis-compras.js deja un botón deshabilitado */
+.compra__boletos { margin-top: 12px; }
+.compra__boletos button,
+.compra__boletos a {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    border: 1px solid var(--hilo);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--marfil);
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .3s ease, background-color .3s ease;
+}
+.compra__boletos a:hover, .compra__boletos button:not(:disabled):hover { border-color: var(--champan); background: var(--champan-suave); }
+.compra__boletos button:disabled { color: var(--tenue); cursor: default; }
+
+/* Funciones que ya pasaron: más tenues */
+.compras__panel--pasadas .compra { opacity: .6; }
+.compras__panel--pasadas .compra:hover { opacity: .85; }
+
+.compras__vacio { padding: 40px 0; text-align: center; }
+.compras__vacio p { margin: 0 0 24px; color: var(--piedra); font-family: var(--titulo); font-size: 26px; font-style: italic; }
+
+@media (max-width: 640px) {
+    .compras { padding: 44px 0 80px; }
+    .compra { grid-template-columns: 54px minmax(0, 1fr); gap: 18px; }
+    .compra__dia { font-size: 34px; }
+    .compra__lado { grid-column: 2; justify-items: start; text-align: left; }
+    .compras__pestanas { gap: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .compra { animation: none; }
+}

@@ -6,13 +6,14 @@ use App\Domain\Abstractions\Pasarelas\IPasarelaPago;
 use App\Domain\Abstractions\Pasarelas\IPasarelaPagoResolver;
 use App\Domain\Abstractions\Pasarelas\OrdenPasarela;
 use App\Domain\Abstractions\Pasarelas\ResultadoCaptura;
+use DateTimeImmutable;
 
 /** Pasarela falsa que también es su propio resolver. La prueba decide si aprueba o rechaza. */
 class PasarelaPagoFalsa implements IPasarelaPago, IPasarelaPagoResolver
 {
     public bool $aprobar = true;
 
-    /** @var list<array{monto: float, referencia: string, urlRetorno: string}> */
+    /** @var list<array{monto: float, referencia: string, urlRetorno: string, venceEn: DateTimeImmutable}> */
     public array $ordenes = [];
 
     /** @var list<string> */
@@ -23,9 +24,9 @@ class PasarelaPagoFalsa implements IPasarelaPago, IPasarelaPagoResolver
         return $this;
     }
 
-    public function crearOrden(float $monto, string $moneda, string $referencia, string $urlRetorno, string $urlCancelacion): OrdenPasarela
+    public function crearOrden(float $monto, string $moneda, string $referencia, string $urlRetorno, string $urlCancelacion, DateTimeImmutable $venceEn): OrdenPasarela
     {
-        $this->ordenes[] = compact('monto', 'referencia', 'urlRetorno');
+        $this->ordenes[] = compact('monto', 'referencia', 'urlRetorno', 'venceEn');
 
         return new OrdenPasarela('ORD-'.count($this->ordenes), 'https://pasarela.test/aprobar/ORD-'.count($this->ordenes));
     }

@@ -1033,12 +1033,10 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        // Estas páginas aún necesitan integrarse.
-        const compras = document.createElement('span');
-        compras.className = 'pulso-pendiente';
-        compras.textContent =
-            'Mis compras · Próximamente';
+        // Historial de compras (reservas pagadas, con espacio para ver los boletos)
+        const compras = crearEnlace('Mis compras', '/mis-compras');
 
+        // Esta página aún necesita integrarse.
         const boletos = document.createElement('span');
         boletos.className = 'pulso-pendiente';
         boletos.textContent =

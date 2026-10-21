@@ -98,6 +98,10 @@ Route::view('/pagos/retorno', 'pagos.retorno')
 Route::view('/pagos/cancelado', 'pagos.cancelado')
     ->name('pagos.cancelado');
 
+// Historial de compras del cliente (los datos vienen de GET /api/mis-compras)
+Route::view('/mis-compras', 'reservas.mis-compras')
+    ->name('reservas.mis-compras');
+
 
 // ======================================================
 // 7. PASARELA SIMULADA

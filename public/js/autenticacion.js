@@ -151,6 +151,34 @@ const Auth = {
     },
 
     // =====================================================
+    // PAGO: IR DIRECTO A LA PASARELA
+    // =====================================================
+
+    // Si hay una sola pasarela activa, crea el pago y manda el navegador a su página.
+    // Con varias (o si algo falla) va a /pagar para elegir y ver el error.
+    // Devuelve la respuesta del error para que la vista lo muestre, o null si ya redirigió.
+    async irAPagar(reservaId) {
+        const pasarelas = await this.api('/pasarelas', { metodo: 'GET' });
+
+        if (!pasarelas.ok || !Array.isArray(pasarelas.data) || pasarelas.data.length !== 1) {
+            window.location.href = `/pagar?reserva=${reservaId}`;
+            return null;
+        }
+
+        const respuesta = await this.api('/pagos', {
+            conToken: true,
+            cuerpo: { reserva_id: Number(reservaId), pasarela: pasarelas.data[0].codigo },
+        });
+
+        if (respuesta.ok) {
+            window.location.href = respuesta.data.url_aprobacion;
+            return null;
+        }
+
+        return respuesta;
+    },
+
+    // =====================================================
     // MENSAJES DE ERROR
     // =====================================================
 

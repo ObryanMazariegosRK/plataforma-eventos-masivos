@@ -63,6 +63,7 @@ class IniciarPagoUseCase implements IIniciarPagoUseCase
             referencia: 'pago-'.$pago->getId(),
             urlRetorno: $this->conPago($dto->urlRetorno, $pago->getId()),
             urlCancelacion: $this->conPago($dto->urlCancelacion, $pago->getId()),
+            venceEn: $reserva->getExpiraEn(),   // la orden muere junto con la reserva
         );
 
         $pago->asignarOrdenExterna($orden->id);

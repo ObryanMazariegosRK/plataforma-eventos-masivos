@@ -144,16 +144,63 @@ class InventarioTest extends TestCase
         $this->assertSame(0, DB::table('reservas')->count());
     }
 
-    public function test_limite_de_lugares_por_reserva(): void
+    public function test_maximo_de_boletos_por_persona_en_una_sola_reserva(): void
     {
-        config(['reservas.max_asientos_por_reserva' => 4]);
+        config(['reservas.max_boletos_por_persona' => 4]);
         $eventoId = $this->publicar('Auditorio Central', ['VIP' => 300, 'General' => 120]);
         $cliente = $this->crearUsuario('ana@example.com');
 
         $this->withToken($cliente->createToken('t')->plainTextToken)->postJson('/api/reservas', [
             'evento_id' => $eventoId,
             'cupos'     => [['localidad_id' => $this->localidad('Auditorio Central', 'General'), 'cantidad' => 5]],
-        ])->assertUnprocessable()->assertJsonValidationErrors('asientos');
+        ])->assertUnprocessable()->assertJsonPath('error', 'limite_por_persona');
+    }
+
+    public function test_el_maximo_por_persona_suma_las_reservas_del_mismo_evento(): void
+    {
+        $eventoId = $this->publicar('Auditorio Central', ['VIP' => 300, 'General' => 120]);
+        $general = $this->localidad('Auditorio Central', 'General');
+        $token = $this->crearUsuario('ana@example.com')->createToken('t')->plainTextToken;
+        $reservar = fn (int $cantidad) => $this->withToken($token)->postJson('/api/reservas', [
+            'evento_id' => $eventoId, 'cupos' => [['localidad_id' => $general, 'cantidad' => $cantidad]],
+        ]);
+
+        $primera = $reservar(3)->assertCreated()->json('id');
+
+        // 3 apartados + 3 nuevos = 6 > 5: se avisa cuántos le quedan
+        $reservar(3)->assertUnprocessable()
+            ->assertJsonPath('error', 'limite_por_persona')
+            ->assertJsonPath('message', 'Puedes tener hasta 5 boletos por persona para esta función. Ya tienes 3, así que puedes elegir 2 más.');
+        $reservar(2)->assertCreated();
+
+        $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")
+            ->assertOk()->assertExactJson(['maximo' => 5, 'usados' => 5, 'disponibles' => 0]);
+        $reservar(1)->assertUnprocessable()
+            ->assertJsonPath('message', 'Ya tienes 5 boletos para esta función, el máximo por persona.');
+
+        // una reserva que vence sin pagar devuelve sus lugares al cupo de la persona
+        DB::table('reservas')->where('id', $primera)->update(['expira_en' => now()->subMinute()]);
+        $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")->assertJsonPath('disponibles', 3);
+        $reservar(3)->assertCreated();
+    }
+
+    public function test_el_maximo_es_por_persona_y_por_evento(): void
+    {
+        $eventoId = $this->publicar('Auditorio Central', ['VIP' => 300, 'General' => 120]);
+        $general = $this->localidad('Auditorio Central', 'General');
+        $ana = $this->crearUsuario('ana@example.com')->createToken('t')->plainTextToken;
+        $luis = $this->crearUsuario('luis@example.com')->createToken('t')->plainTextToken;
+
+        $this->withToken($ana)->postJson('/api/reservas', [
+            'evento_id' => $eventoId, 'cupos' => [['localidad_id' => $general, 'cantidad' => 5]],
+        ])->assertCreated();
+        $this->app['auth']->forgetGuards();
+
+        // otra persona tiene su propio cupo
+        $this->withToken($luis)->getJson("/api/eventos/{$eventoId}/mi-cupo")->assertJsonPath('disponibles', 5);
+        $this->withToken($luis)->postJson('/api/reservas', [
+            'evento_id' => $eventoId, 'cupos' => [['localidad_id' => $general, 'cantidad' => 5]],
+        ])->assertCreated();
     }
 
     // ---------- Vistas ----------
