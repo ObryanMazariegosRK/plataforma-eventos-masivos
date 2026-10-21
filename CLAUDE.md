@@ -20,6 +20,7 @@ docker compose exec app php artisan test tests/Unit/AlgoTest.php  # single file
 docker compose exec app ./vendor/bin/pint        # code style (Laravel Pint)
 docker compose logs -f queue                     # queue worker output
 docker compose restart queue                     # REQUIRED after changing code used by jobs/queued mail (the worker keeps old code in memory)
+docker compose exec app php artisan reservas:demo-concurrencia   # live concurrency demo against MySQL (parallel HTTP reservas; creates and deletes its own event/users; --conservar keeps them)
 ```
 
 If you get HTTP 500 on a fresh clone: `docker compose exec app chmod -R 777 storage bootstrap/cache`.
