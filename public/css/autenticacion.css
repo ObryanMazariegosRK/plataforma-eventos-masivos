@@ -369,6 +369,8 @@ a.boton:hover { text-decoration: none; }
 }
 .datos li span:first-child { color: var(--piedra); }
 .datos li span:last-child { font-weight: 400; text-align: right; word-break: break-all; }
+/* Lugares comprados: una zona por renglón ("Platea · A5, A6") */
+.datos .datos__lugares { display: grid; gap: 4px; word-break: normal; }
 
 .etiqueta {
     display: inline-block;

@@ -139,6 +139,12 @@ Route::middleware('auth:sanctum')->group(function () {
         'store'
     ])->middleware('throttle:10,1');
 
+    // Consultar una reserva propia: evento y lugares.
+    Route::get('/reservas/{id}', [
+        ReservaController::class,
+        'show'
+    ])->whereNumber('id');
+
     // Cancelar reserva.
     Route::delete('/reservas/{id}', [
         ReservaController::class,

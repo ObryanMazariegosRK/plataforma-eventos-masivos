@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Reservas;
 
+use App\Application\Abstractions\Reservas\IConsultarReservaUseCase;
 use App\Application\Abstractions\Reservas\ICrearReservaUseCase;
 use App\Application\DTOs\Reservas\CrearReservaDTO;
 use App\Http\Controllers\Controller;
@@ -40,6 +41,12 @@ class ReservaController extends Controller
             'expira_en' => $reserva->getExpiraEn()->format(DATE_ATOM),
             'total'     => $reserva->getTotal(),
         ], 201);
+    }
+
+    // Evento y lugares de una reserva propia (lo usa la página "¡Pago aprobado!")
+    public function show(Request $request, IConsultarReservaUseCase $consultar, int $id): JsonResponse
+    {
+        return response()->json($consultar->execute($id, (int) $request->user()->id));
     }
 
     public function destroy(

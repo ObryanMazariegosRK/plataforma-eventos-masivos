@@ -61,8 +61,8 @@ class PagoSimuladoTest extends TestCase
 
         // 2) la persona aprueba en la página de la pasarela simulada
         $urlPasarela = $inicio->json('url_aprobacion');
-        $this->get($urlPasarela)->assertOk()->assertSee('Aprobar pago');
-        $this->post($urlPasarela, ['accion' => 'aprobar'])
+        $this->get($urlPasarela)->assertOk()->assertSee('Llenado automático')->assertDontSee('fondos insuficientes');
+        $this->post($urlPasarela, $this->tarjeta('aprobada'))
             ->assertRedirectContains('/pagos/retorno?pago='.$pagoId);
 
         // 3) confirmar (cobrar)
@@ -90,7 +90,7 @@ class PagoSimuladoTest extends TestCase
         $inicio = $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada']);
         $pagoId = $inicio->json('pago_id');
 
-        $this->post($inicio->json('url_aprobacion'), ['accion' => 'rechazar']);
+        $this->post($inicio->json('url_aprobacion'), $this->tarjeta('sin_fondos'));
 
         $this->withToken($this->token)->postJson("/api/pagos/{$pagoId}/confirmar")
             ->assertStatus(402)
@@ -105,6 +105,107 @@ class PagoSimuladoTest extends TestCase
         $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada'])
             ->assertCreated();
         $this->assertSame(2, (int) DB::table('pagos')->where('reserva_id', $reservaId)->max('intento'));
+    }
+
+    public function test_datos_de_tarjeta_incorrectos_no_aprueban_ni_rechazan_la_orden(): void
+    {
+        $reservaId = $this->crearReservaConAsientos(asientos: 1);
+        $inicio = $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada']);
+        $url = $inicio->json('url_aprobacion');
+
+        // CVV equivocado: vuelve a la pasarela con el aviso, sin decidir la orden
+        $this->post($url, ['cvv' => '999'] + $this->tarjeta('aprobada'))
+            ->assertRedirect($url)
+            ->assertSessionHasErrors('tarjeta');
+        $this->get($url)->assertOk()->assertSee('Los datos de la tarjeta no son correctos');
+
+        // la orden sigue pendiente: confirmar todavía no cobra
+        $this->withToken($this->token)->postJson('/api/pagos/'.$inicio->json('pago_id').'/confirmar')->assertStatus(402);
+
+        // los botones viejos ya no existen
+        $this->post($url, ['accion' => 'aprobar'])->assertSessionHasErrors('accion');
+    }
+
+    public function test_volver_a_la_pasarela_despues_de_pagar_no_cobra_dos_veces(): void
+    {
+        $reservaId = $this->crearReservaConAsientos(asientos: 1);
+        $inicio = $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada']);
+        $url = $inicio->json('url_aprobacion');
+        $this->post($url, $this->tarjeta('aprobada'));
+        $this->withToken($this->token)->postJson('/api/pagos/'.$inicio->json('pago_id').'/confirmar')->assertOk();
+
+        // "Atrás": ya no aparece el formulario, sino el aviso con el enlace al resultado
+        $this->get($url)->assertOk()
+            ->assertSee('Este pago ya fue procesado')
+            ->assertSee('/pagos/retorno?pago='.$inicio->json('pago_id'), false)
+            ->assertDontSee('Llenado automático');
+
+        // reenviar el formulario tampoco procesa nada: vuelve al aviso
+        $this->post($url, $this->tarjeta('aprobada'))->assertRedirect($url);
+        $this->post($url, ['accion' => 'cancelar'])->assertRedirect($url);
+        $this->assertSame(1, DB::table('transacciones')->count());
+    }
+
+    public function test_una_orden_rechazada_ofrece_intentar_de_nuevo(): void
+    {
+        $reservaId = $this->crearReservaConAsientos(asientos: 1);
+        $url = $this->withToken($this->token)
+            ->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada'])->json('url_aprobacion');
+        $this->post($url, $this->tarjeta('sin_fondos'));
+
+        $this->get($url)->assertOk()->assertSee('El pago fue rechazado')->assertSee('intentar de nuevo');
+    }
+
+    public function test_la_orden_vence_junto_con_la_reserva(): void
+    {
+        $reservaId = $this->crearReservaConAsientos(asientos: 1);
+        $inicio = $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada']);
+        $url = $inicio->json('url_aprobacion');
+
+        // un segundo antes de que venza la reserva todavía se puede pagar...
+        $this->travel(config('reservas.ttl_segundos') - 1)->seconds();
+        $this->get($url)->assertOk()->assertSee('Llenado automático');
+
+        // ...y al vencer la reserva, la pasarela ya no acepta la tarjeta (aunque falten
+        // minutos para el tope de pagos.simulada.minutos_orden)
+        $this->travel(2)->seconds();
+        $this->get($url)->assertOk()
+            ->assertSee('Esta orden de pago venció')
+            ->assertSee('Volver a la cartelera')
+            ->assertDontSee('Llenado automático');
+        $this->post($url, $this->tarjeta('aprobada'))->assertRedirect($url);
+
+        // nada quedó aprobado y no se cobra
+        $this->withToken($this->token)->postJson('/api/pagos/'.$inicio->json('pago_id').'/confirmar')
+            ->assertStatus(402);
+        $this->assertSame(0, DB::table('transacciones')->count());
+    }
+
+    public function test_una_orden_que_no_existe_muestra_un_aviso(): void
+    {
+        $this->get('/pasarela-simulada/SIM-NOEXISTE')->assertNotFound()->assertSee('No encontramos esta orden de pago');
+        $this->post('/pasarela-simulada/SIM-NOEXISTE', $this->tarjeta('aprobada'))
+            ->assertRedirect('/pasarela-simulada/SIM-NOEXISTE');
+    }
+
+    public function test_la_pagina_de_pago_aprobado_obtiene_el_evento_y_los_lugares(): void
+    {
+        $reservaId = $this->crearReservaConAsientos(asientos: 2);
+
+        $this->withToken($this->token)->getJson("/api/reservas/{$reservaId}")
+            ->assertOk()
+            ->assertJsonPath('evento.nombre', 'Concierto')
+            ->assertJsonPath('evento.recinto', 'Estadio')
+            ->assertJsonCount(2, 'lugares')
+            ->assertJsonPath('lugares.0.localidad', 'Platea')
+            ->assertJsonPath('lugares.0.fila', 'A')
+            ->assertJsonMissingPath('usuario_id');
+
+        // la reserva de otra persona no se puede consultar (ni se revela que existe)
+        $otro = $this->crearUsuario('otro-detalle@example.com')->createToken('t')->plainTextToken;
+        $this->app['auth']->forgetGuards();
+        $this->withToken($otro)->getJson("/api/reservas/{$reservaId}")
+            ->assertNotFound()->assertJsonPath('error', 'reserva_no_encontrada');
     }
 
     public function test_cancelar_en_la_pasarela_regresa_a_la_pagina_de_cancelado(): void
@@ -194,5 +295,19 @@ class PagoSimuladoTest extends TestCase
             'nombre' => 'Ana', 'apellido' => 'López', 'email' => $email, 'password' => Hash::make('Secreto#123'),
             'rol' => RolUsuario::CLIENTE, 'estado' => EstadoUsuario::ACTIVO, 'email_verified_at' => now(),
         ]);
+    }
+
+    // Datos que se escriben en la pasarela simulada (config pagos.simulada.tarjetas)
+    private function tarjeta(string $tipo): array
+    {
+        $tarjeta = config("pagos.simulada.tarjetas.{$tipo}");
+
+        return [
+            'accion'  => 'pagar',
+            'titular' => 'Ana López',
+            'numero'  => trim(chunk_split($tarjeta['numero'], 4, ' ')),   // con espacios, como en el formulario
+            'vence'   => $tarjeta['vence'],
+            'cvv'     => $tarjeta['cvv'],
+        ];
     }
 }
