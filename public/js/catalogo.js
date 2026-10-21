@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAnterior = document.getElementById('btnAnterior');
     const btnSiguiente = document.getElementById('btnSiguiente');
 
-    // Fotos de teatro para las tarjetas de muestra y los eventos sin afiche.
+    // Fotos de teatro para los eventos sin afiche.
     // Son dos fotos; cada entrada muestra otro encuadre (object-position) para que no se repitan.
     const FOTOS_TEATRO = [
         { imagen: '/img/landing/auditorio-general.jpg', encuadre: '50% 50%' },
@@ -32,17 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const RESPALDO_EVENTO_ILUSTRATIVA =
         '/img/landing/auditorio-general.jpg';
 
-    const DEMOS = [
-        { titulo: 'Noche de estreno', ...FOTOS_TEATRO[0] },
-        { titulo: 'Detrás del telón', ...FOTOS_TEATRO[1] },
-        { titulo: 'La gran función', ...FOTOS_TEATRO[2] },
-        { titulo: 'Primera fila', ...FOTOS_TEATRO[3] },
-        { titulo: 'Que se abra el telón', ...FOTOS_TEATRO[4] }
-    ];
-
     let controladorBusqueda = null;
     let tarjetasDestacadas = [];
-    let indiceActivo = 2;
+    let indiceActivo = 0;
+    // Con 1 o 2 eventos no hay efecto 3D: las tarjetas se muestran lado a lado, sin flechas
+    let modoPlano = false;
     let inicioToque = null;
 
     // =====================================================
@@ -268,14 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // CARRUSEL DE EVENTOS
     // =====================================================
 
+    // Solo eventos reales a la venta: los 5 más próximos (la API los ordena por fecha)
     function crearDatosCarrusel(eventos) {
-        const tarjetas = new Array(5).fill(null);
-        const posicionesReales = [2, 3, 1, 4, 0];
-
-        eventos.slice(0, 5).forEach((evento, i) => {
+        return eventos.slice(0, 5).map(evento => {
             const foto = resolverImagenEvento(evento);
 
-            tarjetas[posicionesReales[i]] = {
+            return {
                 demo: false,
                 titulo: evento.nombre || 'Evento sin nombre',
                 subtitulo:
@@ -285,25 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ilustrativa: foto.ilustrativa,
                 respaldo: RESPALDO_EVENTO_ILUSTRATIVA,
                 evento
-            };
-        });
-
-        let posDemo = 0;
-
-        return tarjetas.map(item => {
-            if (item) {
-                return item;
-            }
-
-            const demo = DEMOS[posDemo++];
-
-            return {
-                demo: true,
-                titulo: demo.titulo,
-                subtitulo:
-                    'Imagen de muestra · No disponible para compra',
-                imagen: demo.imagen,
-                encuadre: demo.encuadre
             };
         });
     }
@@ -387,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (indiceActivo !== i) {
+            if (!modoPlano && indiceActivo !== i) {
                 seleccionarTarjeta(i);
             }
         });
@@ -478,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function moverCarrusel(direccion) {
-        if (tarjetasDestacadas.length > 1) {
+        if (!modoPlano && tarjetasDestacadas.length > 1) {
             seleccionarTarjeta(indiceActivo + direccion);
         }
     }
@@ -489,15 +462,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         tarjetasDestacadas = crearDatosCarrusel(eventos);
-        indiceActivo = 2;
+        indiceActivo = 0;   // el evento más próximo, al centro
+        modoPlano = tarjetasDestacadas.length <= 2;
+
+        // Sin eventos a la venta no se muestra la sección (la cartelera de abajo lo explica)
+        const seccion = document.getElementById('destacados');
+        if (seccion) {
+            seccion.hidden = tarjetasDestacadas.length === 0;
+        }
+        if (!tarjetasDestacadas.length) {
+            return;
+        }
 
         listaDestacados.replaceChildren();
+        listaDestacados.classList.toggle('escenario-destacados--plano', modoPlano);
+        listaDestacados.dataset.cantidad = String(tarjetasDestacadas.length);
 
         tarjetasDestacadas.forEach((datos, i) => {
             listaDestacados.appendChild(
                 crearTarjetaDestacada(datos, i)
             );
         });
+
+        const barra = document.getElementById('barraCarrusel');
+        if (barra) {
+            barra.hidden = modoPlano;
+        }
+
+        if (modoPlano) {
+            // Todas visibles y accesibles: no hay tarjeta "activa"
+            [...listaDestacados.children].forEach(tarjeta => {
+                tarjeta.dataset.posicion = 'plano';
+                tarjeta.removeAttribute('aria-hidden');
+                tarjeta.tabIndex = -1;
+                const enlace = tarjeta.querySelector('a');
+                if (enlace) enlace.tabIndex = 0;
+            });
+            return;
+        }
 
         if (puntos) {
             puntos.replaceChildren();
@@ -1165,7 +1167,54 @@ document.addEventListener('DOMContentLoaded', () => {
     // INICIALIZACIÓN
     // =====================================================
 
+    // =====================================================
+    // PORTADA QUE SE APAGA AL BAJAR
+    // =====================================================
+
+    // Al bajar, la portada se oscurece poco a poco (--oscuro: 0 → 1 a lo largo de toda su
+    // altura). El valor sigue al scroll con suavizado, así no cambia de golpe con la rueda.
+    function iniciarPortadaQueSeApaga() {
+        const portada = document.querySelector('.portada');
+
+        if (!portada || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        let actual = 0;
+        let animando = false;
+
+        const objetivo = () => Math.min(1, Math.max(0, window.scrollY / (portada.offsetHeight * .9)));
+
+        function paso() {
+            const meta = objetivo();
+            actual += (meta - actual) * .08;   // más pequeño = más lento y suave
+
+            if (Math.abs(meta - actual) < .001) {
+                actual = meta;
+                animando = false;
+            }
+
+            portada.style.setProperty('--oscuro', actual.toFixed(4));
+
+            if (animando) {
+                requestAnimationFrame(paso);
+            }
+        }
+
+        function alBajar() {
+            if (!animando) {
+                animando = true;
+                requestAnimationFrame(paso);
+            }
+        }
+
+        window.addEventListener('scroll', alBajar, { passive: true });
+        window.addEventListener('resize', alBajar, { passive: true });
+        alBajar();   // por si la página abre ya bajada (recargar a media página)
+    }
+
     cargarBanner();
+    iniciarPortadaQueSeApaga();
     cargarEventos({}, true);
     iniciarMenuSesion();
 

@@ -23,7 +23,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: .22;
+    opacity: .3;   /* igual que .portada-fondo__medio en catalogo.css */
     filter: grayscale(.35);
 }
 .banner-vista::after {

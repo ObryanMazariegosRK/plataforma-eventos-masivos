@@ -74,10 +74,21 @@ em { font-style: italic; color: var(--champan); }
 .nav-enlaces .btn-registro { color: var(--marfil); border: 1px solid var(--hilo); padding: 11px 20px; transition: border-color .3s ease, background-color .3s ease; }
 .nav-enlaces .btn-registro:hover { border-color: var(--champan); background: var(--champan-suave); }
 
-/* ---------- Portada ---------- */
-.seccion-destacados { position: relative; overflow: hidden; isolation: isolate; padding: 64px 0 44px; }
-/* Fondo de la portada: imagen o video del banner, siempre oscurecido */
-.portada-fondo { position: absolute; inset: 0; z-index: -2; overflow: hidden; }
+/* ---------- Portada: pantalla completa, solo el banner y el título ---------- */
+.portada {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    min-height: calc(100svh - 68px);
+    display: grid;
+    place-items: center;
+    padding: 60px 0 120px;
+}
+/* Fondo de la portada: imagen o video del banner, siempre oscurecido.
+   --oscuro (0 → 1) lo pone catalogo.js según cuánto se ha bajado: la portada se apaga despacio. */
+.portada { --oscuro: 0; }
+.portada-fondo { position: absolute; inset: 0; z-index: -2; overflow: hidden; transform: scale(calc(1 + var(--oscuro) * .06)); transform-origin: 50% 40%; }
+.portada-fondo::after { content: ""; position: absolute; inset: 0; background: var(--tinta); opacity: calc(var(--oscuro) * .9); pointer-events: none; }
 .portada-fondo__medio {
     position: absolute;
     inset: 0;
@@ -88,8 +99,8 @@ em { font-style: italic; color: var(--champan); }
     filter: grayscale(.35);
     transition: opacity 1.2s ease;
 }
-.portada-fondo__medio.listo { opacity: .22; }
-.seccion-destacados::after {
+.portada-fondo__medio.listo { opacity: .3; }
+.portada::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -99,7 +110,12 @@ em { font-style: italic; color: var(--champan); }
         linear-gradient(to bottom, rgba(13, 12, 11, .4), transparent 30%, transparent 70%, var(--tinta));
     pointer-events: none;
 }
-.destacados-encabezado { text-align: center; max-width: 760px; margin: 0 auto 4px; }
+.destacados-encabezado { text-align: center; max-width: 760px; margin: 0 auto; }
+/* El título sube un poco y se desvanece un poco antes que el fondo */
+.portada .destacados-encabezado {
+    opacity: calc(1 - var(--oscuro) * 1.25);
+    transform: translateY(calc(var(--oscuro) * -48px));
+}
 .eyebrow { color: var(--champan); }
 .eyebrow::before, .eyebrow::after { content: ""; display: inline-block; width: 28px; height: 1px; background: var(--champan); opacity: .6; vertical-align: middle; margin: 0 14px; }
 .titulo-principal {
@@ -112,7 +128,63 @@ em { font-style: italic; color: var(--champan); }
 .destacados-encabezado p { margin: 0 auto; max-width: 480px; line-height: 1.75; font-size: 15px; color: var(--piedra); }
 @keyframes entradaTitulo { from { opacity: 0; transform: translateY(18px); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
 
+/* Invitación a bajar: texto pequeño y una línea por la que cae un punto champán */
+.portada__bajar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 34px;
+    width: max-content;
+    margin-inline: auto;
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    color: var(--piedra);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color .3s ease;
+    /* "backwards": al terminar la entrada, manda la opacidad del desvanecido (--oscuro) */
+    animation: entradaTitulo 1.1s var(--curva) .5s backwards;
+}
+.portada__bajar:hover { color: var(--marfil); }
+/* La invitación a bajar se va primero (no hace falta una vez que ya se bajó) */
+.portada__bajar { opacity: calc(1 - var(--oscuro) * 3); }
+.portada__linea { position: relative; width: 1px; height: 46px; background: var(--hilo); overflow: hidden; }
+.portada__linea::after {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: -10px;
+    width: 3px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--champan);
+    animation: caer 2.2s cubic-bezier(.6, 0, .4, 1) infinite;
+}
+@keyframes caer { to { transform: translateY(66px); } }
+
+/* ---------- Destacados: el carrusel, en su propia sección ---------- */
+.seccion-destacados { position: relative; padding: 84px 0 64px; border-top: 1px solid var(--hilo); }
+.destacados-titulo { text-align: center; margin-bottom: 8px; }
+.destacados-titulo h2 { margin: 14px 0 0; font-size: clamp(34px, 4.2vw, 52px); line-height: 1; }
+
 /* ---------- Carrusel (coverflow) ---------- */
+.carrusel-barra[hidden] { display: none; }
+/* 1 o 2 eventos: tarjetas lado a lado, sin efecto 3D ni flechas (catalogo.js) */
+.escenario-destacados--plano {
+    height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 36px;
+    padding: 36px 0 12px;
+    perspective: none;
+}
+.escenario-destacados--plano .destacado-tarjeta { position: relative; left: auto; top: auto; transform: none; cursor: default; }
+.escenario-destacados--plano .destacado-tarjeta:hover .destacado-imagen { transform: scale(1.05); }
 .coverflow { width: 100%; position: relative; margin: 0 auto; outline-offset: -7px; }
 .escenario-destacados { position: relative; height: 480px; width: min(1000px, 100%); margin-inline: auto; perspective: 1400px; transform-style: preserve-3d; }
 .destacado-tarjeta {
@@ -286,7 +358,8 @@ em { font-style: italic; color: var(--champan); }
     .nav-enlaces > a.activo { display: none; }
     .nav-enlaces > a, .nav-enlaces .btn-registro { font-size: 10px; letter-spacing: .16em; }
     .nav-enlaces .btn-registro { padding: 9px 12px; }
-    .seccion-destacados { padding: 44px 0 32px; }
+    .portada { min-height: calc(100svh - 60px); padding: 40px 0 110px; }
+    .seccion-destacados { padding: 56px 0 44px; }
     .eyebrow::before, .eyebrow::after { width: 18px; margin: 0 10px; }
     .titulo-principal { font-size: clamp(38px, 11vw, 52px); margin: 16px 0 12px; }
     .destacados-encabezado p { font-size: 13px; }
