@@ -236,6 +236,32 @@ class PagoSimuladoTest extends TestCase
         $this->get('/mis-compras')->assertOk()->assertSee('Mis <em>compras</em>', false);
     }
 
+    public function test_despues_de_pagar_cada_lugar_tiene_su_boleto_con_qr(): void
+    {
+        $reservaId = $this->crearReservaConAsientos(asientos: 2);
+        $inicio = $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $reservaId, 'pasarela' => 'simulada']);
+        $this->post($inicio->json('url_aprobacion'), $this->tarjeta('aprobada'));
+        $this->withToken($this->token)->postJson('/api/pagos/'.$inicio->json('pago_id').'/confirmar')->assertOk();
+
+        // la compra trae el boleto de cada lugar (sin exponer el código secreto)
+        $lugares = $this->withToken($this->token)->getJson("/api/reservas/{$reservaId}")
+            ->assertOk()
+            ->assertJsonPath('lugares.0.boleto.estado', 'emitido')
+            ->assertJsonPath('lugares.1.boleto.estado', 'emitido')
+            ->json('lugares');
+        $this->assertStringNotContainsString(
+            DB::table('boletos')->value('codigo_qr'),
+            $this->withToken($this->token)->getJson("/api/reservas/{$reservaId}")->getContent()
+        );
+
+        // el QR de ese boleto (módulo Boletos) es una imagen SVG
+        $this->withToken($this->token)->get('/api/boletos/'.$lugares[0]['boleto']['id'].'/qr')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/svg+xml; charset=UTF-8');
+
+        $this->get("/mis-compras/{$reservaId}/boletos")->assertOk()->assertSee('Tus boletos');
+    }
+
     public function test_cancelar_en_la_pasarela_regresa_a_la_pagina_de_cancelado(): void
     {
         $reservaId = $this->crearReservaConAsientos(asientos: 1);

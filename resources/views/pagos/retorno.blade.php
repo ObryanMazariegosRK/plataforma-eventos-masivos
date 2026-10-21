@@ -22,8 +22,8 @@
             <li><span>Monto</span><span id="monto"></span></li>
             <li><span>Referencia</span><span id="referencia"></span></li>
         </ul>
-        <a href="{{ route('reservas.mis-compras') }}" class="boton" style="display:block;text-align:center">Ver mis compras</a>
-        <p class="pie"><a href="{{ route('catalogo.index') }}">Volver a la cartelera</a></p>
+        <a href="{{ route('reservas.mis-compras') }}" id="enlaceBoletos" class="boton" style="display:block;text-align:center">Ver mis boletos</a>
+        <p class="pie"><a href="{{ route('reservas.mis-compras') }}">Ver todas mis compras</a> · <a href="{{ route('catalogo.index') }}">Volver a la cartelera</a></p>
     </div>
 
     <p class="pie" id="reintentar" hidden><a id="enlaceReintentar" href="{{ route('pagos.pagar') }}">Intentar pagar de nuevo</a></p>
@@ -49,6 +49,7 @@
             document.getElementById('monto').textContent = `${p.moneda} ${Number(p.monto).toFixed(2)}`;
             document.getElementById('referencia').textContent = p.referencia;
             document.getElementById('exito').hidden = false;
+            document.getElementById('enlaceBoletos').href = `/mis-compras/${p.reserva_id}/boletos`;
             mostrarCompra(p.reserva_id);
             return;
         }

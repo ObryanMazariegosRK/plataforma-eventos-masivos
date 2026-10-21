@@ -1,8 +1,7 @@
 'use strict';
 
 // Mis compras: reservas pagadas del usuario (GET /api/mis-compras).
-// Cada compra deja un espacio .compra__boletos[data-reserva-id] para "Ver boletos":
-// el módulo de Boletos (Freyder) lo reemplaza por el enlace a los boletos con su QR.
+// Cada compra enlaza a sus boletos con QR: /mis-compras/{reserva}/boletos (boletos.js).
 
 document.addEventListener('DOMContentLoaded', async () => {
     const aviso = document.getElementById('comprasAviso');
@@ -72,13 +71,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             lado.append(crear('span', 'compra__pagado', `Pagado el ${fechaCorta.format(new Date(compra.pagado_en))}`));
         }
 
-        // Espacio para el módulo de Boletos
+        // Boletos con su QR (uno por lugar)
         const boletos = crear('div', 'compra__boletos');
-        boletos.dataset.reservaId = compra.id;
-        const pendiente = crear('button', '', 'Boletos · pronto');
-        pendiente.type = 'button';
-        pendiente.disabled = true;
-        boletos.append(pendiente);
+        const enlace = crear('a', '', compra.lugares.length === 1 ? 'Ver boleto' : `Ver ${compra.lugares.length} boletos`);
+        enlace.href = `/mis-compras/${compra.id}/boletos`;
+        boletos.append(enlace);
         lado.append(boletos);
 
         articulo.append(bloqueFecha, info, lado);
