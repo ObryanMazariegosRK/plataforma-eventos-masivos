@@ -86,6 +86,29 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Transacciones\CrearReservaConHistorialUseCase::class,
         );
 
+        // ---- Cola Virtual ----
+        $this->app->bind(
+            \App\Domain\Abstractions\ColaVirtual\ITurnoRepository::class,
+            \App\Data\ColaVirtual\TurnoRepository::class,
+        );
+
+        $this->app->bind(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class,
+            \App\Application\UseCases\ColaVirtual\IngresarColaVirtualUseCase::class,
+        );
+        
+        // Consulta de posición y estado del turno (RF-09).
+        $this->app->bind(
+            \App\Application\Abstractions\ColaVirtual\IConsultarMiTurnoUseCase::class,
+            \App\Application\UseCases\ColaVirtual\ConsultarMiTurnoUseCase::class,
+        );
+
+        // Procesamiento automático de Cola Virtual (RF-09).
+        $this->app->bind(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class,
+            \App\Application\UseCases\ColaVirtual\ProcesarColaVirtualUseCase::class,
+        );
+
         // ---- Auth ----
         // repositorio y servicios
         $this->app->bind(
