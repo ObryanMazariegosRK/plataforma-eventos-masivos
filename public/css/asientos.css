@@ -406,6 +406,12 @@ body.pagina-asientos {
 
 .aviso--visible { display: block; }
 .aviso--info { border-color: var(--champan); background: rgba(200, 180, 140, .08); color: var(--champan); }
+/* Ya tiene el máximo de boletos por persona para el evento */
+.asientos-app .limite { margin: 0 0 14px; padding: 12px 14px; border-left: 1px solid var(--champan); background: rgba(200, 180, 140, .06); color: var(--piedra); font-size: 13px; line-height: 1.55; }
+.asientos-app .limite[hidden] { display: none; }
+.asientos-app .limite span { display: block; color: var(--marfil); margin-bottom: 6px; }
+.asientos-app .limite a { color: var(--champan); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; text-decoration: none; border-bottom: 1px solid rgba(200, 180, 140, .4); }
+.asientos-app .limite a:hover { border-color: var(--champan); }
 
 .cargando { padding: 60px 0; text-align: center; color: var(--piedra); }
 

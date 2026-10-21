@@ -71,6 +71,26 @@ class ReservaRepository implements IReservaRepository
         ])->all();
     }
 
+    public function lugaresDePersonaEnEvento(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora, bool $bloquear = false): int
+    {
+        if ($bloquear) {
+            // Candado por persona: la segunda pestaña espera aquí hasta que termine la primera,
+            // y entonces ya cuenta los lugares que esa acaba de apartar (SQLite lo ignora)
+            DB::table('usuarios')->where('id', $usuarioId)->lockForUpdate()->first();
+        }
+
+        return DB::table('inventario')
+            ->join('reservas', 'reservas.id', '=', 'inventario.reserva_id')
+            ->where('reservas.usuario_id', $usuarioId)
+            ->where('reservas.evento_id', $eventoId)
+            ->where(fn ($q) => $q
+                ->where('reservas.estado', 'confirmada')
+                ->orWhere(fn ($q) => $q
+                    ->where('reservas.estado', 'activa')
+                    ->where('reservas.expira_en', '>', $ahora->format('Y-m-d H:i:s'))))
+            ->count();
+    }
+
     private function consultaResumen(): \Illuminate\Database\Query\Builder
     {
         return DB::table('reservas')

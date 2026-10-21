@@ -139,6 +139,12 @@ Route::middleware('auth:sanctum')->group(function () {
         'store'
     ])->middleware('throttle:10,1');
 
+    // Cuántos boletos más puede apartar el usuario en un evento (máximo por persona).
+    Route::get('/eventos/{id}/mi-cupo', [
+        ReservaController::class,
+        'miCupo'
+    ])->whereNumber('id');
+
     // Mis compras: reservas pagadas del usuario (próximas y pasadas).
     Route::get('/mis-compras', [
         ReservaController::class,

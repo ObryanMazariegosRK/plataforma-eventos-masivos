@@ -24,4 +24,11 @@ interface IReservaRepository
      * 'pagado_en' y 'referencia' del pago aprobado. Sin orden particular.
      */
     public function comprasDeUsuario(int $usuarioId): array;
+
+    /**
+     * Lugares que la persona ya tiene en el evento: de reservas pagadas o apartadas que aún
+     * no vencen. Con $bloquear, primero bloquea la fila del usuario (FOR UPDATE) para que dos
+     * solicitudes suyas al mismo tiempo se atiendan de una en una.
+     */
+    public function lugaresDePersonaEnEvento(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora, bool $bloquear = false): int;
 }

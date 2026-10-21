@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Reservas;
 
+use App\Application\Abstractions\Reservas\IConsultarMiCupoUseCase;
 use App\Application\Abstractions\Reservas\IConsultarReservaUseCase;
 use App\Application\Abstractions\Reservas\IListarMisComprasUseCase;
 use App\Application\Abstractions\Reservas\ICrearReservaUseCase;
@@ -30,7 +31,7 @@ class ReservaController extends Controller
                 'localidad_id' => (int) $cupo['localidad_id'],
                 'cantidad'     => (int) $cupo['cantidad'],
             ], $request->validated('cupos', [])),
-            maxAsientos: config('reservas.max_asientos_por_reserva'),
+            maxPorPersona: config('reservas.max_boletos_por_persona'),
 
         );
 
@@ -48,6 +49,17 @@ class ReservaController extends Controller
     public function show(Request $request, IConsultarReservaUseCase $consultar, int $id): JsonResponse
     {
         return response()->json($consultar->execute($id, (int) $request->user()->id));
+    }
+
+    // Cuántos boletos más puede apartar la persona en el evento (lo usa el plano de asientos)
+    public function miCupo(Request $request, IConsultarMiCupoUseCase $consultar, int $id): JsonResponse
+    {
+        return response()->json($consultar->execute(
+            (int) $request->user()->id,
+            $id,
+            config('reservas.max_boletos_por_persona'),
+            new \DateTimeImmutable(),
+        ));
     }
 
     // Página "Mis compras": reservas pagadas del usuario, próximas y pasadas

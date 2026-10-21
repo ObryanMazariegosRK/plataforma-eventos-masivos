@@ -4,7 +4,7 @@
     const pagina = document.getElementById('seleccionAsientos');
     if (!pagina) return;
     const eventoId = Number(pagina.dataset.evento);
-    const MAXIMO = Number(pagina.dataset.maximo);
+    const MAXIMO = Number(pagina.dataset.maximo);   // boletos por persona en este evento
     const MINUTOS = Number(pagina.dataset.minutos);
     const CLAVE = `seleccion-evento-${eventoId}`;   // la selección sobrevive a ir a iniciar sesión y volver
 
@@ -18,8 +18,18 @@
     let seleccion = new Set();      // ids de inventario (asientos numerados)
     let cupos = new Map();          // localidad_id → cantidad (zonas generales)
 
-    document.getElementById('ayuda').textContent =
-        `Elige hasta ${MAXIMO} lugares. Los apartamos para ti por ${MINUTOS} minutos mientras pagas.`;
+    // Lugares que aún puede apartar: el máximo menos lo que ya pagó o tiene apartado (GET mi-cupo)
+    let restantes = MAXIMO;
+    let usados = 0;
+
+    function pintarAyuda() {
+        const cupo = usados > 0
+            ? `Hasta ${MAXIMO} boletos por persona · te ${restantes === 1 ? 'queda' : 'quedan'} ${restantes}.`
+            : `Hasta ${MAXIMO} boletos por persona.`;
+        document.getElementById('ayuda').textContent =
+            `${cupo} Los apartamos para ti por ${MINUTOS} minutos mientras pagas.`;
+    }
+    pintarAyuda();
     const cuenta = document.getElementById('enlaceCuenta');   // solo existe en la página propia del mapa
     if (cuenta && Auth.obtenerToken()) {
         cuenta.textContent = 'Mi perfil';
@@ -30,7 +40,7 @@
 
     // ---- Selección ----
     const cantidadElegida = () => seleccion.size + [...cupos.values()].reduce((a, b) => a + b, 0);
-    const puedeAgregar = () => cantidadElegida() < MAXIMO;
+    const puedeAgregar = () => cantidadElegida() < restantes;
 
     function mostrarAviso(texto, tipo = 'error') {
         aviso.textContent = texto;
@@ -44,7 +54,9 @@
         } else if (puedeAgregar()) {
             seleccion.add(asiento.inventario_id);
         } else {
-            mostrarAviso(`Puedes elegir como máximo ${MAXIMO} lugares por compra.`, 'info');
+            mostrarAviso(restantes < MAXIMO
+                ? `Ya tienes ${usados} ${usados === 1 ? 'boleto' : 'boletos'} para esta función: puedes elegir ${restantes} más (máximo ${MAXIMO} por persona).`
+                : `Puedes elegir como máximo ${MAXIMO} boletos por persona.`, 'info');
         }
         actualizar();
     }
@@ -120,8 +132,10 @@
 
         clavesPrevias = claves;
         animarTotal(items.reduce((suma, item) => suma + item.precio, 0));
-        boton.disabled = items.length === 0;
-        boton.textContent = items.length ? `Reservar ${cantidadElegida()} y pagar` : 'Reservar y pagar';
+        boton.disabled = items.length === 0 || restantes === 0;
+        boton.textContent = restantes === 0
+            ? 'Límite alcanzado'
+            : items.length ? `Reservar ${cantidadElegida()} y pagar` : 'Reservar y pagar';
     }
 
     // El total "cuenta" hasta el nuevo valor en lugar de saltar
@@ -185,6 +199,31 @@
         }
     }
 
+    // Cuántos boletos más puede apartar (solo con sesión; sin sesión se muestra el máximo)
+    async function cargarCupo() {
+        if (!Auth.obtenerToken()) return;
+        const respuesta = await Auth.api(`/eventos/${eventoId}/mi-cupo`, { metodo: 'GET', conToken: true });
+        if (!respuesta.ok) return;
+
+        restantes = respuesta.data.disponibles;
+        usados = respuesta.data.usados;
+        pintarAyuda();
+
+        const limite = document.getElementById('limite');
+        limite.hidden = restantes > 0;
+        document.getElementById('limiteTexto').textContent =
+            `Ya tienes ${usados} boletos para esta función, el máximo por persona.`;
+
+        // Una selección guardada (p. ej. antes de iniciar sesión) que ya no cabe: se vacía y se avisa
+        if (cantidadElegida() > restantes) {
+            seleccion.clear();
+            cupos.clear();
+            if (restantes > 0) {
+                mostrarAviso(`Ya tienes ${usados} ${usados === 1 ? 'boleto' : 'boletos'} para esta función: puedes elegir ${restantes} más.`, 'info');
+            }
+        }
+    }
+
     async function iniciar() {
         if (!(await cargar())) return;
 
@@ -204,12 +243,15 @@
             }
         } catch { /* selección guardada inválida: se ignora */ }
 
+        await cargarCupo();
         depurarSeleccion();
         actualizar();
 
-        // en vivo: cada 8 s se ve lo que otros van apartando
+        // en vivo: cada 8 s se ve lo que otros van apartando (y si se liberó cupo propio
+        // porque venció una reserva sin pagar)
         setInterval(async () => {
             if (document.hidden || !(await cargar())) return;
+            await cargarCupo();
             depurarSeleccion();
             actualizar();
         }, 8000);
@@ -252,8 +294,10 @@
             return;
         }
 
-        // Lo más común: alguien apartó un asiento un instante antes. Se refresca el mapa.
-        mostrarAviso(Auth.mensajeDeError(respuesta));
+        // Lo más común: alguien apartó un asiento un instante antes. Se refresca el mapa
+        // (y el cupo, por si la otra pestaña de esta misma persona ya apartó lugares).
+        mostrarAviso(Auth.mensajeDeError(respuesta), respuesta.data?.error === 'limite_por_persona' ? 'info' : 'error');
+        await cargarCupo();
         if (await cargar()) {
             depurarSeleccion();
             actualizar();
