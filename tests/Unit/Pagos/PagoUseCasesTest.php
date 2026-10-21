@@ -73,6 +73,11 @@ class PagoUseCasesTest extends TestCase
         $this->assertSame('ORD-1', $pago->getOrdenExterna());
         $this->assertSame('https://pasarela.test/aprobar/ORD-1', $resultado->urlAprobacion);
         $this->assertStringEndsWith('?pago='.$resultado->pagoId, $this->pasarela->ordenes[0]['urlRetorno']);
+        // la orden de la pasarela vence junto con la reserva
+        $this->assertEquals(
+            $this->reservas->buscarPorId($pago->getReservaId())->getExpiraEn(),
+            $this->pasarela->ordenes[0]['venceEn'],
+        );
     }
 
     public function test_iniciar_cuenta_los_intentos(): void
