@@ -236,7 +236,13 @@
 
         if (respuesta.ok) {
             try { sessionStorage.removeItem(CLAVE); } catch { /* nada */ }
-            location.href = `/pagar?reserva=${respuesta.data.id}`;
+            // Directo a la pasarela (sin la página intermedia "Pagar reserva")
+            Auth.cargando(boton, true, 'Preparando tu pago…');
+            const error = await Auth.irAPagar(respuesta.data.id);
+            if (error) {
+                // La reserva ya existe: en /pagar se ve el error y se puede reintentar
+                location.href = `/pagar?reserva=${respuesta.data.id}`;
+            }
             return;
         }
 

@@ -9,6 +9,9 @@
 
     <div id="alerta" class="alerta" role="alert"></div>
 
+    {{-- Con ?reserva=ID y una sola pasarela se va directo a pagarla; el formulario queda para errores o varias pasarelas --}}
+    <p id="preparando" class="subtitulo" hidden>Preparando tu pago…</p>
+
     <form id="formPagar" novalidate>
         <div class="campo">
             <label for="reserva">Número de reserva</label>
@@ -72,6 +75,27 @@
         Auth.mostrar(alerta, Auth.mensajeDeError(respuesta));
     });
 
-    cargarPasarelas();
+    // Desde "Intentar de nuevo" (o tras reservar): directo a la pasarela si solo hay una
+    const reservaInicial = new URLSearchParams(location.search).get('reserva');
+    const formulario = document.getElementById('formPagar');
+    const preparando = document.getElementById('preparando');
+
+    (async () => {
+        if (reservaInicial && Auth.obtenerToken()) {
+            formulario.hidden = true;
+            preparando.hidden = false;
+
+            const pasarelas = await Auth.api('/pasarelas', { metodo: 'GET' });
+            if (pasarelas.ok && pasarelas.data.length === 1) {
+                const error = await Auth.irAPagar(reservaInicial);
+                if (!error) return;   // ya va camino a la pasarela
+                Auth.mostrar(alerta, Auth.mensajeDeError(error));
+            }
+
+            preparando.hidden = true;
+            formulario.hidden = false;
+        }
+        cargarPasarelas();
+    })();
 </script>
 @endpush
