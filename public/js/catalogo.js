@@ -1036,13 +1036,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Historial de compras (reservas pagadas, con espacio para ver los boletos)
         const compras = crearEnlace('Mis compras', '/mis-compras');
 
-        // Esta página aún necesita integrarse.
-        const boletos = document.createElement('span');
-        boletos.className = 'pulso-pendiente';
-        boletos.textContent =
-            'Mis boletos · Próximamente';
-
-        menu.append(compras, boletos);
+        // Los boletos (con su QR) se abren desde cada compra
+        menu.append(compras);
 
         // =================================================
         // CERRAR SESIÓN

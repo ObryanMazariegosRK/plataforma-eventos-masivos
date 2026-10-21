@@ -102,6 +102,11 @@ Route::view('/pagos/cancelado', 'pagos.cancelado')
 Route::view('/mis-compras', 'reservas.mis-compras')
     ->name('reservas.mis-compras');
 
+// Boletos de una compra: uno por asiento, con su QR (GET /api/reservas/{id} + /api/boletos/{id}/qr)
+Route::view('/mis-compras/{reservaId}/boletos', 'reservas.boletos')
+    ->whereNumber('reservaId')
+    ->name('reservas.boletos');
+
 
 // ======================================================
 // 7. PASARELA SIMULADA

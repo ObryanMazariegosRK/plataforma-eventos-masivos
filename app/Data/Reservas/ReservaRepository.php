@@ -110,19 +110,32 @@ class ReservaRepository implements IReservaRepository
             return [];
         }
 
-        // Numeradas: fila y número del asiento; generales: sin asiento (un cupo por fila)
+        // Numeradas: fila y número del asiento; generales: sin asiento (un cupo por fila).
+        // El boleto (módulo Boletos) es uno por lugar vendido; null mientras se emite.
+        // No se expone su código: solo viaja dentro del QR (GET /api/boletos/{id}/qr).
         return DB::table('inventario')
             ->join('localidades', 'localidades.id', '=', 'inventario.localidad_id')
             ->leftJoin('asientos', 'asientos.id', '=', 'inventario.asiento_id')
+            ->leftJoin('boletos', fn ($j) => $j->on('boletos.inventario_id', '=', 'inventario.id')->whereNull('boletos.deleted_at'))
             ->whereIn('inventario.reserva_id', $reservaIds)
-            ->orderBy('localidades.id')->orderBy('asientos.fila')->orderBy('asientos.numero')
-            ->get(['inventario.reserva_id', 'localidades.nombre as localidad', 'localidades.tipo', 'asientos.fila', 'asientos.numero'])
+            ->orderBy('localidades.id')->orderBy('asientos.fila')->orderBy('asientos.numero')->orderBy('inventario.id')
+            ->get([
+                'inventario.reserva_id', 'localidades.nombre as localidad', 'localidades.tipo', 'localidades.color',
+                'asientos.fila', 'asientos.numero', 'boletos.id as boleto_id', 'boletos.estado as boleto_estado',
+                'boletos.usado_en as boleto_usado_en',
+            ])
             ->groupBy('reserva_id')
             ->map(fn ($grupo) => $grupo->map(fn ($l) => [
                 'localidad' => $l->localidad,
                 'tipo'      => $l->tipo,
+                'color'     => $l->color,
                 'fila'      => $l->fila,
                 'numero'    => $l->numero === null ? null : (int) $l->numero,
+                'boleto'    => $l->boleto_id === null ? null : [
+                    'id'       => (int) $l->boleto_id,
+                    'estado'   => $l->boleto_estado,
+                    'usado_en' => $l->boleto_usado_en ? \Illuminate\Support\Carbon::parse($l->boleto_usado_en)->toIso8601String() : null,
+                ],
             ])->values()->all())
             ->all();
     }

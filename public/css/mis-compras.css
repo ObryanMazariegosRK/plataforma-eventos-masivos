@@ -97,7 +97,7 @@
 .compra__total { font-family: var(--titulo); font-size: 28px; font-weight: 400; line-height: 1; }
 .compra__pagado { color: var(--tenue); font-size: 12px; }
 
-/* Espacio para "Ver boletos" (módulo Boletos): mis-compras.js deja un botón deshabilitado */
+/* "Ver boletos": lleva a /mis-compras/{reserva}/boletos */
 .compra__boletos { margin-top: 12px; }
 .compra__boletos button,
 .compra__boletos a {
