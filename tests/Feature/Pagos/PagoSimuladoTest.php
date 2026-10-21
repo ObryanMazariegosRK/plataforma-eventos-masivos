@@ -208,6 +208,34 @@ class PagoSimuladoTest extends TestCase
             ->assertNotFound()->assertJsonPath('error', 'reserva_no_encontrada');
     }
 
+    public function test_mis_compras_lista_solo_las_reservas_pagadas_del_usuario(): void
+    {
+        // una compra pagada y una reserva sin pagar
+        $pagada = $this->crearReservaConAsientos(asientos: 2);
+        $inicio = $this->withToken($this->token)->postJson('/api/pagos', ['reserva_id' => $pagada, 'pasarela' => 'simulada']);
+        $this->post($inicio->json('url_aprobacion'), $this->tarjeta('aprobada'));
+        $this->withToken($this->token)->postJson('/api/pagos/'.$inicio->json('pago_id').'/confirmar')->assertOk();
+        $this->crearReservaConAsientos(asientos: 1);
+
+        $this->withToken($this->token)->getJson('/api/mis-compras')
+            ->assertOk()
+            ->assertJsonCount(1, 'proximas')
+            ->assertJsonCount(0, 'pasadas')
+            ->assertJsonPath('proximas.0.id', $pagada)
+            ->assertJsonPath('proximas.0.evento.nombre', 'Concierto')
+            ->assertJsonCount(2, 'proximas.0.lugares')
+            ->assertJsonPath('proximas.0.referencia', fn ($ref) => str_starts_with($ref, 'SIMCAP-'))
+            ->assertJsonPath('proximas.0.pagado_en', fn ($fecha) => $fecha !== null);
+
+        // otra persona no ve esa compra
+        $otro = $this->crearUsuario('otro-compras@example.com')->createToken('t')->plainTextToken;
+        $this->app['auth']->forgetGuards();
+        $this->withToken($otro)->getJson('/api/mis-compras')
+            ->assertOk()->assertExactJson(['proximas' => [], 'pasadas' => []]);
+
+        $this->get('/mis-compras')->assertOk()->assertSee('Mis <em>compras</em>', false);
+    }
+
     public function test_cancelar_en_la_pasarela_regresa_a_la_pagina_de_cancelado(): void
     {
         $reservaId = $this->crearReservaConAsientos(asientos: 1);

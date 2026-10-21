@@ -42,36 +42,73 @@ class ReservaRepository implements IReservaRepository
 
     public function detalle(int $id): ?array
     {
-        $reserva = DB::table('reservas')
+        $reserva = $this->consultaResumen()->where('reservas.id', $id)->first();
+
+        return $reserva ? $this->aResumen($reserva, $this->lugaresDe([$id])[$id] ?? []) : null;
+    }
+
+    public function comprasDeUsuario(int $usuarioId): array
+    {
+        // Pago aprobado de cada reserva (cuándo se pagó y su referencia de cobro)
+        $pagos = DB::table('pagos')
+            ->where('estado', 'aprobado')
+            ->select('reserva_id', DB::raw('MAX(updated_at) as pagado_en'), DB::raw('MAX(referencia_externa) as referencia'))
+            ->groupBy('reserva_id');
+
+        $reservas = $this->consultaResumen()
+            ->leftJoinSub($pagos, 'pago', 'pago.reserva_id', '=', 'reservas.id')
+            ->addSelect('pago.pagado_en', 'pago.referencia')
+            ->where('reservas.usuario_id', $usuarioId)
+            ->where('reservas.estado', 'confirmada')
+            ->get();
+
+        // Todos los lugares en una sola consulta (no una por compra)
+        $lugares = $this->lugaresDe($reservas->pluck('id')->all());
+
+        return $reservas->map(fn ($r) => $this->aResumen($r, $lugares[$r->id] ?? []) + [
+            'pagado_en'  => $r->pagado_en ? \Illuminate\Support\Carbon::parse($r->pagado_en)->toIso8601String() : null,
+            'referencia' => $r->referencia,
+        ])->all();
+    }
+
+    private function consultaResumen(): \Illuminate\Database\Query\Builder
+    {
+        return DB::table('reservas')
             ->join('eventos', 'eventos.id', '=', 'reservas.evento_id')
             ->join('recintos', 'recintos.id', '=', 'eventos.recinto_id')
-            ->where('reservas.id', $id)
             ->select(
                 'reservas.id', 'reservas.usuario_id', 'reservas.estado', 'reservas.total',
                 'eventos.id as evento_id', 'eventos.nombre as evento_nombre', 'eventos.fecha_evento',
                 'recintos.nombre as recinto',
-            )
-            ->first();
+            );
+    }
 
-        if ($reserva === null) {
-            return null;
+    /** @return array<int, list<array>> lugares agrupados por reserva_id */
+    private function lugaresDe(array $reservaIds): array
+    {
+        if ($reservaIds === []) {
+            return [];
         }
 
         // Numeradas: fila y número del asiento; generales: sin asiento (un cupo por fila)
-        $lugares = DB::table('inventario')
+        return DB::table('inventario')
             ->join('localidades', 'localidades.id', '=', 'inventario.localidad_id')
             ->leftJoin('asientos', 'asientos.id', '=', 'inventario.asiento_id')
-            ->where('inventario.reserva_id', $id)
+            ->whereIn('inventario.reserva_id', $reservaIds)
             ->orderBy('localidades.id')->orderBy('asientos.fila')->orderBy('asientos.numero')
-            ->get(['localidades.nombre as localidad', 'localidades.tipo', 'asientos.fila', 'asientos.numero'])
-            ->map(fn ($l) => [
+            ->get(['inventario.reserva_id', 'localidades.nombre as localidad', 'localidades.tipo', 'asientos.fila', 'asientos.numero'])
+            ->groupBy('reserva_id')
+            ->map(fn ($grupo) => $grupo->map(fn ($l) => [
                 'localidad' => $l->localidad,
                 'tipo'      => $l->tipo,
                 'fila'      => $l->fila,
                 'numero'    => $l->numero === null ? null : (int) $l->numero,
-            ])
+            ])->values()->all())
             ->all();
+    }
 
+    private function aResumen(object $reserva, array $lugares): array
+    {
         return [
             'id'         => (int) $reserva->id,
             'usuario_id' => (int) $reserva->usuario_id,

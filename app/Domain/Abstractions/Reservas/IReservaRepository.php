@@ -18,4 +18,10 @@ interface IReservaRepository
      *  'lugares' => [[localidad, tipo, fila, numero]]]; null si no existe.
      */
     public function detalle(int $id): ?array;
+
+    /**
+     * Reservas pagadas (confirmadas) del usuario, con el mismo formato que detalle() más
+     * 'pagado_en' y 'referencia' del pago aprobado. Sin orden particular.
+     */
+    public function comprasDeUsuario(int $usuarioId): array;
 }

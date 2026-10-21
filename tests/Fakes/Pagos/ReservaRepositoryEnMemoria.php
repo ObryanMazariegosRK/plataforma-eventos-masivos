@@ -14,4 +14,8 @@ class ReservaRepositoryEnMemoria extends RepositorioEnMemoria implements IReserv
     /** @var array<int, array> detalles preparados por la prueba */
     public array $detalles = [];
     public function detalle(int $id): ?array { return $this->detalles[$id] ?? null; }
+    public function comprasDeUsuario(int $usuarioId): array
+    {
+        return array_values(array_filter($this->detalles, fn ($d) => $d['usuario_id'] === $usuarioId && $d['estado'] === 'confirmada'));
+    }
 }

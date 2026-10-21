@@ -71,6 +71,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\Abstractions\Reservas\IConsultarReservaUseCase::class,
             \App\Application\UseCases\Reservas\ConsultarReservaUseCase::class,
         );
+        $this->app->bind(
+            \App\Application\Abstractions\Reservas\IListarMisComprasUseCase::class,
+            \App\Application\UseCases\Reservas\ListarMisComprasUseCase::class,
+        );
 
         // Crear reserva y registrar automáticamente su historial.
         $this->app->bind(

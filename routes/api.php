@@ -139,6 +139,12 @@ Route::middleware('auth:sanctum')->group(function () {
         'store'
     ])->middleware('throttle:10,1');
 
+    // Mis compras: reservas pagadas del usuario (próximas y pasadas).
+    Route::get('/mis-compras', [
+        ReservaController::class,
+        'misCompras'
+    ]);
+
     // Consultar una reserva propia: evento y lugares.
     Route::get('/reservas/{id}', [
         ReservaController::class,

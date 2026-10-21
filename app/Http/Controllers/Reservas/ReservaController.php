@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Reservas;
 
 use App\Application\Abstractions\Reservas\IConsultarReservaUseCase;
+use App\Application\Abstractions\Reservas\IListarMisComprasUseCase;
 use App\Application\Abstractions\Reservas\ICrearReservaUseCase;
 use App\Application\DTOs\Reservas\CrearReservaDTO;
 use App\Http\Controllers\Controller;
@@ -47,6 +48,12 @@ class ReservaController extends Controller
     public function show(Request $request, IConsultarReservaUseCase $consultar, int $id): JsonResponse
     {
         return response()->json($consultar->execute($id, (int) $request->user()->id));
+    }
+
+    // Página "Mis compras": reservas pagadas del usuario, próximas y pasadas
+    public function misCompras(Request $request, IListarMisComprasUseCase $listar): JsonResponse
+    {
+        return response()->json($listar->execute((int) $request->user()->id, new \DateTimeImmutable()));
     }
 
     public function destroy(

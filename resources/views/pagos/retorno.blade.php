@@ -22,7 +22,8 @@
             <li><span>Monto</span><span id="monto"></span></li>
             <li><span>Referencia</span><span id="referencia"></span></li>
         </ul>
-        <a href="{{ route('perfil') }}" class="boton" style="display:block;text-align:center">Ir a mi perfil</a>
+        <a href="{{ route('reservas.mis-compras') }}" class="boton" style="display:block;text-align:center">Ver mis compras</a>
+        <p class="pie"><a href="{{ route('catalogo.index') }}">Volver a la cartelera</a></p>
     </div>
 
     <p class="pie" id="reintentar" hidden><a id="enlaceReintentar" href="{{ route('pagos.pagar') }}">Intentar pagar de nuevo</a></p>
