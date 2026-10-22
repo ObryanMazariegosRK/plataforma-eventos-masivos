@@ -12,8 +12,17 @@ class ListarEventosUseCase implements IListarEventosUseCase
     ) {
     }
 
-    public function execute(array $filtros = []): array
+    public function execute(array $filtros = [], ?int $pagina = null, ?int $porPagina = null): array
     {
-        return $this->eventoRepository->listarPublicados($filtros);
+        if ($pagina === null || $porPagina === null) {
+            $eventos = $this->eventoRepository->listarPublicados($filtros);
+
+            return ['eventos' => $eventos, 'total' => count($eventos)];
+        }
+
+        return [
+            'eventos' => $this->eventoRepository->listarPublicados($filtros, $porPagina, ($pagina - 1) * $porPagina),
+            'total'   => $this->eventoRepository->contarPublicados($filtros),
+        ];
     }
 }

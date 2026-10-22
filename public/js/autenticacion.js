@@ -4,6 +4,7 @@
 
 const Auth = {
     claveToken: 'auth_token',
+    claveVolver: 'volver_tras_login',
 
     // =====================================================
     // GESTIÓN DEL TOKEN
@@ -25,27 +26,53 @@ const Auth = {
     // REDIRECCIÓN SEGÚN EL ROL
     // =====================================================
 
+    // ?volver=/eventos/5/asientos → al iniciar sesión se regresa ahí (p. ej. eligiendo asientos).
+    // Solo rutas internas ("/algo", nunca "//otro-sitio.com": evita redirecciones a sitios
+    // externos) y nunca a las propias páginas de acceso (evita ciclos).
+    volverValido(ruta) {
+        return typeof ruta === 'string'
+            && /^\/(?!\/)/.test(ruta)
+            && !/^\/(login|registro|verificar|olvide-password|restablecer-password|oauth)\b/.test(ruta);
+    },
+
+    // En /login y /registro se guarda el ?volver para que sobreviva a los pasos intermedios
+    // (ir a Google y volver, o registrarse → verificar el correo). Si se entra al login sin
+    // ?volver, se borra lo que hubiera quedado de un intento anterior (el registro no lo borra:
+    // se llega a él desde el login con "Regístrate").
+    recordarVolver() {
+        const pagina = window.location.pathname;
+        if (!/^\/(login|registro)\b/.test(pagina)) return;
+        try {
+            const volver = new URLSearchParams(window.location.search).get('volver');
+            if (this.volverValido(volver)) sessionStorage.setItem(this.claveVolver, volver);
+            else if (/^\/login\b/.test(pagina)) sessionStorage.removeItem(this.claveVolver);
+        } catch { /* sin almacenamiento: solo funciona el ?volver directo */ }
+    },
+
+    destinoVolver() {
+        let volver = new URLSearchParams(window.location.search).get('volver');
+        try {
+            volver = this.volverValido(volver) ? volver : sessionStorage.getItem(this.claveVolver);
+            sessionStorage.removeItem(this.claveVolver);   // se usa una sola vez
+        } catch { /* nada */ }
+        return this.volverValido(volver) ? volver : null;
+    },
+
+    // Tras iniciar sesión: a la página de donde venía (admin o cliente, el admin también puede
+    // comprar); si no venía de ningún lado, el admin va a su panel y el cliente a la cartelera.
     redirigirSegunRol(usuario) {
         const rol = String(usuario?.rol ?? '')
             .trim()
             .toLowerCase();
 
-        if (rol === 'admin') {
-            window.location.replace('/admin');
-            return true;
+        if (rol !== 'admin' && rol !== 'cliente') {
+            console.warn('Rol de usuario no reconocido:', rol);
+            return false;
         }
 
-        if (rol === 'cliente') {
-            // ?volver=/eventos/5/asientos → regresa a donde estaba (p. ej. eligiendo asientos).
-            // Solo rutas internas ("/algo", nunca "//otro-sitio.com"): evita redirecciones a sitios externos.
-            const volver = new URLSearchParams(window.location.search).get('volver') || '';
-            const destino = /^\/(?!\/)/.test(volver) ? volver : '/catalogo';
-            window.location.replace(destino);
-            return true;
-        }
-
-        console.warn('Rol de usuario no reconocido:', rol);
-        return false;
+        const destino = this.destinoVolver() || (rol === 'admin' ? '/admin' : '/catalogo');
+        window.location.replace(destino);
+        return true;
     },
 
     // Con un token ya guardado (Google, verificación de correo o sesión abierta):
@@ -319,3 +346,5 @@ const Auth = {
             });
     },
 };
+
+Auth.recordarVolver();

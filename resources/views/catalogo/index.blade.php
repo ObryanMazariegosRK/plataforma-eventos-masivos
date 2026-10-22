@@ -23,7 +23,7 @@
     {{-- Cabecera: catalogo.js cambia "Iniciar sesión / Registrarse" por el menú de la cuenta --}}
     <header class="navbar">
         <div class="contenedor nav-contenido">
-            <a class="logo" href="{{ route('landing.experiencia') }}" aria-label="{{ config('marca.nombre') }}, ir al inicio">
+            <a class="logo" href="{{ route('catalogo.index') }}" aria-label="{{ config('marca.nombre') }}, ir a la cartelera">
                 {{ config('marca.nombre') }}
             </a>
 
@@ -95,9 +95,6 @@
 
                 <p id="estadoCarrusel" class="sr-only" role="status" aria-live="polite"></p>
 
-                <div class="destacados-acciones">
-                    <a href="#eventos" class="btn-explorar">Ver toda la cartelera</a>
-                </div>
             </div>
         </section>
 
@@ -117,11 +114,18 @@
                     <p class="mensaje-carga">Cargando la cartelera…</p>
                 </div>
 
+                {{-- Siguiente tanda de la cartelera (catalogo.js; GET /api/eventos?pagina=N) --}}
+                <div class="cartelera-mas">
+                    <button type="button" id="verMasEventos" class="ver-mas" hidden>Ver más funciones</button>
+                </div>
+
                 <p id="mensajeEstado" class="mensaje-estado" role="status" aria-live="polite"></p>
             </div>
         </section>
     </main>
 
+
+    @include('partials.pie-pagina')
 
 </body>
 </html>
