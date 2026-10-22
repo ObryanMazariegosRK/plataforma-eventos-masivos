@@ -9,6 +9,5 @@ class RegistrarUsuarioDTO
         public readonly string $email,
         public readonly string $password,
         public readonly int $minutosValidezCodigo,
-        public readonly ?string $telefono = null,
     ) {}
 }

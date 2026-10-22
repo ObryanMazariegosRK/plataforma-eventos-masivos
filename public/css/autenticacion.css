@@ -300,6 +300,23 @@ a.boton:hover { text-decoration: none; }
 
 .enlace:disabled { color: var(--piedra); cursor: default; text-decoration: none; }
 
+.pie--legal { margin-top: 6px; font-size: 12px; color: var(--piedra); opacity: .85; }
+
+/* Regresar al catálogo (p. ej. desde "Mi perfil") */
+.volver {
+    align-self: flex-start;
+    display: inline-block;
+    margin-bottom: 22px;
+    color: var(--piedra);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color .3s ease;
+}
+.volver:hover { color: var(--marfil); }
+
 .pie {
     margin-top: 14px;
     text-align: center;

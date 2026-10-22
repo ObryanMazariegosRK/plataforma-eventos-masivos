@@ -4,148 +4,216 @@ use App\Http\Controllers\Admin\AdministracionController;
 use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminEventoController;
 use App\Http\Controllers\Admin\AdminPrecioEventoController;
+use App\Http\Controllers\Admin\AdminUsuarioController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| PULSO - API DEL PANEL ADMINISTRATIVO
+| SOIRÉE - API ADMINISTRATIVA
 |--------------------------------------------------------------------------
 |
-| Todas las rutas requieren autenticación Sanctum
-| y permisos de administrador.
+| Administrador:
+|   Acceso completo.
+|
+| Organizador / Agente Operativo:
+|   Eventos y Banner.
+|
+| Cliente:
+|   Sin acceso administrativo.
 |
 */
 
-Route::middleware(['auth:sanctum', 'rol:admin'])
+Route::middleware(['auth:sanctum'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-        // =================================================
-        // RESUMEN
-        // =================================================
+        /*
+        |--------------------------------------------------------------------------
+        | ADMINISTRADOR Y AGENTE OPERATIVO
+        |--------------------------------------------------------------------------
+        */
 
-        Route::get('/resumen', [
-            AdministracionController::class,
-            'resumen'
-        ])->name('resumen');
+        Route::middleware('rol:admin,organizador')
+            ->group(function () {
 
-        // =================================================
-        // USUARIOS
-        // =================================================
+                // EVENTOS
 
-        Route::get('/usuarios', [
-            AdministracionController::class,
-            'usuarios'
-        ])->name('usuarios');
+                Route::get('/eventos', [
+                    AdministracionController::class,
+                    'eventos'
+                ])->name('eventos');
 
-        // =================================================
-        // EVENTOS
-        // =================================================
+                Route::get('/eventos/recintos', [
+                    AdminEventoController::class,
+                    'recintos'
+                ])->name('eventos.recintos');
 
-        // Mantener el listado utilizado por admin.js.
-        Route::get('/eventos', [
-            AdministracionController::class,
-            'eventos'
-        ])->name('eventos');
+                // Localidades del recinto seleccionado.
+                Route::get('/eventos/recintos/{recintoId}/localidades', [
+                    AdminPrecioEventoController::class,
+                    'localidadesPorRecinto'
+                ])
+                    ->whereNumber('recintoId')
+                    ->name('eventos.recintos.localidades');
 
-        Route::get('/eventos/recintos', [
-            AdminEventoController::class,
-            'recintos'
-        ])->name('eventos.recintos');
+                Route::post('/eventos', [
+                    AdminEventoController::class,
+                    'store'
+                ])->name('eventos.store');
 
-        Route::post('/eventos', [
-            AdminEventoController::class,
-            'store'
-        ])->name('eventos.store');
+                // PRECIOS POR LOCALIDAD
 
-        // =================================================
-        // PRECIOS POR LOCALIDAD
-        // =================================================
+                Route::get('/eventos/{id}/precios', [
+                    AdminPrecioEventoController::class,
+                    'index'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.precios');
 
-        Route::get('/eventos/{id}/precios', [
-            AdminPrecioEventoController::class,
-            'index'
-        ])
-            ->whereNumber('id')
-            ->name('eventos.precios');
+                Route::put('/eventos/{id}/precios', [
+                    AdminPrecioEventoController::class,
+                    'guardar'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.precios.guardar');
 
-        Route::put('/eventos/{id}/precios', [
-            AdminPrecioEventoController::class,
-            'guardar'
-        ])
-            ->whereNumber('id')
-            ->name('eventos.precios.guardar');
+                // CONSULTAR EVENTO
 
-        // =================================================
-        // CONSULTAR, EDITAR Y PUBLICAR
-        // =================================================
+                Route::get('/eventos/{id}', [
+                    AdminEventoController::class,
+                    'show'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.show');
 
-        Route::get('/eventos/{id}', [
-            AdminEventoController::class,
-            'show'
-        ])
-            ->whereNumber('id')
-            ->name('eventos.show');
+                // EDITAR EVENTO
 
-        Route::put('/eventos/{id}', [
-            AdminEventoController::class,
-            'update'
-        ])
-            ->whereNumber('id')
-            ->name('eventos.update');
+                Route::put('/eventos/{id}', [
+                    AdminEventoController::class,
+                    'update'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.update');
 
-        Route::patch('/eventos/{id}/publicar', [
-            AdminEventoController::class,
-            'publicar'
-        ])
-            ->whereNumber('id')
-            ->name('eventos.publicar');
+                // PUBLICAR EVENTO
 
-        // =================================================
-        // ACTUALIZAR FOTOGRAFÍA DEL EVENTO
-        // =================================================
+                Route::patch('/eventos/{id}/publicar', [
+                    AdminEventoController::class,
+                    'publicar'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.publicar');
 
-        Route::patch('/eventos/{id}/imagen', [
-            AdminEventoController::class,
-            'actualizarImagen'
-        ])
-            ->whereNumber('id')
-            ->name('eventos.imagen');
+                // CAMBIAR IMAGEN
 
-        // =================================================
-        // BANNER DEL CATÁLOGO (una imagen o un video corto)
-        // =================================================
+                Route::patch('/eventos/{id}/imagen', [
+                    AdminEventoController::class,
+                    'actualizarImagen'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.imagen');
 
-        Route::get('/banner', [AdminBannerController::class, 'show'])->name('banner');
-        // POST (no PUT): los formularios multipart con archivo solo viajan bien por POST
-        Route::post('/banner', [AdminBannerController::class, 'update'])->name('banner.actualizar');
-        Route::delete('/banner', [AdminBannerController::class, 'destroy'])->name('banner.eliminar');
+                // BANNER
 
-        // =================================================
-        // RESERVAS
-        // =================================================
+                Route::get('/banner', [
+                    AdminBannerController::class,
+                    'show'
+                ])->name('banner');
 
-        Route::get('/reservas', [
-            AdministracionController::class,
-            'reservas'
-        ])->name('reservas');
+                Route::post('/banner', [
+                    AdminBannerController::class,
+                    'update'
+                ])->name('banner.actualizar');
 
-        // =================================================
-        // PAGOS
-        // =================================================
+                Route::delete('/banner', [
+                    AdminBannerController::class,
+                    'destroy'
+                ])->name('banner.eliminar');
+            });
 
-        Route::get('/pagos', [
-            AdministracionController::class,
-            'pagos'
-        ])->name('pagos');
+        /*
+        |--------------------------------------------------------------------------
+        | EXCLUSIVO DEL ADMINISTRADOR
+        |--------------------------------------------------------------------------
+        */
 
-        // =================================================
-        // REPORTES
-        // =================================================
+        Route::middleware('rol:admin')
+            ->group(function () {
 
-        Route::get('/reportes/csv', [
-            AdministracionController::class,
-            'reporteCsv'
-        ])->name('csv');
+                // RESUMEN
+
+                Route::get('/resumen', [
+                    AdministracionController::class,
+                    'resumen'
+                ])->name('resumen');
+
+                // USUARIOS
+
+                Route::get('/usuarios', [
+                    AdministracionController::class,
+                    'usuarios'
+                ])->name('usuarios');
+
+                Route::post('/usuarios', [
+                    AdminUsuarioController::class,
+                    'crear'
+                ])->name('usuarios.crear');
+
+                Route::get('/usuarios/{usuario}', [
+                    AdminUsuarioController::class,
+                    'mostrar'
+                ])
+                    ->whereNumber('usuario')
+                    ->name('usuarios.mostrar');
+
+                Route::put('/usuarios/{usuario}', [
+                    AdminUsuarioController::class,
+                    'actualizar'
+                ])
+                    ->whereNumber('usuario')
+                    ->name('usuarios.actualizar');
+
+                Route::patch('/usuarios/{usuario}/rol', [
+                    AdminUsuarioController::class,
+                    'cambiarRol'
+                ])
+                    ->whereNumber('usuario')
+                    ->name('usuarios.rol');
+
+                Route::patch('/usuarios/{usuario}/estado', [
+                    AdminUsuarioController::class,
+                    'cambiarEstado'
+                ])
+                    ->whereNumber('usuario')
+                    ->name('usuarios.estado');
+
+                Route::delete('/usuarios/{usuario}', [
+                    AdminUsuarioController::class,
+                    'eliminar'
+                ])
+                    ->whereNumber('usuario')
+                    ->name('usuarios.eliminar');
+
+                // RESERVAS
+
+                Route::get('/reservas', [
+                    AdministracionController::class,
+                    'reservas'
+                ])->name('reservas');
+
+                // PAGOS
+
+                Route::get('/pagos', [
+                    AdministracionController::class,
+                    'pagos'
+                ])->name('pagos');
+
+                // REPORTES CSV
+
+                Route::get('/reportes/csv', [
+                    AdministracionController::class,
+                    'reporteCsv'
+                ])->name('csv');
+            });
     });

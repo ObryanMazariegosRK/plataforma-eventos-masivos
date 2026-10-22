@@ -19,7 +19,7 @@
 
     <header class="navbar">
         <div class="contenedor nav-contenido">
-            <a class="logo" href="{{ route('landing.experiencia') }}" aria-label="{{ config('marca.nombre') }}, ir al inicio">{{ config('marca.nombre') }}</a>
+            <a class="logo" href="{{ route('catalogo.index') }}" aria-label="{{ config('marca.nombre') }}, ir a la cartelera">{{ config('marca.nombre') }}</a>
             <nav class="nav-enlaces" aria-label="Navegación principal">
                 <a href="{{ route('catalogo.index') }}">Cartelera</a>
                 <a href="/login">Iniciar sesión</a>
@@ -89,6 +89,8 @@
             </div>
         </section>
     </main>
+
+    @include('partials.pie-pagina')
 
 </body>
 </html>

@@ -1,6 +1,14 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Sin sesión: "Iniciar sesión" y "Registrarse" recuerdan esta página para volver a ella
+    if (!localStorage.getItem('auth_token')) {
+        const aqui = encodeURIComponent(location.pathname + location.search + location.hash);
+        document.querySelectorAll('.nav-enlaces a[href="/login"], .nav-enlaces a[href="/registro"]').forEach(enlace => {
+            enlace.href = `${enlace.getAttribute('href')}?volver=${aqui}`;
+        });
+    }
+
     const pagina = document.getElementById('detallePagina');
     const aviso = document.getElementById('detalleAviso');
     const contenido = document.getElementById('detalleContenido');

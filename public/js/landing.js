@@ -162,6 +162,71 @@
         requestAnimationFrame(avanzarLenis);
     }
 
+    // ---- Corte con fundido para los enlaces data-corte (p. ej. "Elegir asientos") ----
+    // En lugar de recorrer todo el teatro a toda velocidad, la pantalla se funde a negro,
+    // salta al destino y se aclara mostrándolo (como un corte de cine).
+    const velo = document.createElement('div');
+    velo.className = 'corte';
+    velo.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(velo);
+
+    function irConCorte(destino, hash) {
+        const seccion = destino.closest('.seccion-asientos') || destino;
+        const app = seccion.querySelector('.asientos-app') || destino;
+
+        const saltar = () => {
+            // En computadora el plano ya deja espacio para la cabecera fija; en celular se descuenta
+            const margen = window.innerWidth > 900 ? 0 : (cabecera?.offsetHeight || 0);
+            const y = Math.max(0, app.getBoundingClientRect().top + window.scrollY - margen);
+            if (lenis) {
+                lenis.scrollTo(y, { immediate: true, force: true });
+            } else {
+                window.scrollTo(0, y);
+            }
+            history.replaceState(null, '', hash);
+            // el recorrido queda en su posición final de una vez (sin animarse detrás del negro)
+            actual = progresoReal();
+            dibujar(actual);
+            cabecera?.classList.toggle('cabecera--solida', actual >= 1);
+        };
+
+        if (sinMovimiento) {
+            saltar();
+            return;
+        }
+
+        velo.classList.add('corte--cerrado');
+        setTimeout(() => {
+            saltar();
+
+            let aclarado = false;
+            const aclarar = () => {
+                if (aclarado) return;
+                aclarado = true;
+                velo.classList.remove('corte--cerrado');
+                seccion.classList.remove('seccion--entrando');
+                void seccion.offsetWidth;   // reinicia la animación si se usa dos veces
+                seccion.classList.add('seccion--entrando');
+            };
+            // dos cuadros: que el navegador pinte la nueva posición antes de aclarar;
+            // con respaldo de tiempo por si no hay cuadros (pestaña en segundo plano)
+            requestAnimationFrame(() => requestAnimationFrame(aclarar));
+            setTimeout(aclarar, 150);
+        }, 380);
+    }
+
+    // En captura (window): se atiende antes que Lenis, que también escucha los clics en #anclas
+    window.addEventListener('click', (evento) => {
+        const enlace = evento.target.closest?.('a[data-corte]');
+        const hash = enlace?.getAttribute('href') || '';
+        const destino = hash.startsWith('#') ? document.querySelector(hash) : null;
+        if (!destino || evento.button !== 0 || evento.metaKey || evento.ctrlKey) return;
+
+        evento.preventDefault();
+        evento.stopImmediatePropagation();
+        irConCorte(destino, hash);
+    }, true);
+
     medir();
     actual = progresoReal();   // si la página carga a mitad del recorrido, empieza ahí sin animar
     dibujar(actual);

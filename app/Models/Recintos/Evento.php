@@ -16,6 +16,8 @@ class Evento extends Model
         'nombre',
         'descripcion',
         'imagen_url',
+        'imagen_url_2',
+        'imagen_url_3',
         'fecha_evento',
         'estado',
         'fecha_publicacion',

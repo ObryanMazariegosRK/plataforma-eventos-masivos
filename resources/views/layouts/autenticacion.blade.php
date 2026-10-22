@@ -19,7 +19,7 @@
             {{-- <img> y no background-image: los modos oscuros de algunos navegadores quitan los fondos --}}
             <img class="auth__foto" src="{{ asset('img/landing/auditorio-general.jpg') }}" alt="" aria-hidden="true">
             <div class="auth__sombra" aria-hidden="true"></div>
-            <a href="{{ route('landing.experiencia') }}" class="auth__logo">{{ config('marca.nombre') }}</a>
+            <a href="{{ route('catalogo.index') }}" class="auth__logo">{{ config('marca.nombre') }}</a>
         </section>
 
         {{-- Columna derecha: el formulario de cada página --}}

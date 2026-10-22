@@ -1,13 +1,12 @@
+
 // Utilidades compartidas por las vistas de autenticación.
-// El token se guarda en localStorage para pruebas.
-// En producción conviene utilizar cookies httpOnly para mayor seguridad.
+// En producción conviene utilizar cookies httpOnly para los tokens.
 
 const Auth = {
     claveToken: 'auth_token',
+    claveVolver: 'volver_tras_login',
 
-    // =====================================================
     // GESTIÓN DEL TOKEN
-    // =====================================================
 
     obtenerToken() {
         return localStorage.getItem(this.claveToken);
@@ -21,43 +20,72 @@ const Auth = {
         localStorage.removeItem(this.claveToken);
     },
 
-    // =====================================================
     // REDIRECCIÓN SEGÚN EL ROL
-    // =====================================================
 
+    // ?volver=/eventos/5/asientos → al iniciar sesión se regresa ahí (p. ej. eligiendo asientos).
+    // Solo rutas internas ("/algo", nunca "//otro-sitio.com": evita redirecciones a sitios
+    // externos) y nunca a las propias páginas de acceso (evita ciclos).
+    volverValido(ruta) {
+        return typeof ruta === 'string'
+            && /^\/(?!\/)/.test(ruta)
+            && !/^\/(login|registro|verificar|olvide-password|restablecer-password|oauth)\b/.test(ruta);
+    },
+
+    // En /login y /registro se guarda el ?volver para que sobreviva a los pasos intermedios
+    // (ir a Google y volver, o registrarse → verificar el correo). Si se entra al login sin
+    // ?volver, se borra lo que hubiera quedado de un intento anterior (el registro no lo borra:
+    // se llega a él desde el login con "Regístrate").
+    recordarVolver() {
+        const pagina = window.location.pathname;
+        if (!/^\/(login|registro)\b/.test(pagina)) return;
+        try {
+            const volver = new URLSearchParams(window.location.search).get('volver');
+            if (this.volverValido(volver)) sessionStorage.setItem(this.claveVolver, volver);
+            else if (/^\/login\b/.test(pagina)) sessionStorage.removeItem(this.claveVolver);
+        } catch { /* sin almacenamiento: solo funciona el ?volver directo */ }
+    },
+
+    destinoVolver() {
+        let volver = new URLSearchParams(window.location.search).get('volver');
+        try {
+            volver = this.volverValido(volver) ? volver : sessionStorage.getItem(this.claveVolver);
+            sessionStorage.removeItem(this.claveVolver);   // se usa una sola vez
+        } catch { /* nada */ }
+        return this.volverValido(volver) ? volver : null;
+    },
+
+    // Tras iniciar sesión: a la página de donde venía (cualquier rol; el personal también
+    // puede comprar como cliente). Sin origen: administradores y agentes operativos
+    // (organizador) van al panel; los clientes, a la cartelera.
     redirigirSegunRol(usuario) {
         const rol = String(usuario?.rol ?? '')
             .trim()
             .toLowerCase();
 
-        if (rol === 'admin') {
-            window.location.replace('/admin');
-            return true;
+        if (!['admin', 'organizador', 'cliente'].includes(rol)) {
+            console.warn('Rol de usuario no reconocido:', rol);
+            return false;
         }
 
-        if (rol === 'cliente') {
-            // ?volver=/eventos/5/asientos → regresa a donde estaba (p. ej. eligiendo asientos).
-            // Solo rutas internas ("/algo", nunca "//otro-sitio.com"): evita redirecciones a sitios externos.
-            const volver = new URLSearchParams(window.location.search).get('volver') || '';
-            const destino = /^\/(?!\/)/.test(volver) ? volver : '/catalogo';
-            window.location.replace(destino);
-            return true;
-        }
-
-        console.warn('Rol de usuario no reconocido:', rol);
-        return false;
+        const destino = this.destinoVolver() || (rol === 'cliente' ? '/catalogo' : '/admin');
+        window.location.replace(destino);
+        return true;
     },
 
-    // Con un token ya guardado (Google, verificación de correo o sesión abierta):
-    // consulta el perfil y manda al usuario a su inicio según el rol.
-    // Devuelve false si el token ya no sirve, para que la vista decida qué hacer.
+    // CONSULTAR SESIÓN ACTUAL
+
     async entrarConSesion() {
-        const respuesta = await this.api('/auth/perfil', { metodo: 'GET', conToken: true });
-        return respuesta.ok && this.redirigirSegunRol(respuesta.data);
+        const respuesta = await this.api('/auth/perfil', {
+            metodo: 'GET',
+            conToken: true
+        });
+
+        return respuesta.ok &&
+            this.redirigirSegunRol(respuesta.data);
     },
 
-    // Procesa la respuesta de un inicio de sesión exitoso.
-    // Guarda el token y redirige al usuario según su rol.
+    // PROCESAR LOGIN
+
     procesarInicioSesion(data) {
         const token = data?.token;
         const usuario = data?.usuario;
@@ -69,24 +97,21 @@ const Auth = {
             return false;
         }
 
-        const rol = String(usuario.rol).trim().toLowerCase();
+        const rol = String(usuario.rol)
+            .trim()
+            .toLowerCase();
 
-        if (rol !== 'admin' && rol !== 'cliente') {
+        if (!['admin', 'organizador', 'cliente'].includes(rol)) {
             console.warn('Rol no reconocido:', rol);
             return false;
         }
 
         this.guardarToken(token);
-
         return this.redirigirSegunRol(usuario);
     },
 
-    // =====================================================
     // PETICIONES A LA API
-    // =====================================================
 
-    // Devuelve { ok, status, data }.
-    // No lanza errores por respuestas HTTP 4xx/5xx.
     async api(
         ruta,
         {
@@ -96,7 +121,7 @@ const Auth = {
         } = {}
     ) {
         const headers = {
-            'Accept': 'application/json'
+            Accept: 'application/json'
         };
 
         if (cuerpo) {
@@ -115,14 +140,14 @@ const Auth = {
             const respuesta = await fetch(`/api${ruta}`, {
                 method: metodo,
                 headers,
-                body: cuerpo ? JSON.stringify(cuerpo) : null,
+                body: cuerpo ? JSON.stringify(cuerpo) : null
             });
 
             const data = await respuesta
                 .json()
                 .catch(() => ({}));
 
-            // Sesión vencida, token revocado o cuenta bloqueada.
+            // Borrar token cuando la sesión deja de ser válida.
             if (
                 conToken &&
                 (
@@ -150,24 +175,28 @@ const Auth = {
         }
     },
 
-    // =====================================================
-    // PAGO: IR DIRECTO A LA PASARELA
-    // =====================================================
+    // PAGO: IR DIRECTAMENTE A LA PASARELA
 
-    // Si hay una sola pasarela activa, crea el pago y manda el navegador a su página.
-    // Con varias (o si algo falla) va a /pagar para elegir y ver el error.
-    // Devuelve la respuesta del error para que la vista lo muestre, o null si ya redirigió.
     async irAPagar(reservaId) {
-        const pasarelas = await this.api('/pasarelas', { metodo: 'GET' });
+        const pasarelas = await this.api('/pasarelas', {
+            metodo: 'GET'
+        });
 
-        if (!pasarelas.ok || !Array.isArray(pasarelas.data) || pasarelas.data.length !== 1) {
+        if (
+            !pasarelas.ok ||
+            !Array.isArray(pasarelas.data) ||
+            pasarelas.data.length !== 1
+        ) {
             window.location.href = `/pagar?reserva=${reservaId}`;
             return null;
         }
 
         const respuesta = await this.api('/pagos', {
             conToken: true,
-            cuerpo: { reserva_id: Number(reservaId), pasarela: pasarelas.data[0].codigo },
+            cuerpo: {
+                reserva_id: Number(reservaId),
+                pasarela: pasarelas.data[0].codigo
+            }
         });
 
         if (respuesta.ok) {
@@ -178,9 +207,7 @@ const Auth = {
         return respuesta;
     },
 
-    // =====================================================
     // MENSAJES DE ERROR
-    // =====================================================
 
     mensajeDeError({ status, data }) {
         if (status === 429) {
@@ -198,9 +225,7 @@ const Auth = {
         return data?.message || 'Ocurrió un error inesperado.';
     },
 
-    // =====================================================
     // ALERTAS
-    // =====================================================
 
     mostrar(elemento, texto, tipo = 'error') {
         elemento.textContent = texto;
@@ -212,9 +237,7 @@ const Auth = {
         elemento.className = 'alerta';
     },
 
-    // =====================================================
     // ESTADO DE CARGA DE BOTONES
-    // =====================================================
 
     cargando(boton, activo, texto) {
         if (activo) {
@@ -228,9 +251,7 @@ const Auth = {
         boton.disabled = activo;
     },
 
-    // =====================================================
     // CASILLAS DEL CÓDIGO DE VERIFICACIÓN
-    // =====================================================
 
     casillasCodigo(contenedor) {
         const casillas = [
@@ -291,13 +312,11 @@ const Auth = {
                 casilla => casilla.value = ''
             ),
 
-            enfocar: () => casillas[0]?.focus(),
+            enfocar: () => casillas[0]?.focus()
         };
     },
 
-    // =====================================================
     // MOSTRAR / OCULTAR CONTRASEÑAS
-    // =====================================================
 
     activarVerPassword() {
         document
@@ -317,5 +336,7 @@ const Auth = {
                         : 'Mostrar';
                 });
             });
-    },
+    }
 };
+
+Auth.recordarVolver();

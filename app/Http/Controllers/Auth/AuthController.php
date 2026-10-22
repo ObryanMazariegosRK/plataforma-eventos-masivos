@@ -42,7 +42,6 @@ class AuthController extends Controller
             email: $request->validated('email'),
             password: $request->validated('password'),
             minutosValidezCodigo: config('autenticacion.codigo_verificacion_minutos'),
-            telefono: $request->validated('telefono'),
         ));
 
         return response()->json([
@@ -162,7 +161,6 @@ class AuthController extends Controller
             'nombre'      => $u->getNombre(),
             'apellido'    => $u->getApellido(),
             'email'       => $u->getEmail(),
-            'telefono'    => $u->getTelefono(),
             'rol'         => $u->getRol()->value,
             'verificado'  => $u->estaVerificado(),
             'google'      => $u->tieneGoogle(),

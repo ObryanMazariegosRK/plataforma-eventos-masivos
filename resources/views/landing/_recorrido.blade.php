@@ -16,6 +16,8 @@
                 data-imagen
                 src="{{ asset($parada['imagen']) }}"
                 alt="{{ $parada['alt'] }}"
+                decoding="async"
+                @if ($i === 0) fetchpriority="high" @endif
                 data-zoom-inicial="{{ $parada['zoomInicial'] }}"
                 style="--foco: {{ $parada['foco'] }}; --foco-movil: {{ $parada['focoMovil'] }}"
             >

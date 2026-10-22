@@ -14,11 +14,65 @@ use Illuminate\Validation\ValidationException;
 class AdminPrecioEventoController extends Controller
 {
     /**
-     * Consultar las localidades de un evento y
-     * sus precios actuales para Administración.
+     * Consultar localidades de un recinto activo.
      *
-     * La ruta debe estar protegida con:
-     * auth:sanctum y rol:admin.
+     * Permite mostrar los precios antes de crear un evento.
+     *
+     * GET /api/admin/eventos/recintos/{recintoId}/localidades
+     */
+    public function localidadesPorRecinto(int $recintoId): JsonResponse
+    {
+        $recinto = DB::table('recintos')
+            ->where('id', $recintoId)
+            ->where('estado', 'activo')
+            ->whereNull('deleted_at')
+            ->first([
+                'id',
+                'nombre',
+                'ciudad',
+            ]);
+
+        if ($recinto === null) {
+            return response()->json([
+                'message' => 'El recinto no existe o no está activo.',
+            ], 404);
+        }
+
+        $localidades = DB::table('localidades')
+            ->where('recinto_id', $recintoId)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
+            ->get([
+                'id',
+                'nombre',
+                'tipo',
+                'capacidad',
+                'color',
+            ])
+            ->map(fn ($localidad) => [
+                'id' => (int) $localidad->id,
+                'nombre' => $localidad->nombre,
+                'tipo' => $localidad->tipo,
+                'capacidad' => (int) $localidad->capacidad,
+                'color' => $localidad->color,
+            ]);
+
+        return response()->json([
+            'recinto' => [
+                'id' => (int) $recinto->id,
+                'nombre' => $recinto->nombre,
+                'ciudad' => $recinto->ciudad,
+            ],
+            'moneda' => 'GTQ',
+            'localidades' => $localidades,
+        ]);
+    }
+
+    /**
+     * Consultar las localidades de un evento existente
+     * y los precios que ya tiene configurados.
+     *
+     * GET /api/admin/eventos/{id}/precios
      */
     public function index(int $id): JsonResponse
     {
@@ -72,10 +126,9 @@ class AdminPrecioEventoController extends Controller
     }
 
     /**
-     * Configurar los precios de un evento en borrador.
+     * Guardar precios de un evento existente en borrador.
      *
-     * Cada localidad debe pertenecer al recinto.
-     * El importe se valida y almacena en MySQL.
+     * PUT /api/admin/eventos/{id}/precios
      */
     public function guardar(
         Request $request,
@@ -119,8 +172,7 @@ class AdminPrecioEventoController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($id);
 
-            // Evitar modificar tarifas de eventos publicados,
-            // agotados, cancelados o finalizados.
+            // Solo se pueden modificar eventos en borrador.
             if ($evento->estado !== EstadoEvento::BORRADOR->value) {
                 throw ValidationException::withMessages([
                     'evento' => [
@@ -130,8 +182,7 @@ class AdminPrecioEventoController extends Controller
                 ]);
             }
 
-            // Protección adicional: no alterar precios
-            // si ya existen reservas para el evento.
+            // No modificar precios si ya existen reservas.
             if (
                 Schema::hasTable('reservas') &&
                 Schema::hasColumn('reservas', 'evento_id')
@@ -150,11 +201,13 @@ class AdminPrecioEventoController extends Controller
                 }
             }
 
+            // Obtener identificadores enviados.
             $localidadIds = collect($datos['precios'])
                 ->pluck('localidad_id')
                 ->map(fn ($valor) => (int) $valor)
                 ->all();
 
+            // Comprobar que pertenecen al recinto.
             $validas = DB::table('localidades')
                 ->where('recinto_id', $evento->recinto_id)
                 ->whereNull('deleted_at')
@@ -175,9 +228,8 @@ class AdminPrecioEventoController extends Controller
             foreach ($datos['precios'] as $item) {
                 $localidadId = (int) $item['localidad_id'];
 
-                // Incluimos registros eliminados lógicamente
-                // porque existe una restricción UNIQUE sobre
-                // evento_id + localidad_id.
+                // Incluir registros eliminados lógicamente
+                // para respetar la restricción UNIQUE.
                 $existente = DB::table('precios')
                     ->where('evento_id', $evento->id)
                     ->where('localidad_id', $localidadId)
