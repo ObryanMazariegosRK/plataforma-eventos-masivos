@@ -297,3 +297,59 @@ require __DIR__ . '/admin-api.php';
 
 // ---- Inventario: lugares disponibles de un evento (para el mapa de asientos) ----
 Route::get('/eventos/{id}/disponibilidad', [DisponibilidadController::class, 'show'])->whereNumber('id');
+
+
+// SOIRÉE — Cerrar la sesión actual del panel operativo.
+\Illuminate\Support\Facades\Route::middleware('auth:sanctum')
+    ->post('/auth/logout-panel', function (
+        \Illuminate\Http\Request $request
+    ) {
+        $usuario = $request->user();
+        $token = $usuario?->currentAccessToken();
+
+        if (!$token || !method_exists($token, 'delete')) {
+            return response()->json([
+                'message' => 'No se pudo revocar la sesión actual.',
+            ], 409);
+        }
+
+        $token->delete();
+
+        return response()->json([
+            'message' => 'Sesión cerrada correctamente.',
+        ]);
+    });
+
+
+// SOIRÉE — Actualización de datos personales del usuario autenticado.
+\Illuminate\Support\Facades\Route::middleware('auth:sanctum')
+    ->patch('/auth/actualizar-mi-perfil', function (
+        \Illuminate\Http\Request $request
+    ) {
+        $datos = $request->validate([
+            'nombre' => ['required', 'string', 'max:100'],
+            'apellido' => ['required', 'string', 'max:100'],
+        ]);
+
+        $usuarioId = $request->user()->id;
+
+        $actualizados = \Illuminate\Support\Facades\DB::table('usuarios')
+            ->where('id', $usuarioId)
+            ->whereNull('deleted_at')
+            ->update([
+                'nombre' => trim($datos['nombre']),
+                'apellido' => trim($datos['apellido']),
+                'updated_by' => $usuarioId,
+                'updated_at' => now(),
+            ]);
+
+        if (!$actualizados) {
+            return response()->json([
+                'message' => 'No fue posible actualizar tu perfil.',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Tu perfil fue actualizado correctamente.',
+        ]);
+    });

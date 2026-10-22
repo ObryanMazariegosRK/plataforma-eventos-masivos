@@ -38,7 +38,7 @@
         ],
         notificaciones: [
             'Notificaciones',
-            'Próximamente: avisos y comunicaciones.'
+            'Reservas, pagos y boletos registrados en Soirée.'
         ],
         historial: [
             'Historial',
@@ -82,15 +82,15 @@
     };
 
     const pendingSections = new Set([
-        'notificaciones',
         'historial',
         'configuracion'
     ]);
 
     // El rol se verifica con /api/auth/perfil antes de habilitar la navegación.
     let currentRole = null;
+    let currentProfile = null;
     const operativeSections = new Set([
-        'eventos', 'banner', 'notificaciones', 'configuracion'
+        'eventos', 'banner', 'configuracion'
     ]);
 
     function canAccessSection(name) {
@@ -103,6 +103,7 @@
     let query = '';
     let requestVersion = 0;
     let editingEventId = null;
+    let editingPublished = false;
     let savingEvent = false;
 
     // =====================================================
@@ -140,6 +141,8 @@
         }
 
         currentRole = profile.rol;
+        currentProfile = profile;
+        renderConfiguracion();
         document.querySelectorAll('#nav [data-section]').forEach(item => {
             item.hidden = !canAccessSection(item.dataset.section);
         });
@@ -167,7 +170,41 @@
             if (indicator) sessionLabel.prepend(indicator);
         }
 
+        llenarFormularioPerfil(profile);
         return profile;
+    }
+
+
+    function renderConfiguracion() {
+        if (!currentProfile) return;
+
+        const p = currentProfile;
+
+        const nombre = [p.nombre, p.apellido]
+            .filter(Boolean)
+            .join(' ') || 'Sin nombre registrado';
+
+        const valores = {
+            'so-config-nombre': nombre,
+            'so-config-correo': p.email || p.correo || 'No disponible',
+            'so-config-rol': p.rol || 'No disponible',
+            'so-config-estado': p.estado || 'No disponible',
+            'so-config-id': p.id ?? 'No disponible'
+        };
+
+        Object.entries(valores).forEach(([id, valor]) => {
+            const nodo = $(id);
+            if (nodo) nodo.textContent = String(valor);
+        });
+
+        const iniciales = nombre
+            .split(/\\s+/)
+            .slice(0, 2)
+            .map(parte => parte.charAt(0).toUpperCase())
+            .join('');
+
+        const avatar = $('so-config-iniciales');
+        if (avatar) avatar.textContent = iniciales || 'US';
     }
 
     function el(tag, value, className) {
@@ -971,6 +1008,197 @@
         }
     }
 
+    async function deleteEvent(id) {
+        try {
+            const evento = await fetchEvent(id);
+
+            if (evento.estado !== 'borrador') {
+                feedback(
+                    'Solo se pueden eliminar eventos en borrador.',
+                    true
+                );
+                return;
+            }
+
+            const confirmado = window.confirm(
+                '¿Eliminar el evento "' + evento.nombre + '"?\\n\\n' +
+                'Se realizará una eliminación lógica.'
+            );
+
+            if (!confirmado) return;
+
+            const response = await api(
+                'eventos/' + encodeURIComponent(id),
+                { method: 'DELETE' }
+            );
+
+            const result = await response.json();
+
+            await load();
+
+            feedback(
+                result.message ||
+                'Evento eliminado correctamente.'
+            );
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
+    // =====================================================
+    // CANCELACIÓN DE EVENTOS Y REEMBOLSOS
+    // Utiliza la API existente: POST /api/eventos/{id}/cancelar
+    // =====================================================
+
+    async function cancelEvent(id) {
+        if (currentRole !== 'admin') {
+            feedback('Solo el Administrador puede cancelar eventos.', true);
+            return;
+        }
+
+        try {
+            const evento = await fetchEvent(id);
+
+            if (!['publicado', 'agotado'].includes(evento.estado)) {
+                feedback('Este evento no admite cancelación.', true);
+                return;
+            }
+
+            const dialog = document.createElement('dialog');
+            dialog.className = 'so-cancel-dialog';
+
+            const title = el('h2', 'Cancelar evento');
+            const identity = el(
+                'p',
+                (evento.nombre || 'Evento') + ' · #' + evento.id,
+                'so-cancel-event-name'
+            );
+
+            const warning = el(
+                'p',
+                'Esta operación cancelará el evento, anulará los boletos ' +
+                'emitidos correspondientes y preparará solicitudes de ' +
+                'reembolso cuando existan pagos aprobados. ' +
+                'Los reembolsos no se pagan automáticamente.',
+                'so-cancel-warning'
+            );
+
+            const label = document.createElement('label');
+            label.className = 'so-cancel-label';
+            label.textContent = 'Escribe CANCELAR para confirmar';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'CANCELAR';
+            input.autocomplete = 'off';
+            input.setAttribute('aria-label', 'Confirmar cancelación');
+            label.append(input);
+
+            const message = el('p', '', 'so-cancel-message');
+            message.setAttribute('role', 'alert');
+            message.hidden = true;
+
+            const buttons = el('div', undefined, 'so-cancel-actions');
+
+            const volver = actionButton(
+                'Volver',
+                'evento-action',
+                () => dialog.close()
+            );
+
+            const confirmar = document.createElement('button');
+            confirmar.type = 'button';
+            confirmar.className = 'so-cancel-confirm';
+            confirmar.textContent = 'Confirmar cancelación';
+            confirmar.disabled = true;
+
+            input.addEventListener('input', () => {
+                confirmar.disabled = input.value.trim() !== 'CANCELAR';
+            });
+
+            confirmar.addEventListener('click', async () => {
+                if (input.value.trim() !== 'CANCELAR') return;
+
+                const accessToken = token();
+
+                if (!accessToken) {
+                    message.textContent = 'Tu sesión ha caducado.';
+                    message.hidden = false;
+                    return;
+                }
+
+                confirmar.disabled = true;
+                volver.disabled = true;
+                input.disabled = true;
+                confirmar.textContent = 'Cancelando...';
+                message.hidden = true;
+
+                try {
+                    const response = await fetch(
+                        '/api/eventos/' +
+                            encodeURIComponent(id) +
+                            '/cancelar',
+                        {
+                            method: 'POST',
+                            headers: {
+                                Accept: 'application/json',
+                                Authorization: 'Bearer ' + accessToken
+                            }
+                        }
+                    );
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.mensaje ||
+                            data.message ||
+                            'No fue posible cancelar el evento (' +
+                            response.status + ').'
+                        );
+                    }
+
+                    const resultado = data.resultado || {};
+
+                    dialog.close();
+                    await load();
+
+                    feedback(
+                        (data.mensaje || 'Evento cancelado.') +
+                        ' Boletos anulados: ' +
+                        (resultado.boletos_anulados ?? 0) +
+                        '. Solicitudes de reembolso creadas: ' +
+                        (resultado.reembolsos_creados ?? 0) +
+                        '. Monto preparado: Q' +
+                        Number(resultado.monto_preparado ?? 0).toFixed(2)
+                    );
+                } catch (error) {
+                    message.textContent = error.message;
+                    message.hidden = false;
+                    input.disabled = false;
+                    volver.disabled = false;
+                    confirmar.textContent = 'Confirmar cancelación';
+                    confirmar.disabled =
+                        input.value.trim() !== 'CANCELAR';
+                }
+            });
+
+            buttons.append(volver, confirmar);
+            dialog.append(title, identity, warning, label, message, buttons);
+            document.body.append(dialog);
+
+            dialog.addEventListener('close', () => {
+                dialog.remove();
+            }, { once: true });
+
+            dialog.showModal();
+            input.focus();
+
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
     function renderEventActions(item) {
         const cell = el('td');
         const group = el('div', undefined, 'eventos-row-actions');
@@ -990,46 +1218,349 @@
         summary.className = 'so-event-menu-trigger';
         summary.textContent = 'Gestionar';
 
-        const options = el('div', undefined, 'so-event-menu-options');
+        const options = el(
+            'div',
+            undefined,
+            'so-event-menu-options'
+        );
 
-        const addOption = (label, callback) => {
+        const addOption = (label, callback, danger = false) => {
             const button = actionButton(
                 label,
-                'so-event-menu-option',
+                danger
+                    ? 'so-event-menu-option is-danger'
+                    : 'so-event-menu-option',
                 () => {
                     menu.open = false;
                     callback();
                 }
             );
+
             options.append(button);
         };
 
         if (item.estado === 'borrador') {
-            addOption('Editar información', () => editEvent(item.id));
-            addOption('Configurar precios', () => openPrices(item.id));
-            addOption('Publicar evento', () => publishEvent(item.id));
-        } else {
-            addOption('Consultar precios', () => openPrices(item.id));
-            addOption('Cambiar imagen principal', () => changeEventImage(item.id));
-            addOption('Ver asientos', () => {
-                window.location.href =
-                    '/admin/eventos/' + encodeURIComponent(item.id) + '/asientos';
-            });
-        }
+            addOption(
+                'Modificar evento',
+                () => editEvent(item.id)
+            );
 
-        if (['publicado', 'agotado', 'finalizado'].includes(item.estado)) {
-            addOption('Ver experiencia pública', () => {
-                window.open(
-                    '/eventos/' + encodeURIComponent(item.id) + '/experiencia',
-                    '_blank',
-                    'noopener,noreferrer'
+            addOption(
+                'Configurar precios',
+                () => openPrices(item.id)
+            );
+
+            addOption(
+                'Publicar evento',
+                () => publishEvent(item.id)
+            );
+
+            if (currentRole === 'admin') {
+                addOption(
+                    'Eliminar borrador',
+                    () => deleteEvent(item.id),
+                    true
                 );
-            });
+            }
+
+        } else {
+            if (item.estado === 'publicado' &&
+                currentRole === 'admin') {
+                addOption(
+                    'Modificar evento',
+                    () => modifyPublishedEvent(item.id)
+                );
+            }
+
+            addOption(
+                'Ver asientos',
+                () => {
+                    window.location.href =
+                        '/admin/eventos/' +
+                        encodeURIComponent(item.id) +
+                        '/asientos';
+                }
+            );
+
+            if (
+                currentRole === 'admin' &&
+                ['publicado', 'agotado'].includes(item.estado)
+            ) {
+                addOption(
+                    'Cancelar evento',
+                    () => cancelEvent(item.id),
+                    true
+                );
+            }
         }
 
         menu.append(summary, options);
         group.append(menu);
         cell.append(group);
+
+        return cell;
+    }
+
+    // =====================================================
+    // SOIRÉE — DETALLES ADMINISTRATIVOS DE RESERVAS
+    // =====================================================
+
+    function viewReservation(item) {
+        const anterior = $('so-reservation-dialog');
+        if (anterior) anterior.remove();
+
+        const dialog = document.createElement('dialog');
+        dialog.id = 'so-reservation-dialog';
+        dialog.className = 'so-reservation-dialog';
+
+        const header = el('div', undefined, 'so-reservation-header');
+        header.append(
+            el('span', 'SOIRÉE · CONTROL DE RESERVAS', 'so-reservation-caption'),
+            el('h2', 'Reserva #' + item.id),
+            el('p', 'Información registrada de esta reserva.')
+        );
+
+        const grid = el('div', undefined, 'so-reservation-grid');
+
+        const addDetail = (label, value) => {
+            const row = el('div', undefined, 'so-reservation-detail');
+
+            row.append(
+                el('span', label),
+                el('strong', value === null || value === undefined || value === ''
+                    ? 'No disponible'
+                    : value)
+            );
+
+            grid.append(row);
+        };
+
+        const cliente = [
+            item.cliente_nombre,
+            item.cliente_apellido
+        ].filter(Boolean).join(' ');
+
+        const total = Number(item.total || 0);
+
+        const moneda = new Intl.NumberFormat('es-GT', {
+            style: 'currency',
+            currency: 'GTQ'
+        });
+
+        addDetail('Evento', item.evento || 'Evento no disponible');
+        addDetail('Cliente', cliente || 'Usuario #' + item.usuario_id);
+        addDetail('Correo electrónico', item.cliente_email);
+        addDetail('Estado', item.estado);
+        addDetail('Importe registrado', moneda.format(total));
+        addDetail('Fecha de registro', formatCell('created_at', item.created_at));
+        addDetail('Fecha de vencimiento',
+            item.expira_en
+                ? formatCell('created_at', item.expira_en)
+                : 'No especificada'
+        );
+        addDetail('Última actualización',
+            item.updated_at
+                ? formatCell('created_at', item.updated_at)
+                : 'No disponible'
+        );
+
+        const nota = el(
+            'p',
+            'El importe mostrado pertenece a la reserva. ' +
+            'No confirma por sí solo que exista un pago aprobado.',
+            'so-reservation-note'
+        );
+
+        const footer = el('div', undefined, 'so-reservation-footer');
+
+        footer.append(
+            actionButton(
+                'Cerrar',
+                'evento-action',
+                () => dialog.close()
+            )
+        );
+
+        dialog.append(header, grid, nota, footer);
+        document.body.append(dialog);
+
+        dialog.addEventListener('close', () => dialog.remove(), {
+            once: true
+        });
+
+        dialog.addEventListener('click', event => {
+            if (event.target === dialog) dialog.close();
+        });
+
+        dialog.showModal();
+    }
+
+    function renderReservationActions(item) {
+        const cell = el('td');
+
+        cell.append(
+            actionButton(
+                'Ver detalles',
+                'evento-action',
+                () => viewReservation(item)
+            )
+        );
+
+        return cell;
+    }
+
+    // SOIRÉE — DETALLES DE PAGOS
+
+    function viewPayment(item) {
+        const anterior = $('so-payment-dialog');
+        if (anterior) anterior.remove();
+
+        const dialog = document.createElement('dialog');
+        dialog.id = 'so-payment-dialog';
+        dialog.className = 'so-reservation-dialog so-payment-dialog';
+
+        const formatoMoneda = new Intl.NumberFormat('es-GT', {
+            style: 'currency',
+            currency: 'GTQ'
+        });
+
+        const moneda = formatoMoneda.format(Number(item.monto || 0));
+
+        const fecha = valor => valor
+            ? formatCell('created_at', valor)
+            : 'No disponible';
+
+        const nombreCliente = [
+            item.cliente_nombre,
+            item.cliente_apellido
+        ].filter(Boolean).join(' ') || 'No disponible';
+
+        const estado = String(item.estado || 'sin estado');
+        const estadoReserva = String(
+            item.reserva_estado || 'No disponible'
+        );
+
+        const header = el('header', undefined, 'so-payment-header');
+
+        const headerText = el('div');
+        headerText.append(
+            el('span', 'SOIRÉE · CONTROL FINANCIERO', 'so-payment-eyebrow'),
+            el('h2', 'Detalle del pago #' + item.id),
+            el('p', (item.evento || 'Evento no disponible') +
+                ' · Reserva #' + (item.reserva_id ?? '—'))
+        );
+
+        const closeTop = actionButton(
+            '×',
+            'so-payment-close',
+            () => dialog.close()
+        );
+        closeTop.setAttribute('aria-label', 'Cerrar detalle de pago');
+
+        header.append(headerText, closeTop);
+
+        const summary = el('section', undefined, 'so-payment-summary');
+
+        const amount = el('div');
+        amount.append(
+            el('span', 'IMPORTE REGISTRADO', 'so-payment-eyebrow'),
+            el('strong', moneda, 'so-payment-amount'),
+            el('small', fecha(item.created_at))
+        );
+
+        const badge = el(
+            'span',
+            estado,
+            'so-payment-status'
+        );
+
+        badge.dataset.status = estado.toLowerCase();
+
+        summary.append(amount, badge);
+
+        const sectionTitle = el(
+            'h3',
+            'Información de la transacción',
+            'so-payment-section-title'
+        );
+
+        const grid = el('div', undefined, 'so-payment-grid');
+
+        const addDetail = (etiqueta, valor) => {
+            const fila = el('div', undefined, 'so-payment-detail');
+
+            fila.append(
+                el('span', etiqueta),
+                el(
+                    'strong',
+                    valor === null ||
+                    valor === undefined ||
+                    valor === ''
+                        ? 'No disponible'
+                        : String(valor)
+                )
+            );
+
+            grid.append(fila);
+        };
+
+        addDetail('Cliente', nombreCliente);
+        addDetail('Correo electrónico', item.cliente_email);
+        addDetail('Evento', item.evento);
+        addDetail('Número de reserva', '#' + item.reserva_id);
+        addDetail('Estado de reserva', estadoReserva);
+        addDetail('Última actualización', fecha(item.updated_at));
+
+        const notice = el(
+            'p',
+            'Este apartado es de consulta. Un pago aprobado ' +
+            'no debe modificarse manualmente desde esta ventana. ' +
+            'Los reembolsos se gestionan mediante su proceso correspondiente.',
+            'so-payment-notice'
+        );
+
+        const footer = el('footer', undefined, 'so-payment-footer');
+
+        footer.append(
+            actionButton(
+                'Cerrar detalles',
+                'so-payment-done',
+                () => dialog.close()
+            )
+        );
+
+        dialog.append(
+            header,
+            summary,
+            sectionTitle,
+            grid,
+            notice,
+            footer
+        );
+
+        document.body.append(dialog);
+
+        dialog.addEventListener('close', () => {
+            dialog.remove();
+        }, { once: true });
+
+        dialog.addEventListener('click', event => {
+            if (event.target === dialog) dialog.close();
+        });
+
+        dialog.showModal();
+    }
+
+    function renderPaymentActions(item) {
+        const cell = el('td');
+
+        cell.append(
+            actionButton(
+                'Ver detalles',
+                'evento-action',
+                () => viewPayment(item)
+            )
+        );
 
         return cell;
     }
@@ -1051,7 +1582,7 @@
             headerRow.append(el('th', label));
         });
 
-        if (kind === 'eventos' || kind === 'usuarios') {
+        if (['eventos', 'usuarios', 'reservas', 'pagos'].includes(kind)) {
             headerRow.append(el('th', 'Acciones'));
         }
 
@@ -1111,6 +1642,14 @@
                 row.append(renderUserActions(item));
             }
 
+            if (kind === 'reservas') {
+                row.append(renderReservationActions(item));
+            }
+
+            if (kind === 'pagos') {
+                row.append(renderPaymentActions(item));
+            }
+
             tbody.append(row);
         }
 
@@ -1124,7 +1663,7 @@
             );
 
             cell.colSpan = cols.length +
-                (['eventos', 'usuarios'].includes(kind) ? 1 : 0);
+                (['eventos', 'usuarios', 'reservas', 'pagos'].includes(kind) ? 1 : 0);
 
             row.append(cell);
             tbody.append(row);
@@ -1196,6 +1735,14 @@
 
     function closeEventForm() {
         editingEventId = null;
+        editingPublished = false;
+
+        const recinto = $('evento-recinto');
+        if (recinto) recinto.disabled = false;
+
+        const fecha = $('evento-form')?.elements.namedItem('fecha_evento');
+        if (fecha) fecha.readOnly = false;
+
         show('evento-form-panel', false);
 
         const form = $('evento-form');
@@ -1207,19 +1754,397 @@
         clearFormFeedback();
     }
 
+    // =====================================================
+    // NOTIFICACIONES ADMINISTRATIVAS
+    // Actividad reciente; consulta de solo lectura.
+    // =====================================================
+
+    let actividadNotificaciones = [];
+    let filtroNotificaciones = 'todas';
+    let cargandoNotificaciones = false;
+
+    function nodoNotificacion(tag, texto = '', clase = '') {
+        const nodo = document.createElement(tag);
+
+        if (clase) nodo.className = clase;
+        if (texto !== '') nodo.textContent = String(texto);
+
+        return nodo;
+    }
+
+    // Lecturas locales del Administrador.
+    // Se conserva el estado en este navegador.
+    const CLAVE_SOR_NOTIF_V2 = 'soiree-notificaciones-leidas-v2';
+
+    function sorLeidas() {
+        try {
+            const valor = JSON.parse(
+                localStorage.getItem(CLAVE_SOR_NOTIF_V2) || '[]'
+            );
+            return new Set(Array.isArray(valor) ? valor : []);
+        } catch {
+            return new Set();
+        }
+    }
+
+    function sorContador() {
+        const badge = $('so-notif-badge');
+        if (!badge) return;
+
+        const leidas = sorLeidas();
+
+        const nuevas = actividadNotificaciones.filter(
+            aviso => !leidas.has(String(aviso.clave))
+        ).length;
+
+        badge.textContent = nuevas > 99 ? '99+' : String(nuevas);
+        badge.hidden = nuevas === 0;
+        badge.setAttribute(
+            'aria-label', nuevas + ' notificaciones pendientes'
+        );
+    }
+
+    function sorMarcarLeida(clave) {
+        const leidas = sorLeidas();
+        leidas.add(String(clave));
+
+        localStorage.setItem(
+            CLAVE_SOR_NOTIF_V2,
+            JSON.stringify([...leidas].slice(-1000))
+        );
+
+        sorContador();
+
+        if (section === 'notificaciones') {
+            pintarNotificacionesAdmin();
+        }
+    }
+
+    async function sorAbrirNotificacion(aviso) {
+        const id = Number(aviso.referencia_id);
+        if (!Number.isInteger(id) || id <= 0) {
+            feedback('Identificador de notificación inválido.', true);
+            return;
+        }
+
+        const pago = aviso.tipo === 'pago';
+
+        try {
+            const response = await api(
+                (pago ? 'pagos/' : 'reservas/') + id
+            );
+
+            const json = await response.json();
+
+            if (!response.ok || !json.data) {
+                throw new Error(
+                    json.message || 'No se encontró el registro.'
+                );
+            }
+
+            // Abrir el detalle exacto sin depender de la
+            // página actual de la tabla.
+            if (pago) {
+                viewPayment(json.data);
+            } else {
+                viewReservation(json.data);
+            }
+
+            sorMarcarLeida(aviso.clave);
+        } catch (error) {
+            feedback('No se pudo abrir: ' + error.message, true);
+        }
+    }
+
+    let sorConsultando = false;
+
+    async function sorConsultarBurbuja() {
+        if (currentRole !== 'admin' || sorConsultando) return;
+
+        sorConsultando = true;
+
+        try {
+            const response = await api('notificaciones');
+            if (!response.ok) return;
+
+            const json = await response.json();
+            if (!Array.isArray(json.data)) return;
+
+            actividadNotificaciones = json.data;
+            sorContador();
+
+            if (section === 'notificaciones') {
+                pintarNotificacionesAdmin();
+            }
+        } catch (error) {
+            console.warn('No fue posible consultar avisos:', error);
+        } finally {
+            sorConsultando = false;
+        }
+    }
+
+    function pintarNotificacionesAdmin() {
+        const lista = $('so-notificaciones-lista');
+        const filtros = $('so-notificaciones-filtros');
+
+        if (!lista || !filtros) return;
+
+        const tipos = [
+            ['todas', 'Todas'],
+            ['reserva', 'Reservas'],
+            ['pago', 'Pagos'],
+            ['compra', 'Boletos']
+        ];
+
+        filtros.replaceChildren();
+
+        for (const [valor, nombre] of tipos) {
+            const boton = nodoNotificacion(
+                'button',
+                nombre,
+                'so-notif-filter'
+            );
+
+            boton.type = 'button';
+            boton.setAttribute(
+                'aria-pressed',
+                String(filtroNotificaciones === valor)
+            );
+
+            boton.addEventListener('click', () => {
+                filtroNotificaciones = valor;
+                pintarNotificacionesAdmin();
+            });
+
+            filtros.append(boton);
+        }
+
+        const conteos = {
+            reserva: 0,
+            pago: 0,
+            compra: 0
+        };
+
+        for (const aviso of actividadNotificaciones) {
+            if (Object.hasOwn(conteos, aviso.tipo)) {
+                conteos[aviso.tipo]++;
+            }
+        }
+
+        $('so-notif-total').textContent =
+            String(actividadNotificaciones.length);
+
+        $('so-notif-reservas').textContent =
+            String(conteos.reserva);
+
+        $('so-notif-pagos').textContent =
+            String(conteos.pago);
+
+        $('so-notif-compras').textContent =
+            String(conteos.compra);
+
+        const visibles = actividadNotificaciones.filter(aviso =>
+            filtroNotificaciones === 'todas' ||
+            aviso.tipo === filtroNotificaciones
+        );
+
+        lista.replaceChildren();
+
+        if (visibles.length === 0) {
+            lista.append(
+                nodoNotificacion(
+                    'p',
+                    'No hay actividad para este filtro.',
+                    'so-notif-empty'
+                )
+            );
+            return;
+        }
+
+        const etiquetas = {
+            reserva: 'Reserva registrada',
+            pago: 'Pago aprobado',
+            compra: 'Boletos emitidos'
+        };
+
+        const simbolos = {
+            reserva: '◷',
+            pago: '✓',
+            compra: '✦'
+        };
+
+        for (const aviso of visibles) {
+            const tarjeta = nodoNotificacion(
+                'article', '', 'so-notif-card'
+            );
+
+            const icono = nodoNotificacion(
+                'span',
+                simbolos[aviso.tipo] || '•',
+                'so-notif-icon'
+            );
+
+            icono.dataset.tipo = aviso.tipo || '';
+
+            const cuerpo = nodoNotificacion(
+                'div', '', 'so-notif-body'
+            );
+
+            const encabezado = nodoNotificacion(
+                'div', '', 'so-notif-card-head'
+            );
+
+            encabezado.append(
+                nodoNotificacion(
+                    'strong',
+                    aviso.titulo ||
+                    etiquetas[aviso.tipo] ||
+                    'Actividad'
+                ),
+                nodoNotificacion(
+                    'span',
+                    etiquetas[aviso.tipo] || 'Aviso',
+                    'so-notif-type'
+                )
+            );
+
+            const descripcion = nodoNotificacion(
+                'p', aviso.descripcion || ''
+            );
+
+            const pie = nodoNotificacion(
+                'div', '', 'so-notif-card-foot'
+            );
+
+            pie.append(
+                nodoNotificacion(
+                    'small',
+                    String(aviso.fecha || '')
+                        .replace('T', ' ')
+                        .slice(0, 19)
+                )
+            );
+
+            const ver = nodoNotificacion(
+                'button',
+                aviso.tipo === 'pago'
+                    ? 'Ver pago #' + aviso.referencia_id
+                    : aviso.tipo === 'compra'
+                        ? 'Ver boletos · reserva #' + aviso.referencia_id
+                        : 'Ver reserva #' + aviso.referencia_id,
+                'so-notif-link'
+            );
+
+            ver.type = 'button';
+            ver.addEventListener('click', () => {
+                sorAbrirNotificacion(aviso);
+            });
+
+            const leida = sorLeidas().has(String(aviso.clave));
+
+            const marcar = nodoNotificacion(
+                'button',
+                leida ? 'Leída' : 'Marcar leída',
+                'so-notif-mark'
+            );
+
+            marcar.type = 'button';
+            marcar.disabled = leida;
+            marcar.addEventListener('click', () => {
+                sorMarcarLeida(aviso.clave);
+            });
+
+            tarjeta.classList.toggle('so-notif-read', leida);
+            pie.append(ver, marcar);
+            cuerpo.append(encabezado, descripcion, pie);
+            tarjeta.append(icono, cuerpo);
+            lista.append(tarjeta);
+        }
+    }
+
+    async function cargarNotificacionesAdmin() {
+        if (currentRole !== 'admin' ||
+            section !== 'notificaciones' ||
+            cargandoNotificaciones) {
+            return;
+        }
+
+        cargandoNotificaciones = true;
+
+        const estado = $('so-notificaciones-estado');
+        if (estado) estado.textContent = 'Actualizando actividad...';
+
+        try {
+            const response = await api('notificaciones');
+            const resultado = await response.json();
+
+            if (!Array.isArray(resultado.data)) {
+                throw new Error('La API devolvió un formato inesperado.');
+            }
+
+            actividadNotificaciones = resultado.data;
+            sorContador();
+
+            if (section !== 'notificaciones') return;
+
+            pintarNotificacionesAdmin();
+
+            if (estado) {
+                estado.textContent =
+                    'Mostrando hasta 30 actividades recientes.';
+            }
+        } catch (error) {
+            if (estado && section === 'notificaciones') {
+                estado.textContent =
+                    'No se pudo actualizar la actividad: ' +
+                    error.message;
+            }
+        } finally {
+            cargandoNotificaciones = false;
+        }
+    }
+
+    $('so-notificaciones-recargar')?.addEventListener(
+        'click',
+        () => cargarNotificacionesAdmin()
+    );
+
+    // Solo consulta cuando está abierta la sección.
+    setInterval(() => {
+        if (section === 'notificaciones') {
+            cargarNotificacionesAdmin();
+        }
+    }, 30000);
+
+    // Comprobar nuevas actividades cada 30 segundos.
+    setInterval(() => {
+        sorConsultarBurbuja();
+    }, 30000);
+
     function updateSections() {
+        if (currentRole === 'admin' &&
+            section !== 'notificaciones') {
+            sorConsultarBurbuja();
+        }
+
         const isOverview = section === 'resumen';
         const isEvents = section === 'eventos';
         const isReports = section === 'reportes';
+        const isNotifications = section === 'notificaciones';
         const isBanner = section === 'banner';   // lo maneja admin-banner.js
-        const isPending = pendingSections.has(section);
+        const isConfig = section === 'configuracion';
+        const isPending = pendingSections.has(section) && !isConfig;
 
-        show('dashboard', !isReports && !isPending && !isBanner);
+        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig);
         show('banner-panel', isBanner);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
         show('coming-soon', isPending);
+        show('so-configuracion', isConfig);
+        if (isConfig) renderConfiguracion();
+        show('notificaciones-panel', isNotifications);
+        if (isNotifications) cargarNotificacionesAdmin();
 
         if (!isEvents) {
             closeEventForm();
@@ -1355,14 +2280,90 @@
         lista.replaceChildren();
         if (mensaje) mensaje.hidden = true;
 
-        // La edición de precios existentes conserva el módulo
-        // de precios independiente, con sus reglas de seguridad.
+        panel.hidden = false;
+
+        // En edición, consultar las localidades y tarifas
+        // que pertenecen al evento existente.
         if (eventoId !== null) {
-            panel.hidden = true;
+            lista.append(
+                el('p', 'Cargando precios del evento...', 'muted')
+            );
+
+            try {
+                const response = await api(
+                    'eventos/' + encodeURIComponent(eventoId) + '/precios'
+                );
+
+                const data = await response.json();
+
+                if (version !== versionLocalidades) return;
+
+                lista.replaceChildren();
+
+                for (const localidad of (data.localidades || [])) {
+                    const fila = el('div', undefined, 'evento-precio-fila');
+
+                    const informacion = el('div');
+                    informacion.append(
+                        el('strong', localidad.nombre),
+                        el(
+                            'small',
+                            'Capacidad: ' + localidad.capacidad +
+                            ' · ' + (localidad.tipo || 'General')
+                        )
+                    );
+
+                    const etiqueta = document.createElement('label');
+                    etiqueta.textContent = 'Precio (Q)';
+
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0.01';
+                    input.step = '0.01';
+                    input.max = '99999999.99';
+                    input.value = localidad.precio ?? '';
+                    input.dataset.localidadId = localidad.id;
+                    input.className = 'evento-localidad-precio';
+
+                    // La API determina si las tarifas son editables.
+                    input.disabled = !data.editable;
+
+                    etiqueta.append(input);
+                    fila.append(informacion, etiqueta);
+                    lista.append(fila);
+                }
+
+                const boton = actionButton(
+                    data.editable
+                        ? 'Editar y guardar precios'
+                        : 'Consultar gestión de precios',
+                    'evento-action',
+                    () => openPrices(eventoId)
+                );
+
+                lista.append(boton);
+
+                if (!data.editable && mensaje) {
+                    mensaje.textContent =
+                        'Las tarifas están protegidas para este evento. ' +
+                        'Puedes consultarlas, pero no modificarlas ' +
+                        'mientras la API no autorice el cambio.';
+                    mensaje.hidden = false;
+                }
+
+            } catch (error) {
+                if (version !== versionLocalidades) return;
+
+                lista.replaceChildren();
+
+                if (mensaje) {
+                    mensaje.textContent = error.message;
+                    mensaje.hidden = false;
+                }
+            }
+
             return;
         }
-
-        panel.hidden = false;
 
         if (!recintoId) {
             lista.append(el(
@@ -1452,15 +2453,16 @@
         }
 
         editingEventId = evento ? evento.id : null;
+        editingPublished = evento?.estado === 'publicado';
 
         const form = $('evento-form');
         form.reset();
 
         clearFormFeedback();
 
-        $('evento-form-title').textContent = evento
-            ? 'Editar evento'
-            : 'Crear nuevo evento';
+        $('evento-form-title').textContent = editingPublished
+            ? 'Modificar evento publicado'
+            : evento ? 'Editar evento' : 'Crear nuevo evento';
 
         $('btn-guardar-evento').textContent = evento
             ? 'Guardar cambios'
@@ -1509,6 +2511,13 @@
             formFeedback(error.message, true);
         }
 
+        // En publicados, fecha y recinto son solo de consulta.
+        const recintoCampo = $('evento-recinto');
+        if (recintoCampo) recintoCampo.disabled = editingPublished;
+
+        const fechaCampo = form.elements.namedItem('fecha_evento');
+        if (fechaCampo) fechaCampo.readOnly = editingPublished;
+
         $('evento-form-panel').scrollIntoView({
             behavior: 'smooth',
             block: 'start'
@@ -1531,6 +2540,26 @@
                     'Por ahora solo se pueden editar eventos en borrador.',
                     true
                 );
+                return;
+            }
+
+            await openEventForm(evento);
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
+    async function modifyPublishedEvent(id) {
+        if (currentRole !== 'admin') {
+            feedback('Solo el Administrador puede modificar eventos publicados.', true);
+            return;
+        }
+
+        try {
+            const evento = await fetchEvent(id);
+
+            if (evento.estado !== 'publicado') {
+                feedback('Esta opción solo está disponible para eventos publicados.', true);
                 return;
             }
 
@@ -2007,6 +3036,7 @@
             };
 
             const isEditing = editingEventId !== null;
+            const isPublishedEdit = editingPublished;
 
             if (!isEditing) {
                 const campos = [
@@ -2043,11 +3073,23 @@
                 payload.precios = precios;
             }
 
-            const path = isEditing
-                ? 'eventos/' + editingEventId
-                : 'eventos';
+            const path = isPublishedEdit
+                ? 'eventos/' + editingEventId + '/contenido'
+                : isEditing ? 'eventos/' + editingEventId : 'eventos';
 
-            const method = isEditing ? 'PUT' : 'POST';
+            const method = isPublishedEdit
+                ? 'PATCH' : isEditing ? 'PUT' : 'POST';
+
+            // Solo enviamos los campos autorizados para publicados.
+            const datosEnviar = isPublishedEdit
+                ? {
+                    nombre: payload.nombre,
+                    descripcion: payload.descripcion,
+                    imagen_url: payload.imagen_url,
+                    imagen_url_2: payload.imagen_url_2,
+                    imagen_url_3: payload.imagen_url_3
+                }
+                : payload;
 
             savingEvent = true;
 
@@ -2061,7 +3103,7 @@
             try {
                 const response = await api(path, {
                     method,
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(datosEnviar)
                 });
 
                 const result = await response.json();
@@ -2096,6 +3138,14 @@
     // =====================================================
 
     async function load() {
+        if (section === 'notificaciones') {
+            ++requestVersion;
+            updateHeader();
+            updateSections();
+            clearFeedback();
+            return;
+        }
+
         const version = ++requestVersion;
 
         updateHeader();
@@ -2262,74 +3312,405 @@
     }
 
     // =====================================================
-    // REPORTES CSV
+    // =====================================================
+    // REPORTES SOIRÉE: EXCEL, PDF Y CSV
     // =====================================================
 
     const reportForm = $('report-form');
 
     if (reportForm) {
-        reportForm.addEventListener(
-            'submit',
-            async event => {
-                event.preventDefault();
+        reportForm.addEventListener('submit', async event => {
+            event.preventDefault();
 
-                const args = new URLSearchParams(
-                    new FormData(reportForm)
+            const args = new URLSearchParams(
+                new FormData(reportForm)
+            );
+
+            const formato = args.get('formato') || 'excel';
+            const tipo = args.get('tipo');
+            const desde = args.get('desde') || '';
+            const hasta = args.get('hasta') || '';
+
+            if (!['excel', 'pdf', 'csv'].includes(formato)) {
+                feedback('Formato de reporte no válido.', true);
+                return;
+            }
+
+            if (!tipo) {
+                feedback('Selecciona un tipo de informe.', true);
+                return;
+            }
+
+            if (Boolean(desde) !== Boolean(hasta)) {
+                feedback(
+                    'Selecciona ambas fechas o deja ambas vacías.',
+                    true
+                );
+                return;
+            }
+
+            if (desde && hasta && desde > hasta) {
+                feedback(
+                    'La fecha final debe ser posterior a la inicial.',
+                    true
+                );
+                return;
+            }
+
+            args.delete('formato');
+
+            const boton = reportForm.querySelector('button');
+            const textoOriginal = boton?.textContent;
+
+            if (boton) {
+                boton.disabled = true;
+                boton.textContent = 'Generando informe...';
+            }
+
+            feedback('Preparando informe Soirée...');
+
+            try {
+                const response = await api(
+                    'reportes/' + formato + '?' + args.toString()
                 );
 
-                const from = args.get('desde');
-                const to = args.get('hasta');
+                const blob = await response.blob();
 
-                if (Boolean(from) !== Boolean(to)) {
-                    feedback(
-                        'Selecciona ambas fechas o deja ambas vacías.',
-                        true
-                    );
-                    return;
-                }
+                const extension =
+                    formato === 'excel' ? 'xlsx' : formato;
 
-                if (from && to && from > to) {
-                    feedback(
-                        'La fecha final debe ser igual o posterior a la inicial.',
-                        true
-                    );
-                    return;
-                }
+                const nombre =
+                    'soiree_' + tipo + '_' +
+                    new Date().toISOString().slice(0, 10) +
+                    '.' + extension;
 
-                feedback('Preparando reporte CSV...');
+                const url = URL.createObjectURL(blob);
 
-                try {
-                    const response = await api(
-                        'reportes/csv?' + args.toString()
-                    );
+                const enlace = document.createElement('a');
+                enlace.href = url;
+                enlace.download = nombre;
 
-                    const blob = await response.blob();
-                    const url = URL.createObjectURL(blob);
+                document.body.append(enlace);
+                enlace.click();
+                enlace.remove();
 
-                    const link = document.createElement('a');
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 3000);
 
-                    link.href = url;
-                    link.download =
-                        'pulso_' + args.get('tipo') + '.csv';
+                feedback('Informe generado correctamente.');
 
-                    document.body.append(link);
-                    link.click();
-                    link.remove();
-
-                    setTimeout(() => {
-                        URL.revokeObjectURL(url);
-                    }, 3000);
-
-                    clearFeedback();
-
-                } catch (error) {
-                    feedback(error.message, true);
+            } catch (error) {
+                feedback(
+                    error.message || 'No se pudo generar el informe.',
+                    true
+                );
+            } finally {
+                if (boton) {
+                    boton.disabled = false;
+                    boton.textContent = textoOriginal;
                 }
             }
-        );
+        });
     }
 
     // =====================================================
+    // SOIRÉE — CIERRE DE SESIÓN SEGURO
+
+    $('so-config-logout')?.addEventListener('click', async () => {
+        const confirmado = window.confirm(
+            '¿Deseas cerrar tu sesión de Soirée?'
+        );
+
+        if (!confirmado) return;
+
+        const boton = $('so-config-logout');
+        const mensaje = $('so-config-mensaje');
+        const accessToken = token();
+
+        if (!accessToken) {
+            if (mensaje) {
+                mensaje.textContent = 'No hay una sesión activa.';
+            }
+            return;
+        }
+
+        boton.disabled = true;
+        boton.textContent = 'Cerrando sesión...';
+
+        try {
+            const response = await fetch(
+                '/api/auth/logout-panel',
+                {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        Authorization: 'Bearer ' + accessToken
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json()
+                    .catch(() => ({}));
+
+                throw new Error(
+                    error.message || 'No se pudo cerrar la sesión.'
+                );
+            }
+
+            localStorage.removeItem('auth_token');
+            sessionStorage.removeItem('auth_token');
+
+            window.location.replace('/login');
+
+        } catch (error) {
+            if (mensaje) {
+                mensaje.textContent = error.message;
+            }
+
+            boton.disabled = false;
+            boton.textContent = 'Cerrar sesión';
+        }
+    });
+
+    // =====================================================
+
+    // SOIRÉE — CAMBIAR CONTRASEÑA DESDE CONFIGURACIÓN
+
+    const soPasswordForm = $('so-password-form');
+
+    soPasswordForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const actual = $('so-password-actual')?.value || '';
+        const nueva = $('so-password-nueva')?.value || '';
+        const confirmar = $('so-password-confirmar')?.value || '';
+
+        const mensaje = $('so-password-mensaje');
+        const boton = $('so-password-guardar');
+
+        const informar = (texto, esError = false) => {
+            if (!mensaje) return;
+            mensaje.textContent = texto;
+            mensaje.classList.toggle('is-error', esError);
+        };
+
+        if (nueva !== confirmar) {
+            informar('Las contraseñas nuevas no coinciden.', true);
+            return;
+        }
+
+        if (nueva.length < 8) {
+            informar(
+                'La contraseña debe tener al menos 8 caracteres.',
+                true
+            );
+            return;
+        }
+
+        const accessToken = token();
+
+        if (!accessToken) {
+            informar('Tu sesión ha caducado.', true);
+            return;
+        }
+
+        boton.disabled = true;
+        boton.textContent = 'Actualizando contraseña...';
+        informar('Verificando y actualizando...');
+
+        try {
+            const response = await fetch(
+                '/api/auth/cambiar-password',
+                {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        Authorization: 'Bearer ' + accessToken
+                    },
+                    body: JSON.stringify({
+                        password_actual: actual,
+                        password: nueva,
+                        password_confirmation: confirmar
+                    })
+                }
+            );
+
+            const resultado = await response.json()
+                .catch(() => ({}));
+
+            if (!response.ok) {
+                const errores = resultado.errors
+                    ? Object.values(resultado.errors)
+                        .flat()
+                        .join(' ')
+                    : '';
+
+                throw new Error(
+                    errores ||
+                    resultado.message ||
+                    'No se pudo actualizar la contraseña.'
+                );
+            }
+
+            soPasswordForm.reset();
+
+            informar(
+                'Contraseña actualizada correctamente.'
+            );
+
+        } catch (error) {
+            informar(error.message, true);
+        } finally {
+            boton.disabled = false;
+            boton.textContent = 'Actualizar contraseña';
+        }
+    });
+
+    // =====================================================
+
+
+    // SOIRÉE — EDITAR MI PERFIL
+
+    function llenarFormularioPerfil(perfil) {
+        if (!perfil) return;
+
+        const nombre = $('so-perfil-nombre');
+        const apellido = $('so-perfil-apellido');
+        const correo = $('so-perfil-email');
+
+        if (nombre) nombre.value = perfil.nombre || '';
+        if (apellido) apellido.value = perfil.apellido || '';
+        if (correo) correo.value = perfil.email || '';
+    }
+
+    $('so-perfil-form')?.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const nombre = $('so-perfil-nombre').value.trim();
+        const apellido = $('so-perfil-apellido').value.trim();
+        const boton = $('so-perfil-guardar');
+        const mensaje = $('so-perfil-mensaje');
+
+        if (!nombre || !apellido) {
+            mensaje.textContent = 'Completa el nombre y apellido.';
+            return;
+        }
+
+        boton.disabled = true;
+        boton.textContent = 'Guardando...';
+        mensaje.textContent = 'Actualizando tu perfil...';
+
+        try {
+            const accessToken = token();
+
+            if (!accessToken) {
+                throw new Error('Tu sesión ha caducado.');
+            }
+
+            const response = await fetch(
+                '/api/auth/actualizar-mi-perfil',
+                {
+                    method: 'PATCH',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        Authorization: 'Bearer ' + accessToken
+                    },
+                    body: JSON.stringify({ nombre, apellido })
+                }
+            );
+
+            const resultado = await response.json()
+                .catch(() => ({}));
+
+            if (!response.ok) {
+                const detalles = resultado.errors
+                    ? Object.values(resultado.errors).flat().join(' ')
+                    : '';
+
+                throw new Error(
+                    detalles ||
+                    resultado.message ||
+                    'No se pudieron guardar los cambios.'
+                );
+            }
+
+            const perfilActualizado = await loadCurrentUser();
+            llenarFormularioPerfil(perfilActualizado);
+            mensaje.textContent =
+                'Información personal actualizada correctamente.';
+
+        } catch (error) {
+            mensaje.textContent = error.message;
+        } finally {
+            boton.disabled = false;
+            boton.textContent = 'Guardar cambios';
+        }
+    });
+
+    // =====================================================
+
+
+    // SOIRÉE — TARJETAS DESPLEGABLES DE CONFIGURACIÓN
+
+    function configurarTarjetaDesplegable(selector, titulo, descripcion) {
+        const tarjeta = document.querySelector(selector);
+
+        if (!tarjeta || tarjeta.querySelector('.so-fold-toggle')) {
+            return;
+        }
+
+        tarjeta.classList.add('so-fold-card', 'is-collapsed');
+
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'so-fold-toggle';
+        boton.setAttribute('aria-expanded', 'false');
+
+        const contenido = document.createElement('span');
+        contenido.className = 'so-fold-text';
+
+        const nombre = document.createElement('strong');
+        nombre.textContent = titulo;
+
+        const detalle = document.createElement('small');
+        detalle.textContent = descripcion;
+
+        const flecha = document.createElement('span');
+        flecha.className = 'so-fold-arrow';
+        flecha.setAttribute('aria-hidden', 'true');
+        flecha.textContent = '⌄';
+
+        contenido.append(nombre, detalle);
+        boton.append(contenido, flecha);
+
+        tarjeta.prepend(boton);
+
+        boton.addEventListener('click', () => {
+            const abrir = tarjeta.classList.contains('is-collapsed');
+
+            tarjeta.classList.toggle('is-collapsed', !abrir);
+            boton.setAttribute('aria-expanded', String(abrir));
+        });
+    }
+
+    configurarTarjetaDesplegable(
+        '.so-edit-profile',
+        'Editar mi perfil',
+        'Nombre, apellido e información personal'
+    );
+
+    configurarTarjetaDesplegable(
+        '.so-password-card',
+        'Cambiar contraseña',
+        'Seguridad y protección de mi cuenta'
+    );
+
+    // =====================================================
+
     // INICIO
     // =====================================================
 
@@ -2340,6 +3721,7 @@
     show('banner-panel', false);
     show('reports', false);
     show('coming-soon', false);
+    show('so-configuracion', false);
 
     (async () => {
         try {
@@ -2355,5 +3737,119 @@
             show('coming-soon', false);
         }
     })();
+
+    // =====================================================
+    // SOIRÉE — REPORTES EXCEL Y PDF
+    // =====================================================
+
+    async function descargarReporteProfesional(formato) {
+        const tipo = $('so-reporte-tipo')?.value;
+        const desde = $('so-reporte-desde')?.value || '';
+        const hasta = $('so-reporte-hasta')?.value || '';
+        const mensaje = $('so-reporte-mensaje');
+
+        if (!tipo || !['excel', 'pdf'].includes(formato)) {
+            return;
+        }
+
+        if (desde && hasta && desde > hasta) {
+            if (mensaje) {
+                mensaje.textContent =
+                    'La fecha inicial no puede ser posterior a la final.';
+            }
+            return;
+        }
+
+        const params = new URLSearchParams({ tipo });
+
+        if (desde) params.set('desde', desde);
+        if (hasta) params.set('hasta', hasta);
+
+        const botonExcel = $('so-descargar-excel');
+        const botonPdf = $('so-descargar-pdf');
+
+        if (botonExcel) botonExcel.disabled = true;
+        if (botonPdf) botonPdf.disabled = true;
+
+        if (mensaje) {
+            mensaje.textContent = 'Preparando el informe...';
+        }
+
+        try {
+            const tokenActual = localStorage.getItem('auth_token');
+
+            if (!tokenActual) {
+                throw new Error('Tu sesión ha caducado.');
+            }
+
+            const response = await fetch(
+                '/api/admin/reportes/' + formato +
+                '?' + params.toString(),
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        Authorization: 'Bearer ' + tokenActual
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+
+                let mensajeError = error.message ||
+                    'No se pudo generar el informe.';
+
+                if (error.errors) {
+                    mensajeError = Object.values(error.errors)
+                        .flat()
+                        .join(' ');
+                }
+
+                throw new Error(mensajeError);
+            }
+
+            const archivo = await response.blob();
+
+            const extension = formato === 'excel' ? 'xlsx' : 'pdf';
+            const nombre = 'soiree_' + tipo + '_' +
+                new Date().toISOString().slice(0, 10) +
+                '.' + extension;
+
+            const url = URL.createObjectURL(archivo);
+            const enlace = document.createElement('a');
+
+            enlace.href = url;
+            enlace.download = nombre;
+
+            document.body.append(enlace);
+            enlace.click();
+            enlace.remove();
+
+            // Liberar la URL cuando termine el evento actual.
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+            if (mensaje) {
+                mensaje.textContent =
+                    'Informe generado correctamente.';
+            }
+        } catch (error) {
+            if (mensaje) {
+                mensaje.textContent = error.message;
+            }
+        } finally {
+            if (botonExcel) botonExcel.disabled = false;
+            if (botonPdf) botonPdf.disabled = false;
+        }
+    }
+
+    $('so-descargar-excel')?.addEventListener(
+        'click',
+        () => descargarReporteProfesional('excel')
+    );
+
+    $('so-descargar-pdf')?.addEventListener(
+        'click',
+        () => descargarReporteProfesional('pdf')
+    );
 
 })();
