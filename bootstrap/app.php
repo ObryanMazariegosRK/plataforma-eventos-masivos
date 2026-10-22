@@ -17,12 +17,14 @@ use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
 use App\Domain\Exceptions\Pagos\ReservaNoEncontradaException;
 use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
+use App\Domain\Exceptions\Bitacora\BitacoraNoDisponibleException;
 use App\Domain\Exceptions\Catalogo\ArchivoBannerInvalidoException;
 use App\Domain\Exceptions\Inventario\EventoNoDisponibleException;
 use App\Domain\Exceptions\Reservas\LimitePorPersonaException;
 use App\Domain\Exceptions\Inventario\LocalidadesSinPrecioException;
 use App\Domain\Exceptions\Inventario\RecintoSinLugaresException;
 use App\Domain\Exceptions\ReglaDeNegocioException;
+use App\Http\Middleware\RegistrarBitacora;
 use App\Http\Middleware\VerificarRol;
 use App\Http\Middleware\VerificarUsuarioActivo;
 use Illuminate\Foundation\Application;
@@ -47,7 +49,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         // En todas las rutas /api: un usuario bloqueado pierde el acceso aunque su token siga vigente.
-        $middleware->api(append: [VerificarUsuarioActivo::class]);
+        $middleware->api(append: [VerificarUsuarioActivo::class, RegistrarBitacora::class]);
+
+        // Bitácora: inicios de sesión, compras, cambios en el panel... (ver CatalogoBitacora).
+        // En web solo registra el regreso del login con Google.
+        $middleware->web(append: [RegistrarBitacora::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -76,6 +82,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ReservaYaPagadaException::class             => [409, 'reserva_ya_pagada'],
             PasarelaNoDisponibleException::class        => [422, 'pasarela_no_disponible'],
             PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
+            BitacoraNoDisponibleException::class        => [503, 'bitacora_no_disponible'],
             // ---- Catálogo ----
             ArchivoBannerInvalidoException::class       => [422, 'banner_archivo_invalido'],
             // ---- Reservas ----

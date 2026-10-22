@@ -44,9 +44,9 @@
             'Notificaciones',
             'Reservas, pagos y boletos registrados en Soirée.'
         ],
-        historial: [
-            'Historial',
-            'Próximamente: auditoría de operaciones.'
+        bitacora: [
+            'Bitácora',
+            'Quién hizo qué y cuándo: sesiones, compras y cambios en el panel.'
         ],
         configuracion: [
             'Configuración',
@@ -86,7 +86,6 @@
     };
 
     const pendingSections = new Set([
-        'historial',
         'configuracion'
     ]);
 
@@ -2163,12 +2162,14 @@
         const isNotifications = section === 'notificaciones';
         const isBanner = section === 'banner';   // lo maneja admin-banner.js
         const isCatalogo = section === 'catalogo';   // lo maneja admin-catalogo-eventos.js
+        const isBitacora = section === 'bitacora';   // lo maneja admin-bitacora.js
         const isConfig = section === 'configuracion';
         const isPending = pendingSections.has(section) && !isConfig;
 
-        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo);
+        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora);
         show('banner-panel', isBanner);
         show('catalogo-panel', isCatalogo);
+        show('bitacora-panel', isBitacora);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
@@ -3195,7 +3196,8 @@
             pendingSections.has(section) ||
             section === 'reportes' ||
             section === 'banner' ||
-            section === 'catalogo'
+            section === 'catalogo' ||
+            section === 'bitacora'
         ) {
             clearFeedback();
             return;

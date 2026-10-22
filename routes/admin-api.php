@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminPrecioEventoController;
 use App\Http\Controllers\Admin\AdminUsuarioController;
 use App\Http\Controllers\Admin\AdminNotificacionController;
 use App\Http\Controllers\Admin\AdminReporteDocumentoController;
+use App\Http\Controllers\Bitacora\BitacoraController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -272,6 +273,13 @@ Route::middleware(['auth:sanctum'])
                     AdminReporteDocumentoController::class,
                     'pdf'
                 ])->name('reportes.pdf');
+
+                // BITÁCORA (solo lectura): quién hizo qué y cuándo
+
+                Route::get('/bitacora', [
+                    BitacoraController::class,
+                    'index'
+                ])->name('bitacora');
 
                 // REPORTES CSV
 

@@ -64,6 +64,39 @@ return [
             ]) : [],
         ],
 
+        // BITÁCORA: base aparte en el mismo servidor MySQL.
+        // "bitacora": usuario que solo puede LEER y AGREGAR (la app nunca edita ni borra registros).
+        // "bitacora_admin": root, solo para instalarla (php artisan bitacora:instalar).
+        'bitacora' => [
+            'driver' => env('BITACORA_DB_CONNECTION', 'mysql'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('BITACORA_DB_DATABASE', 'eventos_bitacora'),
+            'username' => env('BITACORA_DB_USERNAME', 'eventos_bitacora'),
+            'password' => env('BITACORA_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+        'bitacora_admin' => [
+            'driver' => env('BITACORA_DB_CONNECTION', 'mysql'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('BITACORA_DB_DATABASE', 'eventos_bitacora'),
+            'username' => 'root',
+            'password' => env('DB_ROOT_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

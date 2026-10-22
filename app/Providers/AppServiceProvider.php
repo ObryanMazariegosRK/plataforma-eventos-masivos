@@ -197,6 +197,24 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Admin\BuscarEventosAdminUseCase::class,
         );
 
+        // ---- Bitácora (base aparte; la llena el middleware RegistrarBitacora) ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Bitacora\IBitacoraRepository::class,
+            \App\Data\Bitacora\BitacoraRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Bitacora\IContextoBitacora::class,
+            \App\Data\Bitacora\ContextoBitacora::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Bitacora\IRegistrarEnBitacoraUseCase::class,
+            \App\Application\UseCases\Bitacora\RegistrarEnBitacoraUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Bitacora\IBuscarEnBitacoraUseCase::class,
+            \App\Application\UseCases\Bitacora\BuscarEnBitacoraUseCase::class,
+        );
+
         // ---- Catálogo: banner de la portada ----
         $this->app->bind(
             \App\Domain\Abstractions\Catalogo\IBannerRepository::class,

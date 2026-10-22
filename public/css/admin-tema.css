@@ -427,10 +427,10 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree ::-webkit-scrollbar-thumb:hover { background: var(--t-acento-borde); }
 
 /* ---------- Catálogo de eventos (admin-catalogo-eventos.js) ---------- */
-.tema-soiree .catalogo-panel { display: grid; gap: 18px; }
-.tema-soiree .catalogo-panel[hidden] { display: none; }
+.tema-soiree :is(.catalogo-panel, .bitacora-panel) { display: grid; gap: 18px; }
+.tema-soiree :is(.catalogo-panel, .bitacora-panel)[hidden] { display: none; }
 
-.tema-soiree .catalogo-filtros {
+.tema-soiree :is(.catalogo-filtros, .bitacora-filtros) {
     display: grid;
     grid-template-columns: minmax(200px, 2fr) repeat(4, minmax(120px, 1fr)) auto;
     gap: 12px;
@@ -441,15 +441,15 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
     background: var(--t-panel);
     box-shadow: var(--t-sombra);
 }
-.tema-soiree .catalogo-filtros label { display: grid; gap: 6px; margin: 0; }
-.tema-soiree .catalogo-filtros label > span {
+.tema-soiree :is(.catalogo-filtros, .bitacora-filtros) label { display: grid; gap: 6px; margin: 0; }
+.tema-soiree :is(.catalogo-filtros, .bitacora-filtros) label > span {
     color: var(--t-tenue);
     font-size: 10.5px;
     font-weight: 600;
     letter-spacing: .16em;
     text-transform: uppercase;
 }
-.tema-soiree .catalogo-filtros input, .tema-soiree .catalogo-filtros select {
+.tema-soiree :is(.catalogo-filtros, .bitacora-filtros) :is(input, select) {
     width: 100%;
     min-width: 0;
     height: 42px;
@@ -647,3 +647,138 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .so-notif-mark { color: var(--t-acento); }
 .tema-soiree .so-notif-mark:hover:not(:disabled) { color: var(--t-texto); }
 .tema-soiree .so-notif-mark:disabled { color: var(--t-tenue); }
+
+/* ---------- Bitácora (admin-bitacora.js): línea de tiempo agrupada por día ---------- */
+.tema-soiree .bitacora-filtros { grid-template-columns: minmax(180px, 1.6fr) repeat(5, minmax(110px, 1fr)) auto; }
+
+.tema-soiree .bitacora-lista {
+    margin: 0;
+    padding: 6px 22px 10px;
+    list-style: none;
+    border: 1px solid var(--t-hilo);
+    border-radius: 16px;
+    background: var(--t-panel);
+    box-shadow: var(--t-sombra);
+    transition: opacity .2s ease;
+}
+.tema-soiree .bitacora-lista:empty { display: none; }
+.tema-soiree .bitacora-lista[aria-busy="true"] { opacity: .5; }
+
+.tema-soiree .bitacora-dia {
+    padding: 22px 0 8px;
+    color: var(--t-acento);
+    font-family: var(--t-titulo);
+    font-size: 21px;
+    font-weight: 500;
+}
+.tema-soiree .bitacora-dia::first-letter { text-transform: uppercase; }
+
+.tema-soiree .bitacora-registro {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px 0;
+    border-top: 1px solid var(--t-hilo);
+}
+.tema-soiree .bitacora-dia + .bitacora-registro { border-top: 0; }
+
+.tema-soiree .bitacora-avatar {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--t-acento-borde);
+    border-radius: 50%;
+    background: var(--t-acento-suave);
+    color: var(--t-acento);
+    font-family: var(--t-titulo);
+    font-size: 15px;
+}
+.tema-soiree .bitacora-registro.es-fallido .bitacora-avatar { border-color: transparent; background: var(--t-rojo-fondo); color: var(--t-rojo); }
+
+.tema-soiree .bitacora-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.tema-soiree .bitacora-descripcion { margin: 0; color: var(--t-texto); font-size: 14.5px; line-height: 1.45; }
+.tema-soiree .bitacora-hora { flex: none; color: var(--t-tenue); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+.tema-soiree .bitacora-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 6px;
+    color: var(--t-piedra);
+    font-size: 12.5px;
+}
+.tema-soiree .bitacora-meta strong { color: var(--t-texto); font-weight: 500; }
+.tema-soiree .bitacora-correo { color: var(--t-tenue); }
+.tema-soiree :is(.bitacora-rol, .bitacora-categoria) {
+    padding: 2px 9px;
+    border: 1px solid var(--t-hilo-2);
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: .04em;
+}
+.tema-soiree .bitacora-rol[data-rol="admin"] { border-color: var(--t-acento-borde); color: var(--t-acento); }
+.tema-soiree .bitacora-rol[data-rol="organizador"] { border-color: transparent; background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .bitacora-categoria { border-style: dashed; }
+.tema-soiree .bitacora-resultado { padding: 2px 9px; font-size: 11px; }
+
+.tema-soiree .bitacora-mas { margin-top: 8px; }
+.tema-soiree .bitacora-mas summary {
+    width: fit-content;
+    color: var(--t-acento);
+    font-size: 12.5px;
+    cursor: pointer;
+    list-style: none;
+}
+.tema-soiree .bitacora-mas summary::-webkit-details-marker { display: none; }
+.tema-soiree .bitacora-mas summary::after { content: " ›"; }
+.tema-soiree .bitacora-mas[open] summary::after { content: " ‹"; }
+
+.tema-soiree .bitacora-detalle {
+    display: grid;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--t-panel-2);
+}
+.tema-soiree .bitacora-cambios { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tema-soiree .bitacora-cambios th {
+    padding: 0 10px 6px 0;
+    background: none;
+    color: var(--t-tenue);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-align: left;
+    text-transform: uppercase;
+}
+.tema-soiree .bitacora-cambios td {
+    padding: 6px 10px 6px 0;
+    border-top: 1px solid var(--t-hilo);
+    color: var(--t-piedra);
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+.tema-soiree .bitacora-cambios td:first-child { width: 22%; color: var(--t-texto); }
+.tema-soiree .bitacora-cambios tr.es-cambio td:last-child { color: var(--t-texto); font-weight: 500; }
+.tema-soiree .bitacora-tecnico {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px 14px;
+    margin: 0;
+    color: var(--t-tenue);
+    font-size: 12px;
+}
+.tema-soiree .bitacora-tecnico dt { color: var(--t-piedra); }
+.tema-soiree .bitacora-tecnico dd { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 1100px) {
+    .tema-soiree .bitacora-filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tema-soiree .bitacora-filtros__usuario { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+    .tema-soiree .bitacora-lista { padding: 4px 14px 8px; }
+    .tema-soiree .bitacora-cabeza { flex-direction: column; gap: 2px; }
+}

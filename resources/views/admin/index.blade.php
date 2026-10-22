@@ -31,6 +31,7 @@
     <!-- JavaScript: conservar los módulos funcionales existentes -->
     <script defer src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
     <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-bitacora.js') }}?v={{ filemtime(public_path('js/admin-bitacora.js')) }}"></script>
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
     <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
@@ -247,14 +248,13 @@
 
             <button type="button"
                     class="nav-item"
-                    data-section="historial">
+                    data-section="bitacora">
 
                 <svg class="nav-icon">
                     <use href="#i-clock"/>
                 </svg>
 
-                <span>Historial</span>
-                <span class="nav-soon">Pronto</span>
+                <span>Bitácora</span>
             </button>
 
             <button type="button"
@@ -953,6 +953,58 @@
             <div class="catalogo-grid" id="catalogo-grid"></div>
             <div class="catalogo-mas">
                 <button type="button" class="banner-boton" id="catalogo-ver-mas" hidden>Ver más eventos</button>
+            </div>
+        </section>
+
+        <!-- =================================================
+             BITÁCORA (admin-bitacora.js): solo lectura, solo admin
+        ================================================= -->
+
+        <section id="bitacora-panel" class="bitacora-panel" hidden>
+            <form class="bitacora-filtros" id="bitacora-filtros" role="search" aria-label="Filtrar la bitácora">
+                <label class="bitacora-filtros__usuario">
+                    <span>Usuario</span>
+                    <input type="search" name="usuario" placeholder="Nombre o correo…" autocomplete="off">
+                </label>
+                <label>
+                    <span>Categoría</span>
+                    <select name="categoria" id="bitacora-categoria">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Panel / rol</span>
+                    <select name="rol">
+                        <option value="">Todos</option>
+                        <option value="admin">Administrador</option>
+                        <option value="organizador">Operador</option>
+                        <option value="cliente">Cliente</option>
+                        <option value="sin_sesion">Sin sesión</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Resultado</span>
+                    <select name="resultado">
+                        <option value="">Todos</option>
+                        <option value="exito">Exitosos</option>
+                        <option value="fallido">Fallidos</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Desde</span>
+                    <input type="date" name="desde">
+                </label>
+                <label>
+                    <span>Hasta</span>
+                    <input type="date" name="hasta">
+                </label>
+                <button type="reset" class="catalogo-limpiar">Limpiar</button>
+            </form>
+
+            <p class="catalogo-resumen" id="bitacora-resumen" role="status" aria-live="polite"></p>
+            <ol class="bitacora-lista" id="bitacora-lista"></ol>
+            <div class="catalogo-mas">
+                <button type="button" class="banner-boton" id="bitacora-ver-mas" hidden>Ver más registros</button>
             </div>
         </section>
 

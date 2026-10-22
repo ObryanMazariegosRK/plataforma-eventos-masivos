@@ -127,3 +127,43 @@ Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=}', fun
     $this->info("Listo: {$usuario->email} es administrador. Inicia sesión en /login y entrarás a /admin.");
     return 0;
 })->purpose('Crea un usuario administrador o promueve una cuenta existente');
+
+// Instala (o actualiza) la bitácora en su propia base: crea la base y un usuario que solo puede
+// leer y agregar registros, y aplica database/migrations/bitacora (tabla + triggers que impiden
+// editar o borrar). Se puede correr las veces que haga falta.
+// Uso: php artisan bitacora:instalar
+Artisan::command('bitacora:instalar', function () {
+    $admin = config('database.connections.bitacora_admin');
+    $app = config('database.connections.bitacora');
+
+    if ($app['driver'] !== 'mysql') {
+        // SQLite (tests): no hay usuarios ni permisos, solo las tablas
+        return $this->call('migrate', ['--database' => 'bitacora', '--path' => 'database/migrations/bitacora', '--force' => true]);
+    }
+
+    if (empty($app['password'])) {
+        $this->error('Falta BITACORA_DB_PASSWORD en el .env (copia las líneas BITACORA_* de .env.example).');
+        return 1;
+    }
+
+    // Como root y sin base elegida, porque la base todavía puede no existir
+    config(['database.connections.bitacora_instalacion' => ['database' => null] + $admin]);
+    $root = \Illuminate\Support\Facades\DB::connection('bitacora_instalacion');
+    $base = str_replace('`', '', $app['database']);
+    $usuario = str_replace("'", '', $app['username']);
+    $clave = $root->getPdo()->quote($app['password']);
+
+    $root->statement("CREATE DATABASE IF NOT EXISTS `{$base}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    $root->statement("CREATE USER IF NOT EXISTS '{$usuario}'@'%' IDENTIFIED BY {$clave}");
+    $root->statement("ALTER USER '{$usuario}'@'%' IDENTIFIED BY {$clave}");
+    // Solo leer y agregar: ni UPDATE ni DELETE (y los triggers lo impiden aunque alguien tuviera permiso)
+    $root->statement("GRANT SELECT, INSERT ON `{$base}`.* TO '{$usuario}'@'%'");
+    $root->statement('FLUSH PRIVILEGES');
+    $this->info("Base {$base} y usuario {$usuario} (SELECT, INSERT) listos.");
+
+    $this->call('migrate', ['--database' => 'bitacora_admin', '--path' => 'database/migrations/bitacora', '--force' => true]);
+
+    $registros = \Illuminate\Support\Facades\DB::connection('bitacora')->table('bitacora')->count();
+    $this->info("La app ya escribe en la bitácora ({$registros} registros).");
+    return 0;
+})->purpose('Crea la base de la bitácora, su usuario de solo lectura/escritura y sus tablas');
