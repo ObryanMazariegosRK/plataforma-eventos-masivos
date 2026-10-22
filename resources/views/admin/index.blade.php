@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta name="robots" content="noindex,nofollow">
-    <meta name="theme-color" content="#191126">
+    <meta name="theme-color" content="#100E0D">
 
     <title>Soirée | Administración</title>
 
@@ -17,66 +17,15 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap"
           rel="stylesheet">
 
-    <!-- Estilos y JavaScript -->
-    <!-- Base: estructura, formularios, tablas y diseño responsivo -->
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v=12">
-    <!-- Soirée: primera identidad visual -->
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree.css') }}?v=3">
-    <!-- Soirée: refinamiento de interfaz -->
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree-v2.css') }}?v=1">
-    <!-- Funcionalidad administrativa existente -->
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree-v4.css') }}?v=1">
+    <!-- Administración: una sola hoja de estilos consolidada -->
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ filemtime(public_path('css/admin.css')) }}">
+
+    <!-- JavaScript: conservar los módulos funcionales existentes -->
     <script defer src="{{ asset('js/admin.js') }}?v=15"></script>
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree-final.css') }}?v=1">
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
-    <!-- Banner del catálogo (imagen o video de fondo) -->
-    <link rel="stylesheet" href="{{ asset('css/admin-banner.css') }}?v={{ filemtime(public_path('css/admin-banner.css')) }}">
     <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
-    <!-- Estilos exclusivos de la vista previa de imagen -->
-    <style>
-        .evento-image-help {
-            color: #8192a8;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        .evento-image-preview {
-            max-width: 420px;
-            padding: 8px;
-            border: 1px solid #dbe8ed;
-            border-radius: 13px;
-            background: #f4f8fa;
-        }
-        .evento-image-preview img {
-            display: block;
-            width: 100%;
-            max-height: 240px;
-            object-fit: cover;
-            border-radius: 9px;
-        }
 
-        /* Gestión de precios por localidad */
-        .evento-precios-panel { margin-bottom: 14px; }
-        .evento-precios-lista { display: grid; gap: 10px; }
-        .evento-precio-fila {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(140px, 185px);
-            gap: 14px;
-            align-items: center;
-            padding: 13px 15px;
-            border: 1px solid #e3ebf2;
-            border-radius: 11px;
-            background: #f8fbfd;
-        }
-        .evento-precio-fila strong { display: block; font-size: 13px; color: #18324a; }
-        .evento-precio-fila small { color: #8496aa; font-size: 11px; }
-        .evento-precio-fila label { display: grid; gap: 5px; color: #536b82; font-size: 11px; font-weight: 800; }
-        .evento-precio-fila input { width: 100%; min-width: 0; }
-        #btn-guardar-precios:disabled { opacity: .45; cursor: not-allowed; }
-        @media (max-width: 600px) {
-            .evento-precio-fila { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 
 <body>
@@ -693,6 +642,42 @@
 
                 <small class="evento-image-help">
                     Enlace HTTPS de una imagen pública. Es opcional.
+                </small>
+            </label>
+
+
+            <!-- Fotografías adicionales de la galería -->
+            <label class="evento-full" for="evento-imagen-url-2">
+                URL de imagen 2 — Galería
+
+                <input
+                    type="url"
+                    name="imagen_url_2"
+                    id="evento-imagen-url-2"
+                    maxlength="2048"
+                    placeholder="https://ejemplo.com/imagen-2.jpg"
+                    inputmode="url"
+                    autocomplete="off">
+
+                <small class="evento-image-help">
+                    Segunda fotografía del evento. Enlace HTTPS opcional.
+                </small>
+            </label>
+
+            <label class="evento-full" for="evento-imagen-url-3">
+                URL de imagen 3 — Galería
+
+                <input
+                    type="url"
+                    name="imagen_url_3"
+                    id="evento-imagen-url-3"
+                    maxlength="2048"
+                    placeholder="https://ejemplo.com/imagen-3.jpg"
+                    inputmode="url"
+                    autocomplete="off">
+
+                <small class="evento-image-help">
+                    Tercera fotografía del evento. Enlace HTTPS opcional.
                 </small>
             </label>
 

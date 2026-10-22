@@ -55,6 +55,12 @@ class EditarEventoUseCase
             $evento->imagen_url =
                 $datos['imagen_url'] ?? null;
 
+            $evento->imagen_url_2 =
+                $datos['imagen_url_2'] ?? null;
+
+            $evento->imagen_url_3 =
+                $datos['imagen_url_3'] ?? null;
+
             // Auditoría.
             $evento->updated_by = $administradorId;
 
