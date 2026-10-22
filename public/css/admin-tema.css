@@ -782,3 +782,140 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
     .tema-soiree .bitacora-lista { padding: 4px 14px 8px; }
     .tema-soiree .bitacora-cabeza { flex-direction: column; gap: 2px; }
 }
+
+/* ---------- Celular y tableta: menú lateral desplegable (admin-tema.js) ---------- */
+/* Reemplaza la barra de solo íconos (≤ 850 px) y la fila horizontal (≤ 600 px) de admin.css:
+   arriba queda una barra con "Menú", la marca y la sección actual; el menú se desliza desde
+   la izquierda con ícono y nombre de cada sección. */
+.barra-movil, .menu-cerrar { display: none; }
+.tema-soiree .sidebar:focus { outline: none; }
+.menu-velo[hidden] { display: none; }
+
+@media (max-width: 850px) {
+    .tema-soiree .shell { display: block; }
+
+    .tema-soiree .barra-movil {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 16px;
+        padding-top: max(10px, env(safe-area-inset-top));
+        background: var(--l-fondo);
+        border-bottom: 1px solid var(--l-hilo);
+        color: var(--l-texto);
+    }
+    .tema-soiree .barra-movil__menu {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: 40px;
+        padding: 0 14px 0 12px;
+        border: 1px solid rgba(200, 180, 140, .35);
+        border-radius: 999px;
+        background: var(--l-acento-suave);
+        color: var(--l-texto);
+        font: 500 13px var(--t-cuerpo);
+        cursor: pointer;
+    }
+    /* Tres líneas (☰) dibujadas con CSS */
+    .tema-soiree .barra-movil__icono,
+    .tema-soiree .barra-movil__icono::before,
+    .tema-soiree .barra-movil__icono::after,
+    .tema-soiree .barra-movil__icono span {
+        display: block;
+        width: 16px;
+        height: 1.5px;
+        border-radius: 2px;
+        background: var(--l-acento);
+    }
+    .tema-soiree .barra-movil__icono { position: relative; background: transparent; height: 12px; }
+    .tema-soiree .barra-movil__icono::before,
+    .tema-soiree .barra-movil__icono::after { content: ""; position: absolute; left: 0; }
+    .tema-soiree .barra-movil__icono::before { top: 0; }
+    .tema-soiree .barra-movil__icono span { position: absolute; top: 5.25px; left: 0; width: 11px; }
+    .tema-soiree .barra-movil__icono::after { bottom: 0; }
+
+    .tema-soiree .barra-movil__marca {
+        color: var(--l-texto);
+        font: 500 23px var(--t-titulo);
+        letter-spacing: .01em;
+        text-decoration: none;
+    }
+    .tema-soiree .barra-movil__marca span { color: var(--l-acento); }
+    .tema-soiree .barra-movil__seccion {
+        margin-left: auto;
+        overflow: hidden;
+        color: var(--l-piedra);
+        font-size: 12.5px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* El menú: fuera de la pantalla hasta que se abre */
+    .tema-soiree .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 60;
+        width: min(300px, 86vw);
+        height: 100vh;
+        height: 100dvh;
+        padding: 20px 14px 18px;
+        overflow-y: auto;
+        border-right: 1px solid var(--l-hilo);
+        transform: translateX(-102%);
+        visibility: hidden;
+        transition: transform .34s cubic-bezier(.2, .7, .15, 1), visibility 0s linear .34s;
+    }
+    .tema-soiree.menu-abierto .sidebar {
+        transform: none;
+        visibility: visible;
+        box-shadow: 24px 0 60px rgba(0, 0, 0, .35);
+        transition: transform .34s cubic-bezier(.2, .7, .15, 1);
+    }
+    .tema-soiree.menu-abierto { overflow: hidden; }
+
+    .tema-soiree .menu-velo {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background: rgba(13, 12, 11, .55);
+        backdrop-filter: blur(2px);
+        animation: menu-velo-entra .3s ease;
+    }
+    @keyframes menu-velo-entra { from { opacity: 0; } }
+
+    .tema-soiree .menu-cerrar {
+        position: absolute;
+        top: 16px;
+        right: 12px;
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--l-hilo);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--l-piedra);
+        cursor: pointer;
+    }
+    .tema-soiree .menu-cerrar svg { width: 18px; height: 18px; }
+    .tema-soiree .menu-cerrar:hover { color: var(--l-texto); border-color: rgba(200, 180, 140, .35); }
+
+    /* Dentro del menú, todo como en escritorio: marca, títulos y nombres de las secciones */
+    .tema-soiree .brand { justify-content: flex-start; padding: 4px 11px; font-size: 27px; }
+    .tema-soiree :is(.brand-subtitle, .sidebar-caption, .sidebar-bottom) { display: block; }
+    .tema-soiree .sidebar-bottom { display: grid; }
+    .tema-soiree :is(.nav-item > span:nth-child(2), .nav-soon) { display: inline; }
+    .tema-soiree .sidebar #nav { flex-direction: column; overflow: visible; padding-top: 0; }
+    .tema-soiree .nav-item { justify-content: flex-start; width: 100%; min-height: 48px; padding: 10px 14px; font-size: 14px; }
+    .tema-soiree .sidebar-promo { display: none; }
+
+    .tema-soiree .content { padding-top: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tema-soiree .sidebar, .tema-soiree .menu-velo { transition: none; animation: none; }
+}

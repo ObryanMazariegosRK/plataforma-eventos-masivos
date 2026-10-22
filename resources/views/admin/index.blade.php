@@ -122,9 +122,26 @@
 
 <div class="shell">
 
+    {{-- Celular y tableta: barra con el botón que despliega el menú lateral (admin-tema.js) --}}
+    <header class="barra-movil">
+        <button type="button" class="barra-movil__menu" id="btnMenu"
+                aria-controls="menu-lateral" aria-expanded="false" aria-label="Abrir menú">
+            <span class="barra-movil__icono" aria-hidden="true"><span></span></span>
+            <span>Menú</span>
+        </button>
+        <a class="barra-movil__marca" href="/admin">soirée<span>.</span></a>
+        <span class="barra-movil__seccion" id="barraSeccion" aria-live="polite"></span>
+    </header>
+    <div class="menu-velo" id="menuVelo" hidden></div>
+
     <!-- BARRA LATERAL -->
     <aside class="sidebar"
+           id="menu-lateral"
            aria-label="Navegación administrativa">
+
+        <button type="button" class="menu-cerrar" id="btnCerrarMenu" aria-label="Cerrar menú">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
 
         <a class="brand"
            href="/admin"
