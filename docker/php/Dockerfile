@@ -1,4 +1,7 @@
-FROM php:8.4-fpm
+# Versión fija con el parche de seguridad del 21/10/2026 (CVE-2026-109618 y CVE-2026-109619,
+# ejecución remota de código; corregidas en 8.4.27). Para actualizar: cambiar aquí y
+# reconstruir con `docker compose build --pull`.
+FROM php:8.4.27-fpm
 
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libzip-dev libpng-dev libjpeg62-turbo-dev libwebp-dev libonig-dev libxml2-dev \

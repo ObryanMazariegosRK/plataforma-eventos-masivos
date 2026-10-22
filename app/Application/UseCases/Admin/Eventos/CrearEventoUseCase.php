@@ -27,6 +27,8 @@ class CrearEventoUseCase
             // URL HTTPS de la fotografía del evento.
             // Puede ser null cuando no se proporciona una imagen.
             $evento->imagen_url = $datos['imagen_url'] ?? null;
+            $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;
+            $evento->imagen_url_3 = $datos['imagen_url_3'] ?? null;
 
             $evento->fecha_evento = $datos['fecha_evento'];
 
