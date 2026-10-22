@@ -297,3 +297,25 @@ require __DIR__ . '/admin-api.php';
 
 // ---- Inventario: lugares disponibles de un evento (para el mapa de asientos) ----
 Route::get('/eventos/{id}/disponibilidad', [DisponibilidadController::class, 'show'])->whereNumber('id');
+
+// ======================================================
+// COLA VIRTUAL — RF-08
+// ======================================================
+
+// Ingreso de un usuario autenticado a la cola de un evento.
+Route::post('/cola-virtual/ingresar', [
+    \App\Http\Controllers\ColaVirtual\ColaVirtualController::class,
+    'ingresar',
+])->middleware(['auth:sanctum', 'throttle:10,1']);
+
+/*
+|--------------------------------------------------------------------------
+| Consulta del turno del usuario — RF-09
+|--------------------------------------------------------------------------
+*/
+Route::get('/cola-virtual/mi-turno/{eventoId}', [
+    \App\Http\Controllers\ColaVirtual\ColaVirtualController::class,
+    'miTurno',
+])
+    ->whereNumber('eventoId')
+    ->middleware(['auth:sanctum', 'throttle:60,1']);
