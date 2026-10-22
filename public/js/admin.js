@@ -973,57 +973,64 @@
 
     function renderEventActions(item) {
         const cell = el('td');
-
-        const group = el(
-            'div',
-            undefined,
-            'eventos-row-actions'
-        );
+        const group = el('div', undefined, 'eventos-row-actions');
 
         group.append(
             actionButton(
-                'Ver',
+                'Ver detalles',
                 'evento-action',
                 () => viewEvent(item.id)
             )
         );
 
+        const menu = document.createElement('details');
+        menu.className = 'so-event-menu';
+
+        const summary = document.createElement('summary');
+        summary.className = 'so-event-menu-trigger';
+        summary.textContent = 'Gestionar';
+
+        const options = el('div', undefined, 'so-event-menu-options');
+
+        const addOption = (label, callback) => {
+            const button = actionButton(
+                label,
+                'so-event-menu-option',
+                () => {
+                    menu.open = false;
+                    callback();
+                }
+            );
+            options.append(button);
+        };
+
         if (item.estado === 'borrador') {
-            group.append(
-                actionButton(
-                    'Editar',
-                    'evento-action',
-                    () => editEvent(item.id)
-                ),
-                // Inventario: sin precio en todas las localidades no se puede publicar
-                actionButton(
-                    'Precios',
-                    'evento-action',
-                    () => openPrices(item.id)
-                ),
-                actionButton(
-                    'Publicar',
-                    'evento-action publish',
-                    () => publishEvent(item.id)
-                )
-            );
+            addOption('Editar información', () => editEvent(item.id));
+            addOption('Configurar precios', () => openPrices(item.id));
+            addOption('Publicar evento', () => publishEvent(item.id));
         } else {
-            group.append(
-                actionButton(
-                    'Cambiar imagen',
-                    'evento-action',
-                    () => changeEventImage(item.id)
-                ),
-                // Inventario: plano de ocupación en vivo
-                actionButton(
-                    'Ver asientos',
-                    'evento-action',
-                    () => { window.location.href = '/admin/eventos/' + item.id + '/asientos'; }
-                )
-            );
+            addOption('Consultar precios', () => openPrices(item.id));
+            addOption('Cambiar imagen principal', () => changeEventImage(item.id));
+            addOption('Ver asientos', () => {
+                window.location.href =
+                    '/admin/eventos/' + encodeURIComponent(item.id) + '/asientos';
+            });
         }
 
+        if (['publicado', 'agotado', 'finalizado'].includes(item.estado)) {
+            addOption('Ver experiencia pública', () => {
+                window.open(
+                    '/eventos/' + encodeURIComponent(item.id) + '/experiencia',
+                    '_blank',
+                    'noopener,noreferrer'
+                );
+            });
+        }
+
+        menu.append(summary, options);
+        group.append(menu);
         cell.append(group);
+
         return cell;
     }
 
