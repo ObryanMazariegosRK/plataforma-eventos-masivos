@@ -385,7 +385,7 @@
             const label = el('div', undefined, 'bar-label');
 
             label.append(
-                el('span', item.estado),
+                el('span', item.etiqueta || item.estado),
                 el('b', item.total)
             );
 
@@ -423,9 +423,9 @@
                 '♙'
             ),
             metric(
-                'Administradores',
-                totals.administradores,
-                'Cuentas admin',
+                'Operadores',
+                totals.operadores,
+                'Agentes que gestionan eventos',
                 '♧',
                 'blue'
             ),
@@ -445,16 +445,16 @@
             metric(
                 'Pagos',
                 totals.pagos,
-                'Registros de pagos',
+                (totals.pagos_aprobados || 0) + ' aprobados',
                 '▣',
                 'blue'
             ),
             metric(
                 'Monto de pagos',
                 currency.format(
-                    Number(totals.monto_pagos_registrados || 0)
+                    Number(totals.monto_pagos_aprobados || 0)
                 ),
-                'Sin distinguir estado',
+                'Solo pagos aprobados',
                 '◈',
                 'orange'
             )

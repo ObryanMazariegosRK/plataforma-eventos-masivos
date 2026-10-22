@@ -1,202 +1,142 @@
+@php
+    // Mismo informe que el Excel (GenerarReporteAdminUseCase); aquí solo se le da formato
+    $formatear = function ($valor, string $formato) {
+        if ($valor === null || $valor === '') {
+            return '—';
+        }
+
+        return match ($formato) {
+            'moneda'     => 'Q' . number_format((float) $valor, 2),
+            'porcentaje' => round($valor * 100) . '%',
+            'entero'     => number_format((int) $valor),
+            'fecha'      => $valor->format('d/m/Y H:i'),
+            default      => (string) $valor,
+        };
+    };
+    $tonoEstado = fn (string $estado) => match (strtok(mb_strtolower($estado), ' ')) {
+        'publicado', 'aprobado', 'confirmada', 'activo' => 'ok',
+        'borrador', 'pendiente', 'activa' => 'espera',
+        'cancelado', 'cancelada', 'rechazado', 'bloqueado' => 'mal',
+        default => 'neutro',
+    };
+    $numericas = ['entero', 'moneda', 'porcentaje'];
+@endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>{{ $titulo }}</title>
     <style>
-        @page {
-            margin: 34px 36px 42px;
-        }
+        @page { margin: 30px 34px 44px; }
 
-        body {
-            font-family: DejaVu Sans, sans-serif;
-            color: #38261b;
-            font-size: 9px;
-        }
+        body { font-family: DejaVu Sans, sans-serif; color: #2a1d15; font-size: 8.5px; }
 
-        .header {
-            background: #38261b;
-            color: #ffffff;
-            padding: 18px 22px;
-        }
+        .encabezado { background: #2a1d15; color: #fff; padding: 16px 20px 15px; }
+        .encabezado .marca { color: #e3c99f; font-size: 8px; letter-spacing: 2px; }
+        .encabezado h1 { margin: 6px 0 5px; font-size: 20px; font-weight: normal; }
+        .encabezado .periodo { color: #d9cbb8; font-size: 8.5px; }
 
-        .brand {
-            font-size: 21px;
-            font-weight: bold;
-        }
+        .indicadores { width: 100%; border-collapse: separate; border-spacing: 8px 0; margin: 16px -8px 6px; }
+        .indicadores td { width: 25%; padding: 10px 12px; background: #faf5ee; border: 1px solid #e6d8c6; border-top: 2px solid #8a6630; vertical-align: top; }
+        .indicadores small { display: block; color: #8a6630; font-size: 7px; font-weight: bold; letter-spacing: 1px; }
+        .indicadores strong { display: block; margin: 5px 0 3px; font-size: 17px; }
+        .indicadores span { color: #7a6a5c; font-size: 7.5px; }
 
-        .subtitle {
-            margin-top: 5px;
-            color: #e3c99f;
-            font-size: 9px;
-            letter-spacing: 1px;
-        }
+        h2 { margin: 16px 0 8px; font-size: 12px; }
 
-        .title {
-            font-size: 19px;
-            margin: 22px 0 7px;
-        }
+        .desglose { border-collapse: collapse; min-width: 300px; }
+        .desglose th { background: #8a6630; color: #fff; padding: 6px 10px; font-size: 7.5px; text-align: left; }
+        .desglose td { padding: 5px 10px; border-bottom: 1px solid #e6d8c6; }
+        .desglose .cero td { color: #a89a8c; }
+        .derecha { text-align: right; }
 
-        .description {
-            color: #806954;
-            line-height: 1.7;
-            margin-bottom: 18px;
-        }
+        table.detalle { width: 100%; border-collapse: collapse; }
+        .detalle th { background: #2a1d15; color: #fff; padding: 7px 5px; font-size: 7px; text-align: left; }
+        .detalle td { padding: 6px 5px; border-bottom: 1px solid #ece2d5; font-size: 7.5px; }
+        .detalle tbody tr:nth-child(even) td { background: #faf5ee; }
+        .detalle .vacio { color: #b3a699; text-align: center; }
+        .estado { padding: 1px 5px; border-radius: 3px; font-weight: bold; }
+        .estado.ok { background: #e3f1e7; color: #25593a; }
+        .estado.espera { background: #fbf0dc; color: #7a5a24; }
+        .estado.mal { background: #f8e3df; color: #8f3424; }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
 
-        .summary {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 23px;
-        }
-
-        .summary td {
-            width: 25%;
-            padding: 12px;
-            border: 1px solid #e5d6c4;
-            background: #fbf6ee;
-        }
-
-        .summary small {
-            display: block;
-            font-size: 8px;
-            color: #92714d;
-            margin-bottom: 7px;
-        }
-
-        .summary strong {
-            display: block;
-            font-size: 13px;
-        }
-
-        .section-title {
-            font-size: 13px;
-            margin: 18px 0 12px;
-        }
-
-        table.records {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
-        .records th {
-            background: #38261b;
-            color: #fff;
-            padding: 9px 6px;
-            font-size: 8px;
-            text-align: left;
-            overflow-wrap: anywhere;
-        }
-
-        .records td {
-            padding: 8px 6px;
-            border-bottom: 1px solid #e8dccd;
-            font-size: 8px;
-            overflow-wrap: anywhere;
-        }
-
-        .records tbody tr:nth-child(even) {
-            background: #faf6f0;
-        }
-
-        thead {
-            display: table-header-group;
-        }
-
-        tr {
-            page-break-inside: avoid;
-        }
-
-        .footer {
-            margin-top: 20px;
-            color: #927f6d;
-            font-size: 8px;
-            border-top: 1px solid #e1d4c3;
-            padding-top: 10px;
-        }
+        .pie { position: fixed; bottom: -28px; left: 0; right: 0; color: #9a8a7a; font-size: 7px; border-top: 1px solid #e6d8c6; padding-top: 6px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="brand">SOIRÉE</div>
-        <div class="subtitle">INFORME ADMINISTRATIVO</div>
+    <div class="pie">Soirée · {{ $titulo }} · Documento de uso administrativo</div>
+
+    <div class="encabezado">
+        <div class="marca">SOIRÉE · INFORME ADMINISTRATIVO</div>
+        <h1>{{ $titulo }}</h1>
+        <div class="periodo">
+            {{ $periodo }} · Generado el {{ $generado->format('d/m/Y \a \l\a\s H:i') }}@if ($generado_por) por {{ $generado_por }}@endif
+        </div>
     </div>
 
-    <h1 class="title">{{ $titulo }}</h1>
-
-    <p class="description">
-        Informe generado desde la plataforma Soirée.
-        Contiene los registros correspondientes al período seleccionado.
-    </p>
-
-    <table class="summary">
+    <table class="indicadores">
         <tr>
-            <td>
-                <small>DESDE</small>
-                <strong>{{ $desde }}</strong>
-            </td>
-            <td>
-                <small>HASTA</small>
-                <strong>{{ $hasta }}</strong>
-            </td>
-            <td>
-                <small>REGISTROS</small>
-                <strong>{{ $total }}</strong>
-            </td>
-            <td>
-                <small>GENERADO</small>
-                <strong>{{ $generado }}</strong>
-            </td>
+            @foreach ($indicadores as $indicador)
+                <td>
+                    <small>{{ mb_strtoupper($indicador['etiqueta']) }}</small>
+                    <strong>{{ $formatear($indicador['valor'], $indicador['formato']) }}</strong>
+                    <span>{{ $indicador['nota'] ?? '' }}</span>
+                </td>
+            @endforeach
         </tr>
     </table>
 
-    @if ($tipo === 'pagos')
-        <p>
-            <strong>Total de pagos aprobados:</strong>
-            Q{{ number_format($monto_aprobado, 2) }}
-        </p>
-        <p class="description">
-            Los pagos pendientes o rechazados no forman parte
-            de este importe. No se descuentan aquí los reembolsos.
-        </p>
-    @endif
-
-    <h2 class="section-title">Detalle de registros</h2>
-
-    <table class="records">
+    <h2>{{ $desglose['titulo'] }}</h2>
+    <table class="desglose">
         <thead>
             <tr>
-                @foreach ($columnas as $encabezado)
-                    <th>{{ $encabezado }}</th>
+                <th>{{ $desglose['titulo'] === 'Por rol' ? 'Rol' : 'Estado' }}</th>
+                <th class="derecha">Cantidad</th>
+                <th class="derecha">%</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($desglose['filas'] as $item)
+                <tr @class(['cero' => $item['cantidad'] === 0])>
+                    <td>{{ $item['etiqueta'] }}</td>
+                    <td class="derecha">{{ $item['cantidad'] }}</td>
+                    <td class="derecha">{{ round($item['porcentaje'] * 100) }}%</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <h2>Detalle · {{ $total }} {{ $total === 1 ? 'registro' : 'registros' }}</h2>
+    <table class="detalle">
+        <thead>
+            <tr>
+                @foreach ($columnas as $columna)
+                    <th @class(['derecha' => in_array($columna['formato'], $numericas, true)])>{{ $columna['titulo'] }}</th>
                 @endforeach
             </tr>
         </thead>
         <tbody>
-            @forelse ($registros as $registro)
+            @forelse ($filas as $registro)
                 <tr>
-                    @foreach ($columnas as $campo => $tituloColumna)
-                        <td>
-                            @if ($campo === 'monto')
-                                Q{{ number_format((float) ($registro->{$campo} ?? 0), 2) }}
-                            @else
-                                {{ $registro->{$campo} ?? '—' }}
-                            @endif
-                        </td>
+                    @foreach ($columnas as $columna)
+                        @php($valor = $registro[$columna['clave']] ?? null)
+                        @if ($valor === null || $valor === '')
+                            <td class="vacio">—</td>
+                        @elseif (in_array($columna['clave'], ['estado', 'rol'], true))
+                            <td><span class="estado {{ $tonoEstado((string) $valor) }}">{{ $valor }}</span></td>
+                        @else
+                            <td @class(['derecha' => in_array($columna['formato'], $numericas, true)])>{{ $formatear($valor, $columna['formato']) }}</td>
+                        @endif
                     @endforeach
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ count($columnas) }}">
-                        No se encontraron registros en el período.
-                    </td>
+                    <td colspan="{{ count($columnas) }}" class="vacio">No hay registros en este período.</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
-
-    <div class="footer">
-        Soirée · Plataforma de Eventos Masivos
-        · Documento generado automáticamente
-        · Uso administrativo
-    </div>
 </body>
 </html>

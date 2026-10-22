@@ -197,6 +197,16 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Admin\BuscarEventosAdminUseCase::class,
         );
 
+        // ---- Admin: reportes en Excel y PDF ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Admin\IReporteAdminRepository::class,
+            \App\Data\Admin\ReporteAdminRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Admin\IGenerarReporteAdminUseCase::class,
+            \App\Application\UseCases\Admin\GenerarReporteAdminUseCase::class,
+        );
+
         // ---- Bitácora (base aparte; la llena el middleware RegistrarBitacora) ----
         $this->app->bind(
             \App\Domain\Abstractions\Bitacora\IBitacoraRepository::class,

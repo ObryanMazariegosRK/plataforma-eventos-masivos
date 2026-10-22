@@ -919,3 +919,4 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 @media (prefers-reduced-motion: reduce) {
     .tema-soiree .sidebar, .tema-soiree .menu-velo { transition: none; animation: none; }
 }
+.tema-soiree .bar-label { text-transform: none; }   /* las etiquetas ya llegan escritas ("Confirmadas (pagadas)") */

@@ -17,6 +17,7 @@ use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
 use App\Domain\Exceptions\Pagos\ReservaNoEncontradaException;
 use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
+use App\Domain\Exceptions\Admin\ReporteDemasiadoGrandeException;
 use App\Domain\Exceptions\Bitacora\BitacoraNoDisponibleException;
 use App\Domain\Exceptions\Catalogo\ArchivoBannerInvalidoException;
 use App\Domain\Exceptions\Inventario\EventoNoDisponibleException;
@@ -83,6 +84,7 @@ return Application::configure(basePath: dirname(__DIR__))
             PasarelaNoDisponibleException::class        => [422, 'pasarela_no_disponible'],
             PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
             BitacoraNoDisponibleException::class        => [503, 'bitacora_no_disponible'],
+            ReporteDemasiadoGrandeException::class      => [422, 'reporte_demasiado_grande'],
             // ---- Catálogo ----
             ArchivoBannerInvalidoException::class       => [422, 'banner_archivo_invalido'],
             // ---- Reservas ----
