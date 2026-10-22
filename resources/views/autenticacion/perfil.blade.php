@@ -4,6 +4,8 @@
 @section('eslogan', 'Sesión iniciada.')
 
 @section('contenido')
+    <a href="{{ route('catalogo.index') }}" class="volver">← Cartelera</a>
+
     <div id="alerta" class="alerta" role="alert"></div>
 
     {{-- Se llena con JavaScript cuando responde GET /api/auth/perfil --}}
@@ -13,7 +15,6 @@
 
         <ul class="datos">
             <li><span>Correo</span><span id="email"></span></li>
-            <li><span>Teléfono</span><span id="telefono"></span></li>
         </ul>
 
         {{-- <details> se abre/cierra solo, sin JavaScript --}}
@@ -90,7 +91,6 @@
         document.getElementById('avatar').textContent = (u.nombre[0] + u.apellido[0]).toUpperCase();
         document.getElementById('nombreCompleto').textContent = `${u.nombre} ${u.apellido}`;
         document.getElementById('email').textContent = u.email;
-        document.getElementById('telefono').textContent = u.telefono || '—';
         document.getElementById('perfil').hidden = false;
     }
 

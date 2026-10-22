@@ -21,15 +21,9 @@
             </div>
         </div>
 
-        <div class="fila fila--ancha-angosta">
-            <div class="campo">
-                <label for="email">Correo electrónico</label>
-                <input type="email" id="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
-            </div>
-            <div class="campo">
-                <label for="telefono">Teléfono <span class="opcional">(opcional)</span></label>
-                <input type="tel" id="telefono" placeholder="55551234" inputmode="numeric" autocomplete="tel">
-            </div>
+        <div class="campo">
+            <label for="email">Correo electrónico</label>
+            <input type="email" id="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
         </div>
 
         <div class="campo">
@@ -57,6 +51,7 @@
     </a>
 
     <p class="pie">¿Ya tienes cuenta? <a href="{{ route('login') }}">Inicia sesión</a></p>
+    <p class="pie pie--legal">Al crear tu cuenta aceptas nuestra <a href="{{ route('legal.privacidad') }}">política de privacidad</a>.</p>
 @endsection
 
 @push('scripts')
@@ -72,7 +67,6 @@
         Auth.cargando(boton, true, 'Creando cuenta...');
 
         const email = document.getElementById('email').value.trim();
-        const telefono = document.getElementById('telefono').value.trim();
 
         const respuesta = await Auth.api('/auth/registro', {
             cuerpo: {
@@ -80,7 +74,6 @@
                 apellido: document.getElementById('apellido').value.trim(),
                 email,
                 password: document.getElementById('password').value,
-                telefono: telefono || null,   // vacío → null (es opcional)
             },
         });
 

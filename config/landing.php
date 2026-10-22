@@ -1,14 +1,11 @@
 <?php
 
-// Contenido del recorrido por scroll (landing /experiencia y experiencia de cada evento).
+// Contenido del recorrido por scroll de la experiencia de cada evento (/eventos/{id}/experiencia).
 //   foco        → punto de la foto hacia el que se acerca la cámara (x% y%), en pantallas horizontales
 //   focoMovil   → lo mismo en pantallas verticales (celular), donde la foto se recorta por los lados
 //   zoomInicial → acercamiento con el que empieza la parada (1 = foto completa)
 
 return [
-
-    // Título de la landing general: la segunda parte se muestra en cursiva.
-    'lugar' => ['Teatro de', 'Don Juan'],
 
     'paradas' => [
     [
