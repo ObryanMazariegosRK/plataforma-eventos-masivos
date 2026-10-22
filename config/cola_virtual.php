@@ -13,7 +13,7 @@ return [
     */
 
     // Cantidad máxima de turnos habilitados simultáneamente.
-    'max_turnos_simultaneos' => 5,
+    'max_turnos_simultaneos' => 20,
 
     // Tiempo disponible para realizar una reserva.
     'ventana_compra_minutos' => 5,

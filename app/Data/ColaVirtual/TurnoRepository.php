@@ -47,6 +47,7 @@ class TurnoRepository implements ITurnoRepository
                 ->where('usuario_id', $usuarioId)
                 ->first();
 
+
             if ($existente) {
                 if ($existente->deleted_at !== null) {
                     throw new DomainException(
@@ -54,8 +55,86 @@ class TurnoRepository implements ITurnoRepository
                     );
                 }
 
+                $intentoActual = (int) $existente->intento;
+
+
+                // Detectar si el turno ya venció, aunque el Scheduler
+                // todavía no haya actualizado su estado.
+                $vencidoSinScheduler =
+                    $existente->estado === EstadoTurno::HABILITADO->value
+                    && (
+                        $existente->habilitado_hasta === null
+                        || Carbon::parse($existente->habilitado_hasta)
+                            ->lessThanOrEqualTo(now())
+                    );
+
+                // Estado que debemos utilizar para decidir el reingreso.
+                $estadoEfectivo = $vencidoSinScheduler
+                    ? EstadoTurno::EXPIRADO->value
+                    : $existente->estado;
+
+
+                // Solo se permite reingresar después del primer turno expirado.
+                if ($estadoEfectivo === EstadoTurno::EXPIRADO->value) {
+
+                    // La segunda oportunidad es la última.
+                    if ($intentoActual >= 2) {
+                        throw new DomainException(
+                            'Ya utilizaste las dos oportunidades para este evento.'
+                        );
+                    }
+
+                    // Conservar el historial del primer intento.
+                    DB::table('cola_virtual_intentos')->insert([
+                        'turno_id' => $existente->id,
+                        'intento' => $intentoActual,
+                        'posicion' => $existente->posicion,
+                        'estado' => $estadoEfectivo,
+                        'habilitado_hasta' => $existente->habilitado_hasta,
+                        'finalizado_en' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    // Buscar la última posición asignada en el evento.
+                    $ultimaPosicion = DB::table('cola_virtual')
+                        ->where('evento_id', $eventoId)
+                        ->max('posicion');
+
+                    // El usuario regresa al final de la cola.
+                    $nuevaPosicion = ((int) $ultimaPosicion) + 1;
+                    $nuevoToken = bin2hex(random_bytes(32));
+
+                    DB::table('cola_virtual')
+                        ->where('id', $existente->id)
+                        ->update([
+                            'posicion' => $nuevaPosicion,
+                            'token' => $nuevoToken,
+                            'estado' => EstadoTurno::ESPERANDO->value,
+                            'habilitado_hasta' => null,
+                            'intento' => 2,
+                            'updated_at' => now(),
+                        ]);
+
+                    // Recuperar el turno actualizado.
+                    $actualizado = DB::table('cola_virtual')
+                        ->where('id', $existente->id)
+                        ->first();
+
+                    return $this->aEntidad($actualizado);
+                }
+
+                // Los turnos atendidos no pueden volver a ingresar.
+                if ($existente->estado === EstadoTurno::ATENDIDO->value) {
+                    throw new DomainException(
+                        'Ya utilizaste tu turno de compra para este evento.'
+                    );
+                }
+
+                // Si está esperando o habilitado, conservar el turno.
                 return $this->aEntidad($existente);
             }
+
 
             // Obtenemos la siguiente posición disponible.
             $ultimaPosicion = DB::table('cola_virtual')

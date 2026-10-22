@@ -71,7 +71,7 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                             ->orWhereNull('habilitado_hasta');
                     })
                     ->lockForUpdate()
-                    ->get(['id', 'usuario_id']);
+                    ->get(['id', 'usuario_id', 'intento']);
 
                 $expirados = 0;
 
@@ -105,12 +105,22 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                     );
 
                     // Evitar registros duplicados por turno.
+
+                    // Identificar la notificación de expiración.
+                    $clave = 'cola_virtual:expirado:turno:'
+                        . $turnoVencido->id;
+
+                    // El segundo intento necesita su propia clave.
+                    // Conservamos la clave original del intento 1.
+                    if ((int) $turnoVencido->intento === 2) {
+                        $clave .= ':intento:2';
+                    }
+
                     $guardada = $this->notificaciones->guardarUnica(
                         notificacion: $notificacion,
-                        claveIdempotencia:
-                            'cola_virtual:expirado:turno:'
-                            . $turnoVencido->id
+                        claveIdempotencia: $clave
                     );
+
 
                     // Programar el envío después de confirmar
                     // la transacción.
@@ -132,7 +142,22 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                     ->whereNull('deleted_at')
                     ->count();
 
+
+                // Calcular espacios disponibles para nuevos compradores.
                 $espacios = max(0, $limite - $activos);
+
+
+                // Contar los boletos disponibles del evento.
+                // Si no hay inventario, el resultado será cero.
+                $boletosDisponibles = DB::table('inventario')
+                    ->where('evento_id', $eventoId)
+                    ->where('estado', 'disponible')
+                    ->whereNull('deleted_at')
+                    ->count();
+
+                // No habilitar más compradores que boletos disponibles.
+                // Si no existen boletos, nadie será habilitado.
+                $espacios = min($espacios, $boletosDisponibles);
 
                 // 3. Seleccionar usuarios según su posición.
 
@@ -171,7 +196,7 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                         ->whereIn('id', $turnoIds)
                         ->where('estado', 'habilitado')
                         ->whereNull('deleted_at')
-                        ->get(['id', 'usuario_id']);
+                        ->get(['id', 'usuario_id', 'intento']);
 
                     foreach ($turnosHabilitados as $turnoHabilitado) {
 
@@ -187,13 +212,21 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                             estado: EstadoNotificacion::PENDIENTE
                         );
 
-                        // Evitar registrar avisos duplicados.
-                        $guardada = $this->notificaciones->guardarUnica(
-                            notificacion: $notificacion,
-                            claveIdempotencia:
-                                'cola_virtual:habilitado:turno:'
-                                . $turnoHabilitado->id
-                        );
+
+                    // Distinguir las notificaciones de cada oportunidad.
+                    $clave = 'cola_virtual:habilitado:turno:'
+                        . $turnoHabilitado->id;
+
+                    // Conservar el formato original del intento 1.
+                    if ((int) $turnoHabilitado->intento === 2) {
+                        $clave .= ':intento:2';
+                    }
+
+                    $guardada = $this->notificaciones->guardarUnica(
+                        notificacion: $notificacion,
+                        claveIdempotencia: $clave
+                    );
+
 
                         // Programar el correo después de confirmar
                         // la transacción de base de datos.
@@ -225,7 +258,7 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                         ->orderBy('posicion')
                         ->orderBy('id')
                         ->limit($umbral)
-                        ->get(['id', 'usuario_id', 'posicion']);
+                        ->get(['id', 'usuario_id', 'posicion', 'intento']);
 
                     foreach ($proximos as $turnoProximo) {
 
@@ -250,9 +283,16 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
                             continue;
                         }
 
-                        // Clave única por turno y tipo de aviso.
+
+                        // Identificar el aviso de proximidad del turno.
                         $clave = 'cola_virtual:proximo:turno:'
                             . $turnoProximo->id;
+
+                        // Diferenciar el segundo intento del primero.
+                        if ((int) $turnoProximo->intento === 2) {
+                            $clave .= ':intento:2';
+                        }
+
 
                         // Evitar registrar o programar nuevamente
                         // una notificación que ya existe.

@@ -205,6 +205,57 @@ class TurnoRepositoryTest extends TestCase
         ]);
     }
 
+
+    private function crearInventarioDisponible(
+        int $eventoId,
+        int $cantidad = 10
+    ): void {
+        // Obtener el recinto asociado al evento.
+        $recintoId = DB::table('eventos')
+            ->where('id', $eventoId)
+            ->value('recinto_id');
+
+        // Crear una localidad de pruebas.
+        $localidadId = DB::table('localidades')->insertGetId([
+            'recinto_id' => $recintoId,
+            'nombre' => 'General de Pruebas',
+            'tipo' => 'numerada',
+            'capacidad' => $cantidad,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Registrar el precio para el evento.
+        DB::table('precios')->insert([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'precio' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Crear los asientos y sus boletos disponibles.
+        for ($numero = 1; $numero <= $cantidad; $numero++) {
+
+            $asientoId = DB::table('asientos')->insertGetId([
+                'localidad_id' => $localidadId,
+                'fila' => 'A',
+                'numero' => $numero,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('inventario')->insert([
+                'evento_id' => $eventoId,
+                'localidad_id' => $localidadId,
+                'asiento_id' => $asientoId,
+                'estado' => 'disponible',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
     public function test_permite_ingresar_a_evento_con_cola_virtual_activa(): void
     {
         // Crear usuario y evento de prueba.
@@ -474,6 +525,9 @@ class TurnoRepositoryTest extends TestCase
         // Crear un evento publicado con Cola Virtual activa.
         $eventoId = $this->crearEvento();
 
+        // Preparar boletos suficientes para habilitar compradores.
+        $this->crearInventarioDisponible($eventoId, 10);
+
         // Utilizar nuestro caso de uso de ingreso.
         $ingresar = app(
             \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
@@ -553,6 +607,9 @@ class TurnoRepositoryTest extends TestCase
         // Crear evento con Cola Virtual activa.
         $eventoId = $this->crearEvento();
 
+        // Preparar boletos para los compradores de esta prueba.
+        $this->crearInventarioDisponible($eventoId, 10);
+
         $ingresar = app(
             \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
         );
@@ -631,6 +688,10 @@ class TurnoRepositoryTest extends TestCase
 
         // Crear un evento con Cola Virtual activa.
         $eventoId = $this->crearEvento();
+
+        // Preparar inventario suficiente para probar
+        // el límite de compradores simultáneos.
+        $this->crearInventarioDisponible($eventoId, 10);
 
         $ingresar = app(
             \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
@@ -990,6 +1051,9 @@ class TurnoRepositoryTest extends TestCase
         // Crear evento y usuario de prueba.
         $eventoId = $this->crearEvento();
 
+        // Preparar boletos disponibles para habilitar al usuario.
+        $this->crearInventarioDisponible($eventoId, 10);
+
         $usuario = $this->crearUsuario(
             'notificacion-cola@example.com'
         );
@@ -1058,6 +1122,10 @@ class TurnoRepositoryTest extends TestCase
 
         $eventoId = $this->crearEvento();
 
+        // Preparar inventario para habilitar compradores
+        // y comprobar los avisos de proximidad.
+        $this->crearInventarioDisponible($eventoId, 10);
+
         $ingresar = app(
             \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
         );
@@ -1125,6 +1193,10 @@ class TurnoRepositoryTest extends TestCase
 
         $eventoId = $this->crearEvento();
 
+        // Preparar inventario suficiente para que la cola
+        // se llene por el límite de compradores, no por falta de boletos.
+        $this->crearInventarioDisponible($eventoId, 10);
+
         $ingresar = app(
             \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
         );
@@ -1184,6 +1256,10 @@ class TurnoRepositoryTest extends TestCase
 
         // Crear evento y usuario.
         $eventoId = $this->crearEvento();
+
+        // Preparar boletos disponibles para habilitar el turno
+        // antes de comprobar su expiración.
+        $this->crearInventarioDisponible($eventoId, 10);
 
         $usuario = $this->crearUsuario(
             'usuario-aviso-expirado@example.com'
@@ -1245,5 +1321,1080 @@ class TurnoRepositoryTest extends TestCase
         // Una notificación de habilitación y otra de expiración.
         $this->assertDatabaseCount('notificaciones', 2);
     }
+
+    public function test_notificacion_de_cola_virtual_puede_enviarse(): void
+    {
+        // Simular el envío de correos y el despacho de trabajos.
+        \Illuminate\Support\Facades\Mail::fake();
+
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 1);
+
+        $eventoId = $this->crearEvento();
+
+        // Preparar boletos disponibles para permitir la habilitación
+        // y generar la notificación que después procesará el Job.
+
+        $this->crearInventarioDisponible($eventoId, 10);
+        $usuario = $this->crearUsuario(
+            'integracion-cola-notificaciones@example.com'
+        );
+
+        // 1. Ingresar a la Cola Virtual.
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $turno = $ingresar->execute($eventoId, $usuario->id);
+
+        // 2. Habilitar el turno y generar su notificación.
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        $procesador->execute();
+
+        $clave = 'cola_virtual:habilitado:turno:' . $turno->getId();
+
+        $registro = \Illuminate\Support\Facades\DB::table('notificaciones')
+            ->where('clave_idempotencia', $clave)
+            ->first();
+
+        $this->assertNotNull($registro);
+
+        $this->assertSame('pendiente', $registro->estado);
+
+        // 3. Ejecutar el Job sobre la notificación generada.
+        // No se ejecuta Redis ni se envía un correo real.
+        $job = new \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob(
+            (int) $registro->id
+        );
+
+        $job->handle(
+            app(\App\Domain\Abstractions\Notificaciones\INotificacionRepository::class)
+        );
+
+        // 4. Comprobar que se procesó correctamente.
+        $this->assertDatabaseHas('notificaciones', [
+            'id' => $registro->id,
+            'estado' => 'enviada',
+        ]);
+
+        \Illuminate\Support\Facades\Mail::assertSent(
+            \App\Infrastructure\Notificaciones\Mail\NotificacionCorreo::class,
+            1
+        );
+    }
+
+    public function test_no_habilita_turnos_si_todos_los_boletos_estan_vendidos(): void
+    {
+        // No ejecutar trabajos de correo reales.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 5);
+
+        $eventoId = $this->crearEvento();
+
+        // Obtener el recinto del evento.
+        $recintoId = DB::table('eventos')
+            ->where('id', $eventoId)
+            ->value('recinto_id');
+
+        // Crear una localidad.
+        $localidadId = DB::table('localidades')->insertGetId([
+            'recinto_id' => $recintoId,
+            'nombre' => 'General',
+            'tipo' => 'numerada',
+            'capacidad' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Crear un asiento.
+        $asientoId = DB::table('asientos')->insertGetId([
+            'localidad_id' => $localidadId,
+            'fila' => 'A',
+            'numero' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Registrar su precio.
+        DB::table('precios')->insert([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'precio' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // El único boleto del evento ya está vendido.
+        DB::table('inventario')->insert([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'asiento_id' => $asientoId,
+            'estado' => 'vendido',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Crear un usuario que ingresa a la cola.
+        $usuario = $this->crearUsuario(
+            'agotado-cola@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $turno = $ingresar->execute($eventoId, $usuario->id);
+
+        // Ejecutar el procesador de Cola Virtual.
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        $resultado = $procesador->execute();
+
+        // No debe habilitar compradores si todos los boletos están vendidos.
+        $this->assertSame(0, $resultado['habilitados']);
+
+        // El turno no debe recibir autorización de compra.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno->getId(),
+            'estado' => 'esperando',
+        ]);
+    }
+
+    public function test_reanuda_cola_cuando_se_liberan_boletos(): void
+    {
+        // No ejecutar trabajos de correo reales.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 5);
+
+        $eventoId = $this->crearEvento();
+
+        // Obtener el recinto del evento.
+        $recintoId = DB::table('eventos')
+            ->where('id', $eventoId)
+            ->value('recinto_id');
+
+        // Crear una localidad.
+        $localidadId = DB::table('localidades')->insertGetId([
+            'recinto_id' => $recintoId,
+            'nombre' => 'General',
+            'tipo' => 'numerada',
+            'capacidad' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Crear un asiento.
+        $asientoId = DB::table('asientos')->insertGetId([
+            'localidad_id' => $localidadId,
+            'fila' => 'A',
+            'numero' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Registrar su precio.
+        DB::table('precios')->insert([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'precio' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // El único boleto del evento ya está vendido.
+        DB::table('inventario')->insert([
+            'evento_id' => $eventoId,
+            'localidad_id' => $localidadId,
+            'asiento_id' => $asientoId,
+            'estado' => 'bloqueado',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Crear un usuario que ingresa a la cola.
+       $usuario = $this->crearUsuario(
+            'reanudar-cola@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $turno = $ingresar->execute($eventoId, $usuario->id);
+
+        // Ejecutar el procesador de Cola Virtual.
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        $resultado = $procesador->execute();
+
+        // No debe habilitar compradores si todos los boletos están vendidos.
+        $this->assertSame(0, $resultado['habilitados']);
+
+        // El turno no debe recibir autorización de compra.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno->getId(),
+            'estado' => 'esperando',
+        ]);
+
+        // Agregar otros dos usuarios a la fila.
+        // Ahora habrá tres esperando por un único boleto.
+        $usuario2 = $this->crearUsuario(
+            'reanudar-cola-2@example.com'
+        );
+
+        $usuario3 = $this->crearUsuario(
+            'reanudar-cola-3@example.com'
+        );
+
+        $turno2 = $ingresar->execute($eventoId, $usuario2->id);
+        $turno3 = $ingresar->execute($eventoId, $usuario3->id);
+
+
+            // Simular que una reserva venció y liberó el boleto.
+        DB::table('inventario')
+            ->where('evento_id', $eventoId)
+            ->where('estado', 'bloqueado')
+            ->update([
+                'estado' => 'disponible',
+                'bloqueado_hasta' => null,
+                'updated_at' => now(),
+            ]);
+
+        // Ejecutar nuevamente el procesador.
+        $resultadoReanudacion = $procesador->execute();
+
+        // Ahora debe habilitar al usuario que estaba esperando.
+        $this->assertSame(
+            1,
+            $resultadoReanudacion['habilitados']
+        );
+
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno->getId(),
+            'estado' => 'habilitado',
+        ]);
+
+        // El segundo usuario debe continuar esperando.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno2->getId(),
+            'estado' => 'esperando',
+        ]);
+
+        // El tercer usuario también debe continuar esperando.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno3->getId(),
+            'estado' => 'esperando',
+        ]);
+
+    }
+
+    public function test_usuario_expirado_reingresa_al_final_de_la_cola(): void
+    {
+        $eventoId = $this->crearEvento();
+
+        $usuario1 = $this->crearUsuario(
+            'reingreso-usuario-1@example.com'
+        );
+
+        $usuario2 = $this->crearUsuario(
+            'reingreso-usuario-2@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        // Primer usuario recibe la posición 1.
+        $turnoInicial = $ingresar->execute(
+            $eventoId,
+            $usuario1->id
+        );
+
+        $tokenOriginal = DB::table('cola_virtual')
+            ->where('id', $turnoInicial->getId())
+            ->value('token');
+
+        // Otro usuario ingresa y recibe la posición 2.
+        $turnoOtroUsuario = $ingresar->execute(
+            $eventoId,
+            $usuario2->id
+        );
+
+        $this->assertSame(1, $turnoInicial->getPosicion());
+        $this->assertSame(2, $turnoOtroUsuario->getPosicion());
+
+        // Simular la expiración del primer turno.
+        DB::table('cola_virtual')
+            ->where('id', $turnoInicial->getId())
+            ->update([
+                'estado' => 'expirado',
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // El usuario solicita su segunda oportunidad.
+        $turnoReingreso = $ingresar->execute(
+            $eventoId,
+            $usuario1->id
+        );
+
+        $tokenNuevo = DB::table('cola_virtual')
+            ->where('id', $turnoInicial->getId())
+            ->value('token');
+
+        // Conserva el registro, pero recibe una nueva posición.
+        $this->assertSame(
+            $turnoInicial->getId(),
+            $turnoReingreso->getId()
+        );
+
+        $this->assertSame(3, $turnoReingreso->getPosicion());
+
+        $this->assertNotSame($tokenOriginal, $tokenNuevo);
+
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turnoInicial->getId(),
+            'usuario_id' => $usuario1->id,
+            'posicion' => 3,
+            'estado' => 'esperando',
+        ]);
+
+        // No se crean dos turnos simultáneos para el usuario.
+        $this->assertDatabaseCount('cola_virtual', 2);
+    }
+
+    public function test_rechaza_tercer_ingreso_despues_de_dos_expiraciones(): void
+    {
+        $eventoId = $this->crearEvento();
+
+        $usuario = $this->crearUsuario(
+            'limite-reingreso-cola@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        // Primera oportunidad.
+        $primerTurno = $ingresar->execute(
+            $eventoId,
+            $usuario->id
+        );
+
+        // Simular la primera expiración.
+        DB::table('cola_virtual')
+            ->where('id', $primerTurno->getId())
+            ->update([
+                'estado' => 'expirado',
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // Solicitar la segunda oportunidad.
+        $segundoTurno = $ingresar->execute(
+            $eventoId,
+            $usuario->id
+        );
+
+        // Confirmar que está en el segundo intento.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $segundoTurno->getId(),
+            'usuario_id' => $usuario->id,
+            'intento' => 2,
+            'estado' => 'esperando',
+        ]);
+
+        // El primer intento debe conservarse en el historial.
+        $this->assertDatabaseHas('cola_virtual_intentos', [
+            'turno_id' => $primerTurno->getId(),
+            'intento' => 1,
+            'estado' => 'expirado',
+            'posicion' => 1,
+        ]);
+
+        $this->assertDatabaseCount('cola_virtual_intentos', 1);
+
+        // Simular que también perdió su segunda oportunidad.
+
+        // El segundo turno venció, pero el Scheduler todavía
+        // no lo ha cambiado a expirado.
+        DB::table('cola_virtual')
+            ->where('id', $segundoTurno->getId())
+            ->update([
+                'estado' => 'habilitado',
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // No debe permitir un tercer ingreso.
+        $this->expectException(\DomainException::class);
+
+        $this->expectExceptionMessage(
+            'Ya utilizaste las dos oportunidades para este evento.'
+        );
+
+        $ingresar->execute($eventoId, $usuario->id);
+    }
+
+    public function test_permite_reingreso_si_turno_vencio_sin_scheduler(): void
+    {
+        $eventoId = $this->crearEvento();
+
+        $usuario1 = $this->crearUsuario(
+            'vencimiento-sin-scheduler-1@example.com'
+        );
+
+        $usuario2 = $this->crearUsuario(
+            'vencimiento-sin-scheduler-2@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        // Primer usuario ingresa en posición 1.
+        $primerTurno = $ingresar->execute(
+            $eventoId,
+            $usuario1->id
+        );
+
+        // Simular que fue habilitado, pero su tiempo ya terminó.
+        // No ejecutaremos el Scheduler.
+        DB::table('cola_virtual')
+            ->where('id', $primerTurno->getId())
+            ->update([
+                'estado' => 'habilitado',
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // Otro usuario ocupa la posición 2.
+        $ingresar->execute($eventoId, $usuario2->id);
+
+        // El primer usuario solicita otra oportunidad.
+        $nuevoTurno = $ingresar->execute(
+            $eventoId,
+            $usuario1->id
+        );
+
+        // Debe volver al final de la cola.
+        $this->assertSame(3, $nuevoTurno->getPosicion());
+
+        // Debe quedar esperando en su segundo intento.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $primerTurno->getId(),
+            'estado' => 'esperando',
+            'intento' => 2,
+            'posicion' => 3,
+            'habilitado_hasta' => null,
+        ]);
+
+        // El intento anterior debe conservarse como expirado.
+        $this->assertDatabaseHas('cola_virtual_intentos', [
+            'turno_id' => $primerTurno->getId(),
+            'intento' => 1,
+            'estado' => 'expirado',
+            'posicion' => 1,
+        ]);
+    }
+
+    public function test_segundo_intento_genera_nueva_notificacion_de_habilitacion(): void
+    {
+        // Simular trabajos de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 1);
+        config()->set('cola_virtual.aviso_proximo_personas', 0);
+
+        $eventoId = $this->crearEvento();
+
+        // Preparar inventario suficiente para las dos oportunidades.
+        $this->crearInventarioDisponible($eventoId, 10);
+
+        $usuario = $this->crearUsuario(
+            'segundo-intento-notificacion@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        // Primera oportunidad.
+        $primerTurno = $ingresar->execute($eventoId, $usuario->id);
+        $procesador->execute();
+
+        // Comprobar el primer aviso.
+        $this->assertDatabaseHas('notificaciones', [
+            'clave_idempotencia' =>
+                'cola_virtual:habilitado:turno:' . $primerTurno->getId(),
+        ]);
+
+        // Simular la primera expiración.
+        DB::table('cola_virtual')
+            ->where('id', $primerTurno->getId())
+            ->update([
+                'estado' => 'expirado',
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // Obtener la segunda oportunidad.
+        $segundoTurno = $ingresar->execute(
+            $eventoId,
+            $usuario->id
+        );
+
+        $this->assertSame(
+            $primerTurno->getId(),
+            $segundoTurno->getId()
+        );
+
+        // Habilitar el segundo intento.
+        $procesador->execute();
+
+        // Debe existir una notificación propia del intento 2.
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $usuario->id,
+            'clave_idempotencia' =>
+                'cola_virtual:habilitado:turno:'
+                . $segundoTurno->getId()
+                . ':intento:2',
+        ]);
+
+        // Primera habilitación, primera expiración
+        // y segunda habilitación.
+        $this->assertDatabaseCount('notificaciones', 3);
+
+        // Ejecutar nuevamente no debe duplicarlas.
+        $procesador->execute();
+
+        $this->assertDatabaseCount('notificaciones', 3);
+    }
+
+    public function test_segundo_intento_genera_nueva_notificacion_de_expiracion(): void
+    {
+        // Simular los trabajos de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 1);
+        config()->set('cola_virtual.aviso_proximo_personas', 0);
+
+        $eventoId = $this->crearEvento();
+
+        // Preparar inventario suficiente para las dos oportunidades.
+        $this->crearInventarioDisponible($eventoId, 10);
+
+        $usuario = $this->crearUsuario(
+            'segundo-intento-expiracion@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        // Primera oportunidad.
+        $primerTurno = $ingresar->execute($eventoId, $usuario->id);
+        $procesador->execute();
+
+        // Simular el vencimiento.
+        DB::table('cola_virtual')
+            ->where('id', $primerTurno->getId())
+            ->update([
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // Expirar el primer intento y registrar su aviso.
+        $procesador->execute();
+
+        $clavePrimerIntento = 'cola_virtual:expirado:turno:'
+            . $primerTurno->getId();
+
+        $this->assertDatabaseHas('notificaciones', [
+            'clave_idempotencia' => $clavePrimerIntento,
+        ]);
+
+        // Solicitar y habilitar la segunda oportunidad.
+        $segundoTurno = $ingresar->execute(
+            $eventoId,
+            $usuario->id
+        );
+
+        $procesador->execute();
+
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $segundoTurno->getId(),
+            'intento' => 2,
+            'estado' => 'habilitado',
+        ]);
+
+        // Simular que también vence su segunda oportunidad.
+        DB::table('cola_virtual')
+            ->where('id', $segundoTurno->getId())
+            ->update([
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        $procesador->execute();
+
+        // La segunda expiración debe tener su propio aviso.
+        $claveSegundoIntento = 'cola_virtual:expirado:turno:'
+            . $segundoTurno->getId()
+            . ':intento:2';
+
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $usuario->id,
+            'clave_idempotencia' => $claveSegundoIntento,
+        ]);
+
+        // Dos habilitaciones y dos expiraciones.
+        $this->assertDatabaseCount('notificaciones', 4);
+
+        // Ejecutar nuevamente no debe duplicar los avisos.
+        $procesador->execute();
+
+        $this->assertDatabaseCount('notificaciones', 4);
+    }
+
+    public function test_segundo_intento_recibe_nuevo_aviso_de_proximidad(): void
+    {
+        // Simular los trabajos de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 1);
+        config()->set('cola_virtual.aviso_proximo_personas', 1);
+
+        $eventoId = $this->crearEvento();
+
+        // Preparar inventario suficiente para las dos oportunidades.
+        $this->crearInventarioDisponible($eventoId, 10);
+
+        $usuarioA = $this->crearUsuario('proximidad-a@example.com');
+        $usuarioB = $this->crearUsuario('proximidad-b@example.com');
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        // A recibe posición 1 y B recibe posición 2.
+        $turnoA = $ingresar->execute($eventoId, $usuarioA->id);
+        $turnoB = $ingresar->execute($eventoId, $usuarioB->id);
+
+        // Se habilita A y B recibe su primer aviso de proximidad.
+        $procesador->execute();
+
+        $claveOriginal = 'cola_virtual:proximo:turno:'
+            . $turnoB->getId();
+
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $usuarioB->id,
+            'clave_idempotencia' => $claveOriginal,
+        ]);
+
+        // Expirar el turno A para que avance B.
+        DB::table('cola_virtual')
+            ->where('id', $turnoA->getId())
+            ->update([
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        $procesador->execute();
+
+        // B ya puede comprar.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turnoB->getId(),
+            'estado' => 'habilitado',
+        ]);
+
+        // C ingresa después y queda esperando.
+        $usuarioC = $this->crearUsuario('proximidad-c@example.com');
+
+        $ingresar->execute($eventoId, $usuarioC->id);
+
+        // Expirar a B para habilitar a C.
+        DB::table('cola_virtual')
+            ->where('id', $turnoB->getId())
+            ->update([
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        $procesador->execute();
+
+        // B solicita su segunda oportunidad al final de la fila.
+        $reingreso = $ingresar->execute($eventoId, $usuarioB->id);
+
+        $this->assertSame(4, $reingreso->getPosicion());
+
+        // C sigue habilitado; B tiene una persona delante.
+        $procesador->execute();
+
+        // B debe recibir un aviso nuevo por su segundo intento.
+        $claveSegundaOportunidad = $claveOriginal . ':intento:2';
+
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $usuarioB->id,
+            'clave_idempotencia' => $claveSegundaOportunidad,
+        ]);
+
+        // Ejecutar nuevamente no debe duplicar los dos avisos.
+        $procesador->execute();
+
+        $this->assertSame(
+            2,
+            DB::table('notificaciones')
+                ->where('usuario_id', $usuarioB->id)
+                ->where(
+                    'clave_idempotencia',
+                    'like',
+                    $claveOriginal . '%'
+                )
+                ->count()
+        );
+    }
+
+    public function test_reingreso_sin_scheduler_registra_aviso_de_expiracion(): void
+    {
+        // Simular los trabajos de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 1);
+        config()->set('cola_virtual.aviso_proximo_personas', 0);
+
+        $eventoId = $this->crearEvento();
+
+        $usuario = $this->crearUsuario(
+            'reingreso-sin-aviso@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        // Crear y habilitar el primer turno.
+        $turno = $ingresar->execute($eventoId, $usuario->id);
+
+        $procesador->execute();
+
+        // Simular que venció sin ejecutar nuevamente el procesador.
+        DB::table('cola_virtual')
+            ->where('id', $turno->getId())
+            ->update([
+                'estado' => 'habilitado',
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // Solicitar la segunda oportunidad directamente.
+        $ingresar->execute($eventoId, $usuario->id);
+
+        // Debe quedar registrado el segundo intento.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno->getId(),
+            'intento' => 2,
+            'estado' => 'esperando',
+        ]);
+
+        // El intento anterior debe conservarse como expirado.
+        $this->assertDatabaseHas('cola_virtual_intentos', [
+            'turno_id' => $turno->getId(),
+            'intento' => 1,
+            'estado' => 'expirado',
+        ]);
+
+        // Debe existir el aviso de expiración del primer intento.
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $usuario->id,
+            'clave_idempotencia' =>
+                'cola_virtual:expirado:turno:' . $turno->getId(),
+        ]);
+    }
+
+    public function test_segunda_expiracion_sin_scheduler_registra_notificacion(): void
+    {
+        // Simular los trabajos de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 1);
+        config()->set('cola_virtual.aviso_proximo_personas', 0);
+
+        $eventoId = $this->crearEvento();
+        // Preparar inventario suficiente para las dos oportunidades.
+        $this->crearInventarioDisponible($eventoId, 10);
+
+        $usuario = $this->crearUsuario(
+            'segunda-expiracion-sin-scheduler@example.com'
+        );
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        // Primera oportunidad: ingresar y habilitar.
+        $primerTurno = $ingresar->execute($eventoId, $usuario->id);
+        $procesador->execute();
+
+        // Expirar la primera oportunidad.
+        DB::table('cola_virtual')
+            ->where('id', $primerTurno->getId())
+            ->update([
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        $procesador->execute();
+
+        // Solicitar y habilitar la segunda oportunidad.
+        $segundoTurno = $ingresar->execute(
+            $eventoId,
+            $usuario->id
+        );
+
+        $procesador->execute();
+
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $segundoTurno->getId(),
+            'intento' => 2,
+            'estado' => 'habilitado',
+        ]);
+
+        // La segunda oportunidad vence, pero NO ejecutamos
+        // nuevamente el procesador.
+        DB::table('cola_virtual')
+            ->where('id', $segundoTurno->getId())
+            ->update([
+                'habilitado_hasta' => now()->subMinute(),
+                'updated_at' => now(),
+            ]);
+
+        // Intentar ingresar por tercera vez debe rechazarse.
+        try {
+            $ingresar->execute($eventoId, $usuario->id);
+
+            $this->fail('No debe permitir una tercera oportunidad.');
+        } catch (\DomainException $e) {
+            $this->assertSame(
+                'Ya utilizaste las dos oportunidades para este evento.',
+                $e->getMessage()
+            );
+        }
+
+        // Además, debe existir el aviso de la segunda expiración.
+        $this->assertDatabaseHas('notificaciones', [
+            'usuario_id' => $usuario->id,
+            'clave_idempotencia' =>
+                'cola_virtual:expirado:turno:'
+                . $segundoTurno->getId()
+                . ':intento:2',
+        ]);
+
+        // El usuario insiste en solicitar una tercera oportunidad.
+        try {
+            $ingresar->execute($eventoId, $usuario->id);
+
+            $this->fail('No debe permitir una tercera oportunidad.');
+        } catch (\DomainException $e) {
+            $this->assertSame(
+                'Ya utilizaste las dos oportunidades para este evento.',
+                $e->getMessage()
+            );
+        }
+
+        // El segundo turno debe permanecer expirado.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $segundoTurno->getId(),
+            'intento' => 2,
+            'estado' => 'expirado',
+        ]);
+
+        // Debe existir un único aviso de la segunda expiración.
+        $this->assertSame(
+            1,
+            DB::table('notificaciones')
+                ->where(
+                    'clave_idempotencia',
+                    'cola_virtual:expirado:turno:'
+                    . $segundoTurno->getId()
+                    . ':intento:2'
+                )
+                ->count()
+        );
+
+        // Dos habilitaciones y dos expiraciones.
+        $this->assertDatabaseCount('notificaciones', 4);
+
+    }
+
+    public function test_no_habilita_turnos_si_evento_no_tiene_inventario(): void
+    {
+        // Evitar la ejecución de trabajos de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        config()->set('cola_virtual.max_turnos_simultaneos', 5);
+
+        // Crear evento sin localidades, asientos ni inventario.
+        $eventoId = $this->crearEvento();
+
+        $usuario = $this->crearUsuario(
+            'sin-inventario-cola@example.com'
+        );
+
+        // El usuario puede registrarse en la cola.
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        $turno = $ingresar->execute(
+            $eventoId,
+            $usuario->id
+        );
+
+        // Confirmar que no existen boletos para este evento.
+        $this->assertSame(
+            0,
+            DB::table('inventario')
+                ->where('evento_id', $eventoId)
+                ->count()
+        );
+
+        // Ejecutar el procesador.
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        $resultado = $procesador->execute();
+
+        // No debe habilitar compradores sin inventario.
+        $this->assertSame(0, $resultado['habilitados']);
+
+        // El usuario debe permanecer esperando.
+        $this->assertDatabaseHas('cola_virtual', [
+            'id' => $turno->getId(),
+            'estado' => 'esperando',
+        ]);
+    }
+
+    public function test_procesador_habilita_maximo_20_compradores(): void
+    {
+        // No ejecutar trabajos reales de correo.
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
+        ]);
+
+        // Verificar el nuevo límite predeterminado.
+        $this->assertSame(
+            20,
+            (int) config('cola_virtual.max_turnos_simultaneos')
+        );
+
+        $eventoId = $this->crearEvento();
+
+        // Preparar 25 boletos disponibles.
+        $this->crearInventarioDisponible($eventoId, 25);
+
+        $ingresar = app(
+            \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
+        );
+
+        // Registrar 25 usuarios en la cola.
+        for ($numero = 1; $numero <= 25; $numero++) {
+            $usuario = $this->crearUsuario(
+                "usuario-limite20-{$numero}@example.com"
+            );
+
+            $ingresar->execute($eventoId, $usuario->id);
+        }
+
+        $procesador = app(
+            \App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class
+        );
+
+        $resultado = $procesador->execute();
+
+        // Debe habilitar solamente a 20 usuarios.
+        $this->assertSame(20, $resultado['habilitados']);
+
+        // Los primeros 20 quedan habilitados.
+        $this->assertSame(
+            20,
+            DB::table('cola_virtual')
+                ->where('evento_id', $eventoId)
+                ->where('estado', 'habilitado')
+                ->count()
+        );
+
+        // Los otros 5 permanecen esperando.
+        $this->assertSame(
+            5,
+            DB::table('cola_virtual')
+                ->where('evento_id', $eventoId)
+                ->where('estado', 'esperando')
+                ->count()
+        );
+
+        // Ejecutar otra vez no debe superar el límite.
+        $segundoResultado = $procesador->execute();
+
+        $this->assertSame(0, $segundoResultado['habilitados']);
+
+        $this->assertSame(
+            20,
+            DB::table('cola_virtual')
+                ->where('evento_id', $eventoId)
+                ->where('estado', 'habilitado')
+                ->count()
+        );
+    }
+
 
 }
