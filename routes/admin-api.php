@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminCatalogoEventosController;
 use App\Http\Controllers\Admin\AdministracionController;
 use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminEventoController;
@@ -43,6 +44,12 @@ Route::middleware(['auth:sanctum'])
                     AdministracionController::class,
                     'eventos'
                 ])->name('eventos');
+
+                // Catálogo de eventos: búsqueda con filtros sobre todos los eventos
+                Route::get('/eventos/catalogo', [
+                    AdminCatalogoEventosController::class,
+                    'index'
+                ])->name('eventos.catalogo');
 
                 Route::get('/eventos/recintos', [
                     AdminEventoController::class,

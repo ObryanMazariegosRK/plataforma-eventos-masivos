@@ -164,6 +164,16 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Catalogo\ListarEventosUseCase::class,
         );
 
+        // ---- Admin: catálogo de eventos del panel ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Admin\ICatalogoEventosAdminRepository::class,
+            \App\Data\Admin\CatalogoEventosAdminRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Admin\IBuscarEventosAdminUseCase::class,
+            \App\Application\UseCases\Admin\BuscarEventosAdminUseCase::class,
+        );
+
         // ---- Catálogo: banner de la portada ----
         $this->app->bind(
             \App\Domain\Abstractions\Catalogo\IBannerRepository::class,

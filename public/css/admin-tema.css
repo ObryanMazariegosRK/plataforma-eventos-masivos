@@ -1,0 +1,559 @@
+/*
+ * Panel de administración — tema Soirée (claro u oscuro), con el estilo de la tienda.
+ * Se carga DESPUÉS de admin.css y solo cambia la apariencia: colores, tipografía, bordes y
+ * sombras. No toca estructura, IDs ni JavaScript de admin.js.
+ *
+ *   <body class="tema-soiree">              activa el tema (quitarla devuelve el admin.css original)
+ *   <html data-tema="claro|oscuro">         paleta; la elige el botón de la barra superior
+ *                                           (public/js/admin-tema.js, guarda la elección)
+ *
+ * Las reglas usan solo variables (--t-*): cada paleta define sus valores abajo.
+ */
+
+/* ---------- Paleta clara (por defecto) ---------- */
+.tema-soiree {
+    --t-fondo: #f6f2ea;            /* fondo general: marfil muy claro */
+    --t-panel: #fffdf9;            /* tarjetas */
+    --t-panel-2: #f3ede3;          /* cabeceras de tabla, paneles internos */
+    --t-texto: #1c1916;            /* texto principal */
+    --t-piedra: rgba(28, 25, 22, .7);
+    --t-tenue: rgba(28, 25, 22, .5);
+    --t-hilo: rgba(28, 25, 22, .1);
+    --t-hilo-2: rgba(28, 25, 22, .18);
+    --t-velo: rgba(28, 25, 22, .03);      /* fondo al pasar el puntero */
+    --t-velo-2: rgba(28, 25, 22, .06);    /* barras vacías, pastillas neutras */
+    --t-campo: #ffffff;
+    --t-campo-foco: #ffffff;
+    --t-placeholder: rgba(28, 25, 22, .35);
+    --t-acento: #94743f;            /* dorado más oscuro: se lee sobre blanco */
+    --t-acento-suave: rgba(148, 116, 63, .1);
+    --t-acento-borde: rgba(148, 116, 63, .35);
+    --t-boton: #1c1916;             /* botón principal */
+    --t-boton-texto: #fffdf9;
+    --t-boton-hover: #94743f;
+    --t-verde: #2f6b45;
+    --t-verde-fondo: rgba(47, 107, 69, .1);
+    --t-rojo: #a3412f;
+    --t-rojo-fondo: rgba(163, 65, 47, .09);
+    --t-sombra: 0 1px 2px rgba(28, 25, 22, .04), 0 10px 30px rgba(28, 25, 22, .05);
+    --t-sombra-dialogo: 0 40px 90px rgba(28, 25, 22, .25);
+
+    /* La barra lateral es oscura en ambos temas (ancla de la marca) */
+    --l-fondo: #0d0c0b;
+    --l-texto: #f2ede4;
+    --l-piedra: rgba(242, 237, 228, .72);
+    --l-tenue: rgba(242, 237, 228, .48);
+    --l-hilo: rgba(242, 237, 228, .12);
+    --l-acento: #c8b48c;
+    --l-acento-suave: rgba(200, 180, 140, .12);
+
+    --t-titulo: "Cormorant Garamond", "Times New Roman", serif;
+    --t-cuerpo: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: light;
+}
+
+/* ---------- Paleta oscura ---------- */
+html[data-tema="oscuro"] .tema-soiree {
+    --t-fondo: #0d0c0b;
+    --t-panel: #151311;
+    --t-panel-2: #1b1815;
+    --t-texto: #f2ede4;
+    --t-piedra: rgba(242, 237, 228, .74);
+    --t-tenue: rgba(242, 237, 228, .5);
+    --t-hilo: rgba(242, 237, 228, .12);
+    --t-hilo-2: rgba(242, 237, 228, .2);
+    --t-velo: rgba(242, 237, 228, .03);
+    --t-velo-2: rgba(242, 237, 228, .07);
+    --t-campo: rgba(242, 237, 228, .035);
+    --t-campo-foco: rgba(242, 237, 228, .055);
+    --t-placeholder: rgba(242, 237, 228, .32);
+    --t-acento: #c8b48c;
+    --t-acento-suave: rgba(200, 180, 140, .12);
+    --t-acento-borde: rgba(200, 180, 140, .4);
+    --t-boton: #f2ede4;
+    --t-boton-texto: #0d0c0b;
+    --t-boton-hover: #c8b48c;
+    --t-verde: #9fcaa8;
+    --t-verde-fondo: rgba(120, 180, 135, .13);
+    --t-rojo: #e0a08f;
+    --t-rojo-fondo: rgba(224, 160, 143, .12);
+    --t-sombra: none;
+    --t-sombra-dialogo: 0 40px 90px rgba(0, 0, 0, .6);
+    --l-fondo: #0a0908;
+    color-scheme: dark;
+}
+
+/* Al cambiar de tema, los colores pasan suavemente (no en la primera carga: ver admin-tema.js) */
+html.tema-transicion .tema-soiree,
+html.tema-transicion .tema-soiree * {
+    transition: background-color .35s ease, border-color .35s ease, color .35s ease, fill .35s ease !important;
+}
+
+/* ---------- Base ---------- */
+body.tema-soiree {
+    background: var(--t-fondo);
+    color: var(--t-texto);
+    font-family: var(--t-cuerpo);
+    font-weight: 400;
+}
+.tema-soiree .content { background: var(--t-fondo); }
+.tema-soiree h1, .tema-soiree h2, .tema-soiree h3,
+.tema-soiree .hero h1, .tema-soiree .panel-heading h2, .tema-soiree .panel h2, .tema-soiree .panel h3,
+.tema-soiree .so-dialog-header h2 {
+    font-family: var(--t-titulo);
+    font-weight: 500;
+    letter-spacing: .005em;
+    color: var(--t-texto);
+}
+.tema-soiree em { color: var(--t-acento); }
+.tema-soiree .muted, .tema-soiree p { color: var(--t-piedra); }
+.tema-soiree .section-kicker, .tema-soiree .eyebrow, .tema-soiree .so-role-eyebrow, .tema-soiree .so-dialog-caption {
+    color: var(--t-acento);
+    font-family: var(--t-cuerpo);
+    letter-spacing: .22em;
+}
+.tema-soiree ::selection { background: var(--t-acento-borde); color: var(--t-texto); }
+
+/* ---------- Barra lateral (siempre oscura) ---------- */
+.tema-soiree .sidebar {
+    background: var(--l-fondo);
+    border-right: 1px solid var(--l-hilo);
+    box-shadow: none;
+}
+.tema-soiree .sidebar-caption { color: var(--l-acento); letter-spacing: .22em; }
+.tema-soiree .brand, .tema-soiree .brand * { color: var(--l-texto); }
+.tema-soiree .brand { font-family: var(--t-titulo); }
+.tema-soiree .brand-spark, .tema-soiree .brand-dot, .tema-soiree .brand-subtitle { color: var(--l-acento); }
+/* El "✳" del logo se dibuja como emoji verde en muchos sistemas: se cambia por "✦" (texto) */
+.tema-soiree .brand-spark { font-size: 0; line-height: 1; }
+.tema-soiree .brand-spark::before { content: "✦"; font-size: 24px; color: var(--l-acento); font-family: var(--t-titulo); }
+.tema-soiree .brand > span:last-child { font-size: 26px; font-weight: 500; letter-spacing: .01em; }
+.tema-soiree .nav-item {
+    color: var(--l-piedra);
+    background: transparent;
+    border: 1px solid transparent;
+    font-family: var(--t-cuerpo);
+    font-weight: 500;
+}
+.tema-soiree .nav-item:hover { color: var(--l-texto); background: rgba(242, 237, 228, .04); }
+.tema-soiree .nav-item.selected {
+    color: var(--l-texto);
+    background: var(--l-acento-suave);
+    border-color: rgba(200, 180, 140, .35);
+    box-shadow: none;
+}
+.tema-soiree .nav-item .nav-icon { color: var(--l-tenue); stroke: currentColor; }
+.tema-soiree .nav-item.selected .nav-icon, .tema-soiree .nav-item:hover .nav-icon { color: var(--l-acento); }
+.tema-soiree .nav-soon { color: var(--l-tenue); background: transparent; }
+.tema-soiree .nav-divider { background: var(--l-hilo); border-color: var(--l-hilo); }
+.tema-soiree .sidebar-promo {
+    background: radial-gradient(120% 120% at 0% 0%, rgba(200, 180, 140, .14), transparent 60%), #151311;
+    border: 1px solid var(--l-hilo);
+    box-shadow: none;
+}
+.tema-soiree .sidebar-promo, .tema-soiree .sidebar-promo * { color: var(--l-texto); }
+.tema-soiree .sidebar-promo strong, .tema-soiree .sidebar-promo h3 { font-family: var(--t-titulo); font-weight: 500; }
+.tema-soiree .promo-shade { background: none; }
+.tema-soiree .sidebar-bottom, .tema-soiree .sidebar-bottom * { color: var(--l-tenue); }
+.tema-soiree .sidebar-bottom a { color: var(--l-piedra); }
+.tema-soiree .sidebar-bottom a:hover { color: var(--l-texto); }
+
+/* ---------- Barra superior ---------- */
+.tema-soiree .utility-bar { background: transparent; border-color: var(--t-hilo); }
+.tema-soiree .top-search {
+    background: var(--t-panel);
+    border: 1px solid var(--t-hilo);
+    box-shadow: none;
+}
+.tema-soiree .top-search input { background: transparent; color: var(--t-texto); border: 0; }
+.tema-soiree .utility-icon { color: var(--t-tenue); }
+/* Se quita el indicador "SESIÓN OPERATIVA" / "SESIÓN ADMIN": el rol ya se ve junto al avatar */
+.tema-soiree .top-online { display: none !important; }
+.tema-soiree .utility-person, .tema-soiree .utility-person span { color: var(--t-texto); }
+.tema-soiree .avatar {
+    background: transparent;
+    border: 1px solid var(--t-acento-borde);
+    color: var(--t-acento);
+    font-family: var(--t-titulo);
+}
+
+/* Botón claro/oscuro (admin-tema.js) */
+.boton-tema {
+    display: inline-grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    margin-right: 6px;
+    padding: 0;
+    border: 1px solid var(--t-hilo-2);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--t-texto);
+    cursor: pointer;
+    transition: border-color .3s ease, background-color .3s ease, transform .5s cubic-bezier(.2, .7, .15, 1);
+}
+.boton-tema:hover { border-color: var(--t-acento); background: var(--t-acento-suave); transform: rotate(-18deg); }
+.boton-tema svg { width: 17px; height: 17px; }
+.boton-tema .icono-sol { display: none; }
+html[data-tema="oscuro"] .boton-tema .icono-sol { display: block; }
+html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
+
+/* ---------- Encabezado (hero) ---------- */
+.tema-soiree .hero {
+    background:
+        radial-gradient(90% 140% at 100% 0%, var(--t-acento-suave), transparent 60%),
+        var(--t-panel);
+    border: 1px solid var(--t-hilo);
+    box-shadow: var(--t-sombra);
+}
+.tema-soiree .hero .eyebrow { display: none; }   /* sin "Bienvenido a Soirée": el título ya dice dónde estás */
+.tema-soiree .hero h1 { font-size: clamp(34px, 3.4vw, 48px); line-height: 1.05; margin-top: 0; }
+.tema-soiree .hero h1 em { font-style: italic; font-weight: 400; color: var(--t-acento); }
+.tema-soiree .hero p { color: var(--t-piedra); }
+.tema-soiree .user-pill {
+    background: transparent;
+    border: 1px solid var(--t-acento-borde);
+    color: var(--t-acento);
+}
+
+/* Botón "+ Nuevo evento" en el encabezado: solo cuando la sección de eventos está activa
+   (admin.js muestra #eventos-tools solo ahí). Ese recuadro repetía el encabezado: se oculta
+   a la vista, pero sigue en la página porque admin.js y los filtros lo usan. */
+.hero-acciones { display: none; margin-top: 22px; }
+.content:has(#eventos-tools:not([hidden])) .hero-acciones { display: flex; gap: 10px; }
+.tema-soiree .eventos-tools { display: none !important; }
+.tema-soiree .hero-acciones .primary { padding: 12px 22px; font-weight: 600; letter-spacing: .02em; }
+
+/* Aviso de estado ("Consultando datos…", errores) */
+.tema-soiree .feedback {
+    background: var(--t-acento-suave);
+    border: 1px solid var(--t-acento-borde);
+    color: var(--t-acento);
+}
+
+/* ---------- Tarjetas y paneles ---------- */
+.tema-soiree .panel, .tema-soiree .metric, .tema-soiree .data-card, .tema-soiree .chart-card,
+.tema-soiree .quick-card, .tema-soiree .report-card, .tema-soiree .coming-soon, .tema-soiree .eventos-tools,
+.tema-soiree .evento-form-panel, .tema-soiree .banner-panel, .tema-soiree .evento-precios-panel {
+    background: var(--t-panel);
+    border: 1px solid var(--t-hilo);
+    box-shadow: var(--t-sombra);
+    color: var(--t-texto);
+}
+.tema-soiree .heading-icon, .tema-soiree .metric-icon, .tema-soiree .coming-icon {
+    background: var(--t-acento-suave);
+    color: var(--t-acento);
+    border: 1px solid var(--t-acento-borde);
+}
+.tema-soiree .heading-icon svg, .tema-soiree .metric-icon svg { stroke: currentColor; color: var(--t-acento); }
+.tema-soiree .metric strong, .tema-soiree .metric .metric-value, .tema-soiree .metric-copy strong {
+    font-family: var(--t-titulo);
+    font-weight: 500;
+    color: var(--t-texto);
+    font-variant-numeric: lining-nums;   /* cifras alineadas (Cormorant usa cifras de texto) */
+}
+.tema-soiree .metric-copy span, .tema-soiree .metric small { color: var(--t-piedra); }
+.tema-soiree .mini-count { background: var(--t-velo-2); color: var(--t-piedra); }
+/* Títulos de tarjetas y secciones: serif un poco más grande para que no se vean delgados */
+.tema-soiree .panel-heading h2, .tema-soiree .data-card h2, .tema-soiree .table-head h2, .tema-soiree .report-card h2,
+.tema-soiree .eventos-tools h2, .tema-soiree .evento-form-heading h2, .tema-soiree .chart-card h2, .tema-soiree .quick-card h2,
+.tema-soiree .banner-panel h2, .tema-soiree .coming-soon h2 {
+    font-size: 25px;
+    line-height: 1.1;
+}
+
+/* Barras de las gráficas de estados */
+.tema-soiree .bar-label { color: var(--t-piedra); }
+.tema-soiree .track { background: var(--t-velo-2); }
+.tema-soiree .fill { background: linear-gradient(90deg, #a8926a, #c8b48c); }
+
+/* Accesos rápidos */
+.tema-soiree .quick-link {
+    background: transparent;
+    border: 1px solid var(--t-hilo);
+    color: var(--t-texto);
+}
+.tema-soiree .quick-link:hover { border-color: var(--t-acento-borde); background: var(--t-acento-suave); }
+.tema-soiree .quick-link svg { color: var(--t-acento); stroke: currentColor; }
+.tema-soiree .quick-link.featured { background: var(--t-boton); border-color: var(--t-boton); color: var(--t-boton-texto); }
+.tema-soiree .quick-link.featured svg, .tema-soiree .quick-link.featured * { color: var(--t-boton-texto); }
+.tema-soiree .quick-link.featured:hover { background: var(--t-boton-hover); border-color: var(--t-boton-hover); }
+
+/* ---------- Botones ---------- */
+.tema-soiree .primary, .tema-soiree .so-button-primary, .tema-soiree .so-role-save {
+    background: var(--t-boton);
+    border: 1px solid var(--t-boton);
+    color: var(--t-boton-texto);
+    box-shadow: none;
+}
+.tema-soiree .primary:hover, .tema-soiree .so-button-primary:hover, .tema-soiree .so-role-save:hover {
+    background: var(--t-boton-hover);
+    border-color: var(--t-boton-hover);
+    color: var(--t-boton-texto);
+}
+.tema-soiree .evento-secondary, .tema-soiree .so-button-quiet, .tema-soiree .so-role-cancel,
+.tema-soiree .banner-boton, .tema-soiree .evento-action, .tema-soiree .pagination button {
+    background: transparent;
+    border: 1px solid var(--t-hilo-2);
+    color: var(--t-texto);
+    box-shadow: none;
+}
+.tema-soiree .evento-secondary:hover, .tema-soiree .so-button-quiet:hover, .tema-soiree .so-role-cancel:hover,
+.tema-soiree .banner-boton:hover, .tema-soiree .evento-action:hover, .tema-soiree .pagination button:hover:not(:disabled) {
+    border-color: var(--t-acento);
+    background: var(--t-acento-suave);
+    color: var(--t-texto);
+}
+.tema-soiree .banner-boton--quitar { color: var(--t-rojo); }
+.tema-soiree .banner-boton--quitar:hover { border-color: var(--t-rojo); background: var(--t-rojo-fondo); }
+.tema-soiree .text-link { color: var(--t-acento); }
+.tema-soiree .text-link:hover { color: var(--t-texto); }
+.tema-soiree .evento-close, .tema-soiree .so-icon-close {
+    background: transparent;
+    border: 1px solid var(--t-hilo);
+    color: var(--t-piedra);
+}
+.tema-soiree .evento-close:hover, .tema-soiree .so-icon-close:hover { color: var(--t-texto); border-color: var(--t-acento); }
+.tema-soiree button:disabled { opacity: .45; }
+.tema-soiree :focus-visible { outline: 1px solid var(--t-acento); outline-offset: 2px; }
+
+/* ---------- Campos ---------- */
+.tema-soiree input, .tema-soiree select, .tema-soiree textarea {
+    background: var(--t-campo);
+    border: 1px solid var(--t-hilo-2);
+    color: var(--t-texto);
+}
+.tema-soiree input::placeholder, .tema-soiree textarea::placeholder { color: var(--t-placeholder); }
+.tema-soiree input:focus, .tema-soiree select:focus, .tema-soiree textarea:focus {
+    border-color: var(--t-acento);
+    background: var(--t-campo-foco);
+    box-shadow: none;
+}
+.tema-soiree select option { background: var(--t-panel); color: var(--t-texto); }
+.tema-soiree label { color: var(--t-piedra); }
+.tema-soiree .evento-image-help { color: var(--t-tenue); }
+.tema-soiree .evento-image-preview, .tema-soiree .evento-precio-fila {
+    background: var(--t-panel-2) !important;   /* admin.css los fija con !important */
+    border-color: var(--t-hilo) !important;
+}
+.tema-soiree .evento-precio-fila strong { color: var(--t-texto); }
+.tema-soiree .evento-precio-fila small { color: var(--t-tenue); }
+.tema-soiree .evento-form-feedback { color: var(--t-acento); }
+.tema-soiree .so-event-filters input, .tema-soiree .so-event-filters select, .tema-soiree #filters input { background: var(--t-panel); }
+
+/* ---------- Tablas ---------- */
+.tema-soiree .table-wrap, .tema-soiree .table-scroll, .tema-soiree .table-responsive {
+    background: transparent;
+    border-color: var(--t-hilo);
+}
+.tema-soiree table { color: var(--t-texto); font-variant-numeric: lining-nums tabular-nums; }
+.tema-soiree thead { background: var(--t-panel-2); }
+.tema-soiree .table-head { background: transparent; }
+.tema-soiree thead th, .tema-soiree .table-wrap thead th {
+    background: var(--t-panel-2);
+    color: var(--t-tenue);
+    border-color: var(--t-hilo);
+    font-family: var(--t-cuerpo);
+    letter-spacing: .14em;
+}
+.tema-soiree tbody td { border-color: var(--t-hilo); color: var(--t-texto); }
+.tema-soiree tbody tr { background: transparent; }
+.tema-soiree tbody tr:hover { background: var(--t-velo); }
+.tema-soiree .so-event-thumb { background: var(--t-acento-suave); color: var(--t-acento); border-color: var(--t-hilo); }
+.tema-soiree .so-event-name { color: var(--t-texto); }
+.tema-soiree .so-event-label strong { color: var(--t-texto); font-family: var(--t-titulo); font-size: 18px; font-weight: 500; }
+.tema-soiree .so-event-label small, .tema-soiree .so-event-label, .tema-soiree .empty { color: var(--t-tenue); }
+.tema-soiree .pagination { color: var(--t-tenue); }
+
+/* Estados (pastillas) */
+.tema-soiree .status { background: var(--t-verde-fondo); color: var(--t-verde); }
+.tema-soiree .status.neutral, .tema-soiree .so-event-status { background: var(--t-velo-2); color: var(--t-piedra); }
+.tema-soiree .so-event-status[data-status="publicado"] { background: var(--t-verde-fondo); color: var(--t-verde); }
+.tema-soiree .so-event-status[data-status="cancelado"] { background: var(--t-rojo-fondo); color: var(--t-rojo); }
+.tema-soiree .so-event-status[data-status="borrador"] { background: var(--t-acento-suave); color: var(--t-acento); }
+
+/* ---------- Diálogos (detalle de evento, roles de usuario) ---------- */
+.tema-soiree .so-event-dialog, .tema-soiree .so-role-dialog, .tema-soiree dialog {
+    background: var(--t-panel);
+    color: var(--t-texto);
+    border: 1px solid var(--t-hilo);
+    box-shadow: var(--t-sombra-dialogo);
+}
+.tema-soiree .so-event-dialog::backdrop, .tema-soiree .so-role-dialog::backdrop, .tema-soiree dialog::backdrop {
+    background: rgba(13, 12, 11, .55);
+    backdrop-filter: blur(4px);
+}
+.tema-soiree .so-dialog-shell, .tema-soiree .so-dialog-content, .tema-soiree .so-dialog-header,
+.tema-soiree .so-role-header, .tema-soiree .so-role-footer, .tema-soiree .so-dialog-actions {
+    background: transparent;
+    border-color: var(--t-hilo);
+    color: var(--t-texto);
+}
+.tema-soiree .so-dialog-intro, .tema-soiree .so-dialog-about, .tema-soiree .so-role-message { color: var(--t-piedra); }
+.tema-soiree .so-dialog-content h3, .tema-soiree .so-dialog-about h3, .tema-soiree .so-dialog-content h4 {
+    font-family: var(--t-titulo);
+    font-weight: 500;
+    font-size: 21px;
+    color: var(--t-texto);
+}
+.tema-soiree .so-dialog-cover { background: var(--t-panel-2); border-color: var(--t-hilo); }
+.tema-soiree .so-detail-row, .tema-soiree .so-user-detail-row {
+    background: transparent;
+    border-color: var(--t-hilo);
+    color: var(--t-texto);
+}
+.tema-soiree .so-detail-row span:first-child, .tema-soiree .so-user-detail-row span:first-child { color: var(--t-tenue); }
+.tema-soiree .so-role-option { background: transparent; border: 1px solid var(--t-hilo); color: var(--t-texto); }
+.tema-soiree .so-role-option:hover { border-color: var(--t-acento-borde); }
+.tema-soiree .so-role-option:has(input:checked) { border-color: var(--t-acento); background: var(--t-acento-suave); }
+.tema-soiree .so-role-option-copy small, .tema-soiree .so-role-option-copy span { color: var(--t-piedra); }
+.tema-soiree .so-role-identity { color: var(--t-texto); }
+
+/* ---------- Banner (la vista previa es oscura en ambos temas: imita la portada) ---------- */
+.tema-soiree .banner-zona { border-color: var(--t-hilo-2); color: var(--t-piedra); background: transparent; }
+.tema-soiree .banner-zona strong { color: var(--t-texto); }
+.tema-soiree .banner-zona:hover, .tema-soiree .banner-zona.arrastrando { border-color: var(--t-acento); background: var(--t-acento-suave); }
+.tema-soiree .banner-vista { border: 1px solid var(--t-hilo); }
+.tema-soiree .banner-mensaje { color: var(--t-piedra); }
+.tema-soiree .banner-mensaje.error { color: var(--t-rojo); }
+.tema-soiree .banner-mensaje.exito { color: var(--t-verde); }
+
+/* ---------- Pie y extras ---------- */
+.tema-soiree .site-footer, .tema-soiree .site-footer * { color: var(--t-tenue); border-color: var(--t-hilo); }
+
+.tema-soiree ::-webkit-scrollbar { width: 10px; height: 10px; }
+.tema-soiree ::-webkit-scrollbar-track { background: var(--t-fondo); }
+.tema-soiree ::-webkit-scrollbar-thumb { background: var(--t-hilo-2); border-radius: 10px; border: 2px solid var(--t-fondo); }
+.tema-soiree ::-webkit-scrollbar-thumb:hover { background: var(--t-acento-borde); }
+
+/* ---------- Catálogo de eventos (admin-catalogo-eventos.js) ---------- */
+.tema-soiree .catalogo-panel { display: grid; gap: 18px; }
+.tema-soiree .catalogo-panel[hidden] { display: none; }
+
+.tema-soiree .catalogo-filtros {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) repeat(4, minmax(120px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+    padding: 18px 20px;
+    border: 1px solid var(--t-hilo);
+    border-radius: 16px;
+    background: var(--t-panel);
+    box-shadow: var(--t-sombra);
+}
+.tema-soiree .catalogo-filtros label { display: grid; gap: 6px; margin: 0; }
+.tema-soiree .catalogo-filtros label > span {
+    color: var(--t-tenue);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.tema-soiree .catalogo-filtros input, .tema-soiree .catalogo-filtros select {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 14px;
+}
+.tema-soiree .catalogo-limpiar {
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid var(--t-hilo-2);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--t-piedra);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+.tema-soiree .catalogo-limpiar:hover { color: var(--t-texto); border-color: var(--t-acento); }
+
+.tema-soiree .catalogo-resumen { margin: 4px 2px 0; color: var(--t-tenue); font-size: 13px; }
+
+.tema-soiree .catalogo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 18px;
+    transition: opacity .2s ease;
+}
+.tema-soiree .catalogo-grid[aria-busy="true"] { opacity: .5; }
+
+.tema-soiree .catalogo-tarjeta {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--t-hilo);
+    border-radius: 16px;
+    background: var(--t-panel);
+    box-shadow: var(--t-sombra);
+    transition: transform .4s cubic-bezier(.2, .7, .15, 1), border-color .3s ease;
+}
+.tema-soiree .catalogo-tarjeta:hover { transform: translateY(-3px); border-color: var(--t-acento-borde); }
+.tema-soiree .catalogo-tarjeta--pasado { opacity: .62; }
+.tema-soiree .catalogo-tarjeta--pasado:hover { opacity: .85; }
+
+.tema-soiree .catalogo-tarjeta__foto { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #1a1714; }
+.tema-soiree .catalogo-tarjeta__foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1s cubic-bezier(.2, .7, .15, 1); }
+.tema-soiree .catalogo-tarjeta:hover .catalogo-tarjeta__foto img { transform: scale(1.04); }
+/* Sobre la foto la pastilla del estado va siempre oscura (se lee en ambos temas) */
+.tema-soiree .catalogo-tarjeta__estado { position: absolute; top: 12px; left: 12px; backdrop-filter: blur(6px); }
+.tema-soiree .catalogo-tarjeta__estado.so-event-status { background: rgba(13, 12, 11, .72); color: #f2ede4; }
+.tema-soiree .catalogo-tarjeta__estado.so-event-status[data-status="publicado"] { color: #9fcaa8; }
+.tema-soiree .catalogo-tarjeta__estado.so-event-status[data-status="borrador"] { color: #c8b48c; }
+.tema-soiree .catalogo-tarjeta__estado.so-event-status[data-status="cancelado"] { color: #e0a08f; }
+
+.tema-soiree .catalogo-tarjeta__cuerpo { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 16px 18px 18px; }
+.tema-soiree .catalogo-tarjeta__fecha { color: var(--t-acento); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.tema-soiree .catalogo-tarjeta__nombre { margin: 2px 0 0; font-family: var(--t-titulo); font-size: 24px; font-weight: 500; line-height: 1.1; color: var(--t-texto); }
+.tema-soiree .catalogo-tarjeta__lugar, .tema-soiree .catalogo-tarjeta__nota { color: var(--t-piedra); font-size: 13px; }
+.tema-soiree .catalogo-tarjeta__nota { color: var(--t-tenue); margin-top: auto; padding-top: 10px; }
+
+.tema-soiree .catalogo-tarjeta__ocupacion { display: grid; gap: 6px; margin-top: auto; padding-top: 12px; color: var(--t-piedra); font-size: 12px; }
+.tema-soiree .catalogo-tarjeta__barra { height: 4px; border-radius: 4px; background: var(--t-velo-2); overflow: hidden; }
+.tema-soiree .catalogo-tarjeta__barra span { display: block; height: 100%; background: linear-gradient(90deg, #a8926a, #c8b48c); }
+
+.tema-soiree .catalogo-tarjeta__accion {
+    align-self: flex-start;
+    margin-top: 12px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    text-decoration: none;
+}
+
+.tema-soiree .catalogo-mas { display: flex; justify-content: center; }
+.tema-soiree .catalogo-mas .banner-boton { padding: 11px 22px; border-radius: 999px; }
+.tema-soiree .catalogo-mas [hidden] { display: none; }
+
+@media (max-width: 1100px) {
+    .tema-soiree .catalogo-filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tema-soiree .catalogo-filtros__nombre { grid-column: 1 / -1; }
+}
+
+/* ---------- Eventos: crear y editar (la lista con acciones vive en el catálogo) ---------- */
+/* En la sección Eventos se ocultan la tabla y sus filtros; admin.js los sigue llenando */
+.content:has(#eventos-tools:not([hidden])) :is(.data-card, #so-event-filters) { display: none !important; }
+
+.eventos-aviso { display: none; }
+.content:has(#eventos-tools:not([hidden])):not(:has(#evento-form-panel:not([hidden]))):not(:has(#evento-precios-panel:not([hidden]))) .eventos-aviso {
+    display: flex;
+}
+.tema-soiree .eventos-aviso {
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 22px 24px;
+    border: 1px dashed var(--t-hilo-2);
+    border-radius: 16px;
+    color: var(--t-piedra);
+}
+.tema-soiree .eventos-aviso strong { display: block; margin-bottom: 4px; font-family: var(--t-titulo); font-size: 22px; font-weight: 500; color: var(--t-texto); }
+.tema-soiree .eventos-aviso .banner-boton { padding: 11px 20px; border-radius: 999px; }
+
+/* Botones de gestión dentro de las tarjetas del catálogo */
+.tema-soiree .catalogo-tarjeta__acciones { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tema-soiree .catalogo-tarjeta__acciones .evento-action { padding: 7px 12px; border-radius: 999px; font-size: 12.5px; }

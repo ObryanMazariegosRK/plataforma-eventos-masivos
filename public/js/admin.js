@@ -28,6 +28,10 @@
             'Registro de pagos',
             'Consulta los pagos y sus estados.'
         ],
+        catalogo: [
+            'Catálogo de eventos',
+            'Busca entre todos los eventos por nombre, estado, recinto o fecha.'
+        ],
         banner: [
             'Banner del catálogo',
             'Imagen o video de fondo de la portada del catálogo.'
@@ -90,7 +94,7 @@
     // El rol se verifica con /api/auth/perfil antes de habilitar la navegación.
     let currentRole = null;
     const operativeSections = new Set([
-        'eventos', 'banner', 'notificaciones', 'configuracion'
+        'eventos', 'catalogo', 'banner', 'notificaciones', 'configuracion'
     ]);
 
     function canAccessSection(name) {
@@ -973,6 +977,25 @@
 
     function renderEventActions(item) {
         const cell = el('td');
+        cell.append(eventActionGroup(item));
+        return cell;
+    }
+
+    // Catálogo de eventos: "Editar" y "Precios" abren su formulario en la sección Eventos y,
+    // al cerrarlo (guardar o cancelar), se regresa al catálogo
+    let regresarA = null;
+
+    function desdeCatalogo(abrir) {
+        return () => {
+            navigate('eventos');
+            regresarA = 'catalogo';   // después de navigate(): navigate() cierra el formulario
+            abrir();
+        };
+    }
+
+    // Botones de acción de un evento (los usan la tabla y las tarjetas del catálogo)
+    function eventActionGroup(item, { catalogo = false } = {}) {
+        const conRegreso = abrir => (catalogo ? desdeCatalogo(abrir) : abrir);
 
         const group = el(
             'div',
@@ -993,13 +1016,13 @@
                 actionButton(
                     'Editar',
                     'evento-action',
-                    () => editEvent(item.id)
+                    conRegreso(() => editEvent(item.id))
                 ),
                 // Inventario: sin precio en todas las localidades no se puede publicar
                 actionButton(
                     'Precios',
                     'evento-action',
-                    () => openPrices(item.id)
+                    conRegreso(() => openPrices(item.id))
                 ),
                 actionButton(
                     'Publicar',
@@ -1023,8 +1046,7 @@
             );
         }
 
-        cell.append(group);
-        return cell;
+        return group;
     }
 
     function renderTable(items, kind, pagination = null) {
@@ -1198,6 +1220,14 @@
         }
 
         clearFormFeedback();
+        volverSiHaceFalta();
+    }
+
+    function volverSiHaceFalta() {
+        if (!regresarA) return;
+        const destino = regresarA;
+        regresarA = null;
+        navigate(destino);
     }
 
     function updateSections() {
@@ -1205,10 +1235,12 @@
         const isEvents = section === 'eventos';
         const isReports = section === 'reportes';
         const isBanner = section === 'banner';   // lo maneja admin-banner.js
+        const isCatalogo = section === 'catalogo';   // lo maneja admin-catalogo-eventos.js
         const isPending = pendingSections.has(section);
 
-        show('dashboard', !isReports && !isPending && !isBanner);
+        show('dashboard', !isReports && !isPending && !isBanner && !isCatalogo);
         show('banner-panel', isBanner);
+        show('catalogo-panel', isCatalogo);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
@@ -1646,6 +1678,7 @@
     function closePrices() {
         show('evento-precios-panel', false);
         preciosEventoId = null;
+        volverSiHaceFalta();
     }
 
     async function openPrices(id) {
@@ -1932,6 +1965,7 @@
 
     async function load() {
         const version = ++requestVersion;
+        document.dispatchEvent(new CustomEvent('admin:recargar', { detail: { section } }));
 
         updateHeader();
         updateSections();
@@ -1943,7 +1977,8 @@
         if (
             pendingSections.has(section) ||
             section === 'reportes' ||
-            section === 'banner'
+            section === 'banner' ||
+            section === 'catalogo'
         ) {
             clearFeedback();
             return;
@@ -2028,6 +2063,7 @@
         section = target;
         page = 1;
 
+        regresarA = null;   // elegir otra sección cancela el regreso pendiente al catálogo
         closeEventForm();
 
         document.querySelectorAll('.nav-item')
@@ -2190,5 +2226,10 @@
             show('coming-soon', false);
         }
     })();
+
+    // Para el catálogo de eventos (admin-catalogo-eventos.js): mismos botones que la tabla
+    window.AdminEventos = {
+        acciones: item => eventActionGroup(item, { catalogo: true })
+    };
 
 })();
