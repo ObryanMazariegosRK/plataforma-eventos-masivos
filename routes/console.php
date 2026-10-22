@@ -40,6 +40,25 @@ Schedule::call(function (): void {
     ->everyMinute()
     ->withoutOverlapping();
 
+ // ---- Procesamiento automático de Cola Virtual (RF-09) ----
+ // Revisa los turnos cada minuto cuando esté habilitado.
+ // Expira los vencidos y habilita a los siguientes usuarios.
+
+Schedule::call(function (): void {
+
+    // Protección: no procesar mientras esté desactivado.
+    if (!config('cola_virtual.procesamiento_automatico_habilitado', false)) {
+        return;
+    }
+
+    app(\App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class)
+        ->execute();
+
+})
+    ->name('cola-virtual.procesar.turnos')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 // Genera el inventario de un evento que se publicó antes de que existiera la generación automática.
 // Uso: php artisan inventario:generar 4
 Artisan::command('inventario:generar {evento : id del evento}', function (int $evento) {

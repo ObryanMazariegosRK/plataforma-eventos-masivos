@@ -83,13 +83,33 @@ class AdminEventoController extends Controller
         GuardarEventoRequest $request,
         CrearEventoUseCase $crearEvento
     ): JsonResponse {
-        $evento = $crearEvento->ejecutar(
+        $precios = $request->validate([
+            'precios' => ['required', 'array', 'min:1'],
+            'precios.*.localidad_id' => [
+                'required', 'integer', 'distinct',
+            ],
+            'precios.*.precio' => [
+                'required',
+                'numeric',
+                'gt:0',
+                'decimal:0,2',
+                'max:99999999.99',
+            ],
+        ]);
+
+        $datos = array_merge(
             $request->validated(),
+            $precios
+        );
+
+        $evento = $crearEvento->ejecutar(
+            $datos,
             (int) $request->user()->id
         );
 
         return response()->json([
-            'message' => 'Evento creado correctamente como borrador.',
+            'message' =>
+                'Evento y precios guardados correctamente como borrador.',
             'data' => $evento,
         ], 201);
     }
@@ -129,6 +149,68 @@ class AdminEventoController extends Controller
 
         return response()->json([
             'message' => 'Evento publicado correctamente.',
+            'data' => $evento,
+        ]);
+    }
+
+    /**
+     * Modificar contenido informativo de un evento publicado.
+     *
+     * No modifica fecha, recinto, precios ni inventario.
+     * La ruta es exclusiva del Administrador.
+     */
+    public function actualizarContenidoPublicado(
+        Request $request,
+        int $id
+    ): JsonResponse {
+        $datos = $request->validate([
+            'nombre' => [
+                'required', 'string', 'min:3', 'max:255',
+            ],
+            'descripcion' => [
+                'nullable', 'string', 'max:10000',
+            ],
+            'imagen_url' => [
+                'nullable', 'string', 'url',
+                'starts_with:https://', 'max:2048',
+            ],
+            'imagen_url_2' => [
+                'nullable', 'string', 'url',
+                'starts_with:https://', 'max:2048',
+            ],
+            'imagen_url_3' => [
+                'nullable', 'string', 'url',
+                'starts_with:https://', 'max:2048',
+            ],
+        ]);
+
+        $evento = DB::transaction(function () use ($request, $id, $datos) {
+            $evento = Evento::query()
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            if ($evento->estado !== 'publicado') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'estado' => [
+                        'Esta operación solo admite eventos publicados.',
+                    ],
+                ]);
+            }
+
+            $evento->nombre = $datos['nombre'];
+            $evento->descripcion = $datos['descripcion'] ?? null;
+            $evento->imagen_url = $datos['imagen_url'] ?? null;
+            $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;
+            $evento->imagen_url_3 = $datos['imagen_url_3'] ?? null;
+
+            $evento->updated_by = (int) $request->user()->id;
+            $evento->save();
+
+            return $evento->refresh();
+        });
+
+        return response()->json([
+            'message' => 'Información y fotografías actualizadas correctamente.',
             'data' => $evento,
         ]);
     }
@@ -197,4 +279,83 @@ class AdminEventoController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Elimina lógicamente un evento en borrador,
+     * siempre que no tenga registros relacionados.
+     */
+    public function destroy(
+        Request $request,
+        int $id
+    ): JsonResponse {
+
+        DB::transaction(function () use ($request, $id) {
+
+            $evento = Evento::query()
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            // Solo el estado borrador admite eliminación.
+            if ($evento->estado !== 'borrador') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'evento' => [
+                        'Solo se pueden eliminar eventos en borrador.'
+                    ],
+                ]);
+            }
+
+            // Se revisan también las reservas eliminadas
+            // lógicamente para conservar el historial.
+            $tieneReservas = DB::table('reservas')
+                ->where('evento_id', $evento->id)
+                ->exists();
+
+            if ($tieneReservas) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'evento' => [
+                        'Este evento tiene reservas registradas. No puede eliminarse.'
+                    ],
+                ]);
+            }
+
+            // El inventario puede relacionarse con boletos
+            // mediante inventario_id. Por seguridad,
+            // no se elimina un evento que ya tenga inventario.
+            $tieneInventario = DB::table('inventario')
+                ->where('evento_id', $evento->id)
+                ->exists();
+
+            if ($tieneInventario) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'evento' => [
+                        'Este evento tiene inventario generado. '
+                        . 'Debe revisarse antes de eliminarlo.'
+                    ],
+                ]);
+            }
+
+            $usuarioId = (int) $request->user()->id;
+
+            // Retirar lógicamente los precios del evento.
+            DB::table('precios')
+                ->where('evento_id', $evento->id)
+                ->whereNull('deleted_at')
+                ->update([
+                    'deleted_at' => now(),
+                    'updated_at' => now(),
+                    'updated_by' => $usuarioId,
+                ]);
+
+            // Soft Delete: no se elimina físicamente.
+            $evento->updated_by = $usuarioId;
+            $evento->save();
+            $evento->delete();
+        });
+
+        return response()->json([
+            'message' =>
+                'Evento eliminado lógicamente correctamente.',
+        ]);
+    }
+
 }

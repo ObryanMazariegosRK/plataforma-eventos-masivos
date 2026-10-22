@@ -482,9 +482,9 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .catalogo-grid[aria-busy="true"] { opacity: .5; }
 
 .tema-soiree .catalogo-tarjeta {
+    position: relative;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     border: 1px solid var(--t-hilo);
     border-radius: 16px;
     background: var(--t-panel);
@@ -495,7 +495,7 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .catalogo-tarjeta--pasado { opacity: .62; }
 .tema-soiree .catalogo-tarjeta--pasado:hover { opacity: .85; }
 
-.tema-soiree .catalogo-tarjeta__foto { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #1a1714; }
+.tema-soiree .catalogo-tarjeta__foto { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 15px 15px 0 0; background: #1a1714; }
 .tema-soiree .catalogo-tarjeta__foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1s cubic-bezier(.2, .7, .15, 1); }
 .tema-soiree .catalogo-tarjeta:hover .catalogo-tarjeta__foto img { transform: scale(1.04); }
 /* Sobre la foto la pastilla del estado va siempre oscura (se lee en ambos temas) */
@@ -557,3 +557,93 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 /* Botones de gestión dentro de las tarjetas del catálogo */
 .tema-soiree .catalogo-tarjeta__acciones { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
 .tema-soiree .catalogo-tarjeta__acciones .evento-action { padding: 7px 12px; border-radius: 999px; font-size: 12.5px; }
+
+/* Menú "Gestionar" (admin.js): la tarjeta no recorta la lista y queda encima de las de abajo */
+.tema-soiree .catalogo-tarjeta:has(.so-event-menu[open]) { z-index: 5; }
+.tema-soiree .catalogo-tarjeta__acciones .so-event-menu-options { left: 0; right: auto; }
+
+.tema-soiree .so-event-menu-trigger {
+    gap: 8px;
+    padding: 7px 14px;
+    border: 1px solid var(--t-boton);
+    border-radius: 999px;
+    background: var(--t-boton);
+    color: var(--t-boton-texto);
+    font-family: var(--t-cuerpo);
+    font-size: 12.5px;
+    font-weight: 500;
+}
+.tema-soiree .so-event-menu-trigger:hover { border-color: var(--t-boton-hover); background: var(--t-boton-hover); }
+/* flecha dibujada con bordes: el carácter ⌄ quedaba bajo la línea del texto */
+.tema-soiree .so-event-menu-trigger::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+    transition: transform .2s ease;
+}
+.tema-soiree .so-event-menu[open] .so-event-menu-trigger::after { margin-top: 3px; transform: rotate(-135deg); }
+
+.tema-soiree .so-event-menu-options {
+    border: 1px solid var(--t-hilo-2);
+    background: var(--t-panel);
+    box-shadow: var(--t-sombra-dialogo);
+}
+.tema-soiree .so-event-menu-option { color: var(--t-texto); font-family: var(--t-cuerpo); }
+.tema-soiree .so-event-menu-option:hover,
+.tema-soiree .so-event-menu-option:focus-visible { background: var(--t-velo-2); }
+.tema-soiree .so-event-menu-option.is-danger { color: var(--t-rojo); }
+.tema-soiree .so-event-menu-option.is-danger:not(:disabled):hover { background: var(--t-rojo-fondo); }
+
+/* ---------- Configuración (sección de Luis): mismas tarjetas en claro y en oscuro ---------- */
+.tema-soiree :is(.so-config-header h2, .so-config h3, .so-config-field strong, .so-config-system strong,
+    .so-password-heading h3, .so-edit-profile-heading h3) { color: var(--t-texto); }
+.tema-soiree :is(.so-config-header p, .so-config-security p, .so-config-system, .so-password-heading p,
+    .so-password-help, .so-edit-profile-note, #so-password-form label, #so-perfil-form label) { color: var(--t-piedra); }
+.tema-soiree :is(.so-config-eyebrow, .so-config-field span) { color: var(--t-acento); }
+.tema-soiree :is(.so-config-field, .so-config-security, .so-password-card, .so-edit-profile) {
+    border-color: var(--t-hilo);
+    background: var(--t-panel-2);
+}
+.tema-soiree :is(#so-password-form input, #so-perfil-form input) {
+    border-color: var(--t-hilo-2);
+    background: var(--t-campo);
+    color: var(--t-texto);
+}
+.tema-soiree #so-perfil-form input[readonly] { background: var(--t-velo-2); color: var(--t-tenue); }
+.tema-soiree :is(.so-config-logout, #so-password-guardar, #so-perfil-guardar) {
+    border-color: var(--t-boton);
+    background: var(--t-boton);
+    color: var(--t-boton-texto);
+}
+.tema-soiree :is(.so-config-avatar, .so-password-icon) { background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .so-password-message { color: var(--t-verde); }
+.tema-soiree .so-password-message.is-error { color: var(--t-rojo); }
+.tema-soiree .so-fold-card { border-color: var(--t-hilo); background: var(--t-panel-2); }
+.tema-soiree .so-fold-card:hover { border-color: var(--t-acento-borde); }
+.tema-soiree .so-fold-toggle { color: var(--t-texto); }
+.tema-soiree .so-fold-toggle:hover { background: var(--t-velo); }
+.tema-soiree .so-fold-text small { color: var(--t-piedra); }
+.tema-soiree .so-fold-arrow { background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .so-fold-card:not(.is-collapsed) > .so-fold-toggle { border-bottom-color: var(--t-hilo); }
+
+/* ---------- Notificaciones (sección de Luis) ---------- */
+.tema-soiree :is(.so-notifications-head h2, .so-notifications-stats strong, .so-notif-card-head strong) { color: var(--t-texto); }
+.tema-soiree :is(.so-notifications-stats span, .so-notif-type) { color: var(--t-acento); }
+.tema-soiree :is(.so-notif-body p, .so-notif-empty) { color: var(--t-piedra); }
+.tema-soiree :is(.so-notif-card-foot small, .so-notifications-footnote) { color: var(--t-tenue); }
+.tema-soiree .so-notifications-stats > div { border-color: var(--t-hilo); background: var(--t-panel-2); }
+.tema-soiree .so-notif-card { border-color: var(--t-hilo); background: var(--t-panel); }
+.tema-soiree .so-notif-card.so-notif-read { background: var(--t-panel-2); }
+.tema-soiree .so-notif-icon { background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .so-notif-icon[data-tipo="pago"] { background: var(--t-verde-fondo); color: var(--t-verde); }
+.tema-soiree .so-notif-filter { border-color: var(--t-hilo-2); background: transparent; color: var(--t-piedra); }
+.tema-soiree .so-notif-filter[aria-pressed="true"] { border-color: var(--t-boton); background: var(--t-boton); color: var(--t-boton-texto); }
+.tema-soiree .so-notif-link { border-color: var(--t-acento-borde); background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .so-notif-link:hover { background: var(--t-velo-2); }
+.tema-soiree .so-notif-mark { color: var(--t-acento); }
+.tema-soiree .so-notif-mark:hover:not(:disabled) { color: var(--t-texto); }
+.tema-soiree .so-notif-mark:disabled { color: var(--t-tenue); }

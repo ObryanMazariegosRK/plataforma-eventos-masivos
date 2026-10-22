@@ -40,52 +40,364 @@ class AdministracionController extends Controller
 
     public function reservas(Request $request): JsonResponse
     {
-        return response()->json(DB::table('reservas as r')
+        $reservas = DB::table('reservas as r')
             ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
-            ->whereNull('r.deleted_at')->select('r.id', 'r.estado', 'r.total', 'r.created_at', 'e.nombre as evento')
-            ->orderByDesc('r.id')->paginate(10));
+            ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
+            ->whereNull('r.deleted_at')
+            ->select([
+                'r.id',
+                'r.usuario_id',
+                'r.evento_id',
+                'r.estado',
+                'r.total',
+                'r.expira_en',
+                'r.created_at',
+                'r.updated_at',
+                'e.nombre as evento',
+                'u.nombre as cliente_nombre',
+                'u.apellido as cliente_apellido',
+                'u.email as cliente_email',
+            ])
+            ->orderByDesc('r.id')
+            ->paginate(10);
+
+        return response()->json($reservas);
     }
 
     public function pagos(Request $request): JsonResponse
     {
-        return response()->json(DB::table('pagos')->whereNull('deleted_at')
-            ->select('id', 'reserva_id', 'monto', 'estado', 'created_at')
-            ->orderByDesc('id')->paginate(10));
+        $pagos = DB::table('pagos as p')
+            ->leftJoin('reservas as r', 'r.id', '=', 'p.reserva_id')
+            ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
+            ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
+            ->whereNull('p.deleted_at')
+            ->select([
+                'p.id',
+                'p.reserva_id',
+                'p.monto',
+                'p.estado',
+                'p.created_at',
+                'p.updated_at',
+                'r.usuario_id',
+                'r.evento_id',
+                'r.estado as reserva_estado',
+                'e.nombre as evento',
+                'u.nombre as cliente_nombre',
+                'u.apellido as cliente_apellido',
+                'u.email as cliente_email',
+            ])
+            ->orderByDesc('p.id')
+            ->paginate(10);
+
+        return response()->json($pagos);
     }
 
-    public function reporteCsv(Request $request): StreamedResponse
+    /**
+     * Consultar una reserva concreta, solo Administrador.
+     */
+    public function reservaDetalle(int $id): JsonResponse
     {
-        $validado = $request->validate([
-            'tipo' => ['required', 'in:usuarios,eventos,reservas,pagos'],
-            'desde' => ['nullable', 'date_format:Y-m-d', 'required_with:hasta'],
-            'hasta' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:desde', 'required_with:desde'],
-        ]);
-        $tipo = $validado['tipo'];
-        $columnas = match ($tipo) {
-            'usuarios' => ['id', 'nombre', 'apellido', 'email', 'rol', 'estado', 'created_at'],
-            'eventos' => ['id', 'recinto_id', 'nombre', 'fecha_evento', 'estado', 'created_at'],
-            'reservas' => ['id', 'usuario_id', 'evento_id', 'estado', 'total', 'created_at'],
-            'pagos' => ['id', 'reserva_id', 'monto', 'estado', 'created_at'],
-        };
-        $query = DB::table($tipo)->whereNull('deleted_at')->orderBy('id');
-        if (!empty($validado['desde'])) $query->whereDate('created_at', '>=', $validado['desde']);
-        if (!empty($validado['hasta'])) $query->whereDate('created_at', '<=', $validado['hasta']);
+        $reserva = DB::table('reservas as r')
+            ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
+            ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
+            ->where('r.id', $id)
+            ->whereNull('r.deleted_at')
+            ->select([
+                'r.id',
+                'r.usuario_id',
+                'r.evento_id',
+                'r.estado',
+                'r.total',
+                'r.expira_en',
+                'r.created_at',
+                'r.updated_at',
+                'e.nombre as evento',
+                'u.nombre as cliente_nombre',
+                'u.apellido as cliente_apellido',
+                'u.email as cliente_email',
+            ])
+            ->first();
 
-        return response()->streamDownload(function () use ($query, $columnas) {
-            $salida = fopen('php://output', 'w');
-            // UTF-8 BOM for Excel. Escape formula-leading input to prevent CSV injection.
-            fwrite($salida, "\xEF\xBB\xBF");
-            fputcsv($salida, $columnas);
-            foreach ($query->select($columnas)->cursor() as $fila) {
-                $valores = [];
-                foreach ($columnas as $campo) {
-                    $valor = (string) ($fila->{$campo} ?? '');
-                    if (preg_match('/^[\s\x00-\x1F]*[=+@\-]/u', $valor)) $valor = "'" . $valor;
-                    $valores[] = $valor;
-                }
-                fputcsv($salida, $valores);
-            }
-            fclose($salida);
-        }, 'pulso_' . $tipo . '_' . date('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        abort_if(!$reserva, 404, 'Reserva no encontrada.');
+
+        return response()->json(['data' => $reserva]);
     }
+
+    /**
+     * Consultar un pago concreto, solo Administrador.
+     */
+    public function pagoDetalle(int $id): JsonResponse
+    {
+        $pago = DB::table('pagos as p')
+            ->leftJoin('reservas as r', 'r.id', '=', 'p.reserva_id')
+            ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
+            ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
+            ->where('p.id', $id)
+            ->whereNull('p.deleted_at')
+            ->select([
+                'p.id',
+                'p.reserva_id',
+                'p.monto',
+                'p.estado',
+                'p.created_at',
+                'p.updated_at',
+                'r.usuario_id',
+                'r.evento_id',
+                'r.estado as reserva_estado',
+                'e.nombre as evento',
+                'u.nombre as cliente_nombre',
+                'u.apellido as cliente_apellido',
+                'u.email as cliente_email',
+            ])
+            ->first();
+
+        abort_if(!$pago, 404, 'Pago no encontrado.');
+
+        return response()->json(['data' => $pago]);
+    }
+
+    /**
+     * Exportación administrativa CSV para Excel.
+     * Solo lectura; no modifica información.
+     */
+    public function reporteCsv(
+        Request $request
+    ): StreamedResponse {
+        $datos = $request->validate([
+            'tipo' => [
+                'required',
+                'in:usuarios,eventos,reservas,pagos',
+            ],
+            'desde' => [
+                'nullable',
+                'date_format:Y-m-d',
+                'required_with:hasta',
+            ],
+            'hasta' => [
+                'nullable',
+                'date_format:Y-m-d',
+                'required_with:desde',
+                'after_or_equal:desde',
+            ],
+        ]);
+
+        $tipo = $datos['tipo'];
+
+        // Encabezados comprensibles y columnas reales de MySQL.
+        switch ($tipo) {
+            case 'reservas':
+                $consulta = DB::table('reservas as r')
+                    ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
+                    ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
+                    ->whereNull('r.deleted_at')
+                    ->select([
+                        'r.id as numero',
+                        'e.nombre as evento',
+                        'u.nombre as nombre',
+                        'u.apellido as apellido',
+                        'u.email as correo',
+                        'r.estado as estado',
+                        'r.total as importe',
+                        'r.expira_en as vencimiento',
+                        'r.created_at as registro',
+                    ]);
+
+                $fechaColumna = 'r.created_at';
+
+                $columnas = [
+                    'numero' => 'Numero de reserva',
+                    'evento' => 'Evento',
+                    'nombre' => 'Nombre',
+                    'apellido' => 'Apellido',
+                    'correo' => 'Correo electronico',
+                    'estado' => 'Estado',
+                    'importe' => 'Total (GTQ)',
+                    'vencimiento' => 'Vencimiento',
+                    'registro' => 'Fecha de registro',
+                ];
+                break;
+
+            case 'pagos':
+                $consulta = DB::table('pagos as p')
+                    ->leftJoin('reservas as r', 'r.id', '=', 'p.reserva_id')
+                    ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
+                    ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
+                    ->whereNull('p.deleted_at')
+                    ->select([
+                        'p.id as numero',
+                        'p.reserva_id as reserva',
+                        'e.nombre as evento',
+                        'u.nombre as nombre',
+                        'u.apellido as apellido',
+                        'u.email as correo',
+                        'p.estado as estado',
+                        'p.monto as importe',
+                        'p.created_at as registro',
+                    ]);
+
+                $fechaColumna = 'p.created_at';
+
+                $columnas = [
+                    'numero' => 'Numero de pago',
+                    'reserva' => 'Reserva',
+                    'evento' => 'Evento',
+                    'nombre' => 'Nombre',
+                    'apellido' => 'Apellido',
+                    'correo' => 'Correo electronico',
+                    'estado' => 'Estado del pago',
+                    'importe' => 'Monto (GTQ)',
+                    'registro' => 'Fecha de registro',
+                ];
+                break;
+
+            case 'eventos':
+                $consulta = DB::table('eventos as e')
+                    ->leftJoin('recintos as re', 're.id', '=', 'e.recinto_id')
+                    ->whereNull('e.deleted_at')
+                    ->select([
+                        'e.id as numero',
+                        'e.nombre as evento',
+                        're.nombre as recinto',
+                        're.ciudad as ciudad',
+                        'e.estado as estado',
+                        'e.fecha_evento as fecha',
+                        'e.fecha_publicacion as publicacion',
+                        'e.created_at as registro',
+                    ]);
+
+                $fechaColumna = 'e.created_at';
+
+                $columnas = [
+                    'numero' => 'Numero de evento',
+                    'evento' => 'Evento',
+                    'recinto' => 'Recinto',
+                    'ciudad' => 'Ciudad',
+                    'estado' => 'Estado',
+                    'fecha' => 'Fecha del evento',
+                    'publicacion' => 'Fecha de publicacion',
+                    'registro' => 'Fecha de registro',
+                ];
+                break;
+
+            default:
+                $consulta = DB::table('usuarios as u')
+                    ->whereNull('u.deleted_at')
+                    ->select([
+                        'u.id as numero',
+                        'u.nombre as nombre',
+                        'u.apellido as apellido',
+                        'u.email as correo',
+                        'u.rol as rol',
+                        'u.estado as estado',
+                        'u.created_at as registro',
+                    ]);
+
+                $fechaColumna = 'u.created_at';
+
+                $columnas = [
+                    'numero' => 'Numero de usuario',
+                    'nombre' => 'Nombre',
+                    'apellido' => 'Apellido',
+                    'correo' => 'Correo electronico',
+                    'rol' => 'Rol',
+                    'estado' => 'Estado',
+                    'registro' => 'Fecha de registro',
+                ];
+                break;
+        }
+
+        if (!empty($datos['desde'])) {
+            $consulta->whereDate(
+                $fechaColumna,
+                '>=',
+                $datos['desde']
+            );
+        }
+
+        if (!empty($datos['hasta'])) {
+            $consulta->whereDate(
+                $fechaColumna,
+                '<=',
+                $datos['hasta']
+            );
+        }
+
+        $consulta->orderBy($fechaColumna)
+                 ->orderBy(
+                     match ($tipo) {
+                         'reservas' => 'r.id',
+                         'pagos' => 'p.id',
+                         'eventos' => 'e.id',
+                         default => 'u.id',
+                     }
+                 );
+
+        $nombreArchivo = 'soiree_' .
+            $tipo . '_' .
+            now()->format('Ymd_His') .
+            '.csv';
+
+        return response()->streamDownload(
+            function () use ($consulta, $columnas) {
+                $salida = fopen('php://output', 'w');
+
+                // BOM para mostrar caracteres UTF-8 en Excel.
+                fwrite($salida, "\xEF\xBB\xBF");
+                fwrite($salida, "sep=,\r\n");
+
+                fputcsv($salida, array_values($columnas));
+
+                foreach ($consulta->cursor() as $fila) {
+                    $valores = [];
+
+                    foreach ($columnas as $campo => $titulo) {
+                        $valor = $fila->{$campo} ?? '';
+
+                        if ($valor === null) {
+                            $valor = '';
+                        }
+
+                        if ($campo === 'importe' && $valor !== '') {
+                            // Sin símbolo Q: permite calcular sumas.
+                            $valor = number_format(
+                                (float) $valor,
+                                2,
+                                '.',
+                                ''
+                            );
+                        } elseif (in_array($campo, [
+                            'registro',
+                            'vencimiento',
+                            'fecha',
+                            'publicacion',
+                        ], true) && $valor !== '') {
+                            $valor = \Carbon\Carbon::parse($valor)
+                                ->format('Y-m-d H:i:s');
+                        } else {
+                            $valor = (string) $valor;
+                        }
+
+                        // Evitar fórmulas ejecutables al abrir
+                        // campos de texto en aplicaciones de hojas
+                        // de cálculo.
+                        if (
+                            $campo !== 'importe' &&
+                            preg_match('/^[\s\x00-\x1F]*[=+@\-]/u', $valor)
+                        ) {
+                            $valor = "'" . $valor;
+                        }
+
+                        $valores[] = $valor;
+                    }
+
+                    fputcsv($salida, $valores);
+                }
+
+                fclose($salida);
+            },
+            $nombreArchivo,
+            ['Content-Type' => 'text/csv; charset=UTF-8']
+        );
+    }
+
 }
