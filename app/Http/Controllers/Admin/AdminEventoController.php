@@ -83,13 +83,33 @@ class AdminEventoController extends Controller
         GuardarEventoRequest $request,
         CrearEventoUseCase $crearEvento
     ): JsonResponse {
-        $evento = $crearEvento->ejecutar(
+        $precios = $request->validate([
+            'precios' => ['required', 'array', 'min:1'],
+            'precios.*.localidad_id' => [
+                'required', 'integer', 'distinct',
+            ],
+            'precios.*.precio' => [
+                'required',
+                'numeric',
+                'gt:0',
+                'decimal:0,2',
+                'max:99999999.99',
+            ],
+        ]);
+
+        $datos = array_merge(
             $request->validated(),
+            $precios
+        );
+
+        $evento = $crearEvento->ejecutar(
+            $datos,
             (int) $request->user()->id
         );
 
         return response()->json([
-            'message' => 'Evento creado correctamente como borrador.',
+            'message' =>
+                'Evento y precios guardados correctamente como borrador.',
             'data' => $evento,
         ], 201);
     }

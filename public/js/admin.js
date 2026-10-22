@@ -1338,6 +1338,114 @@
             .slice(0, 16);
     }
 
+    // =====================================================
+    // LOCALIDADES DINÁMICAS DEL FORMULARIO DE EVENTOS
+    // =====================================================
+
+    let versionLocalidades = 0;
+
+    async function loadVenueLocalities(recintoId, eventoId = null) {
+        const version = ++versionLocalidades;
+        const lista = $('evento-localidades-lista');
+        const panel = $('evento-localidades-panel');
+        const mensaje = $('evento-localidades-feedback');
+
+        if (!lista || !panel) return;
+
+        lista.replaceChildren();
+        if (mensaje) mensaje.hidden = true;
+
+        // La edición de precios existentes conserva el módulo
+        // de precios independiente, con sus reglas de seguridad.
+        if (eventoId !== null) {
+            panel.hidden = true;
+            return;
+        }
+
+        panel.hidden = false;
+
+        if (!recintoId) {
+            lista.append(el(
+                'p',
+                'Selecciona un recinto para cargar sus localidades.',
+                'muted'
+            ));
+            return;
+        }
+
+        lista.append(el('p', 'Cargando localidades...', 'muted'));
+
+        try {
+            const response = await api(
+                'eventos/recintos/' +
+                encodeURIComponent(recintoId) +
+                '/localidades'
+            );
+
+            const data = await response.json();
+
+            if (version !== versionLocalidades) return;
+
+            // Ignorar respuestas de un recinto anterior.
+            if ($('evento-recinto').value !== String(recintoId)) return;
+
+            lista.replaceChildren();
+
+            if (!Array.isArray(data.localidades) ||
+                data.localidades.length === 0) {
+
+                lista.append(el(
+                    'p',
+                    'Este recinto no tiene localidades configuradas.',
+                    'muted'
+                ));
+                return;
+            }
+
+            for (const localidad of data.localidades) {
+                const fila = el('div', undefined, 'evento-precio-fila');
+
+                const informacion = el('div');
+                informacion.append(
+                    el('strong', localidad.nombre),
+                    el(
+                        'small',
+                        (localidad.tipo === 'numerada'
+                            ? 'Asientos numerados'
+                            : 'Zona general') +
+                        ' · Capacidad: ' + localidad.capacidad
+                    )
+                );
+
+                const etiqueta = document.createElement('label');
+                etiqueta.textContent = 'Precio (Q)';
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '0.01';
+                input.max = '99999999.99';
+                input.step = '0.01';
+                input.placeholder = '0.00';
+                input.required = true;
+                input.dataset.localidadId = localidad.id;
+                input.className = 'evento-localidad-precio';
+
+                etiqueta.append(input);
+                fila.append(informacion, etiqueta);
+                lista.append(fila);
+            }
+        } catch (error) {
+            if (version !== versionLocalidades) return;
+
+            lista.replaceChildren();
+
+            if (mensaje) {
+                mensaje.textContent = error.message;
+                mensaje.hidden = false;
+            }
+        }
+    }
+
     async function openEventForm(evento = null) {
         if (section !== 'eventos') {
             return;
@@ -1393,6 +1501,10 @@
 
         try {
             await loadRecintos(evento?.recinto_id ?? '');
+            await loadVenueLocalities(
+                $('evento-recinto').value,
+                evento?.id ?? null
+            );
         } catch (error) {
             formFeedback(error.message, true);
         }
@@ -1838,6 +1950,17 @@
     const eventForm = $('evento-form');
 
     if (eventForm) {
+        const recintoSelect = $('evento-recinto');
+
+        if (recintoSelect) {
+            recintoSelect.addEventListener('change', () => {
+                loadVenueLocalities(
+                    recintoSelect.value,
+                    editingEventId
+                );
+            });
+        }
+
         eventForm.addEventListener('submit', async event => {
             event.preventDefault();
 
@@ -1884,6 +2007,41 @@
             };
 
             const isEditing = editingEventId !== null;
+
+            if (!isEditing) {
+                const campos = [
+                    ...$('evento-localidades-lista')
+                        .querySelectorAll('input[data-localidad-id]')
+                ];
+
+                if (!campos.length) {
+                    formFeedback(
+                        'Selecciona un recinto con localidades configuradas.',
+                        true
+                    );
+                    return;
+                }
+
+                const precios = campos.map(input => ({
+                    localidad_id: Number(input.dataset.localidadId),
+                    precio: input.value.trim()
+                }));
+
+                if (precios.some(item =>
+                    !item.precio ||
+                    !Number.isFinite(Number(item.precio)) ||
+                    Number(item.precio) <= 0 ||
+                    Number(item.precio) > 99999999.99
+                )) {
+                    formFeedback(
+                        'Asigna un precio válido mayor que Q0 a cada localidad.',
+                        true
+                    );
+                    return;
+                }
+
+                payload.precios = precios;
+            }
 
             const path = isEditing
                 ? 'eventos/' + editingEventId

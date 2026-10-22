@@ -692,6 +692,43 @@
 
         </div>
 
+        <!-- PRECIOS SEGÚN EL RECINTO -->
+        <section id="evento-localidades-panel"
+                 class="evento-localidades-panel"
+                 aria-labelledby="evento-localidades-title">
+
+            <div class="evento-localidades-heading">
+                <div>
+                    <span class="evento-localidades-eyebrow">
+                        SOIRÉE · CONFIGURACIÓN DE TARIFAS
+                    </span>
+                    <h3 id="evento-localidades-title">
+                        Localidades y precios
+                    </h3>
+                    <p>
+                        Configura el precio de cada localidad
+                        disponible en el recinto seleccionado.
+                    </p>
+                </div>
+                <span class="evento-localidades-currency">
+                    GTQ · Quetzales
+                </span>
+            </div>
+
+            <div id="evento-localidades-lista"
+                 class="evento-localidades-lista"
+                 aria-live="polite">
+                <p class="muted">
+                    Selecciona un recinto para ver sus localidades.
+                </p>
+            </div>
+
+            <p id="evento-localidades-feedback"
+               class="evento-form-feedback"
+               role="status"
+               hidden></p>
+        </section>
+
         <div
             id="evento-form-feedback"
             class="evento-form-feedback"
