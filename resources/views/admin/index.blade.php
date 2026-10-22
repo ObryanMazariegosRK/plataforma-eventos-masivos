@@ -14,21 +14,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap"
           rel="stylesheet">
 
     <!-- Administración: una sola hoja de estilos consolidada -->
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ filemtime(public_path('css/admin.css')) }}">
+    <!-- Tema Soiree claro/oscuro (estilo de la tienda): solo apariencia, va encima de admin.css -->
+    <link rel="stylesheet" href="{{ asset('css/admin-tema.css') }}?v={{ filemtime(public_path('css/admin-tema.css')) }}">
+    <!-- Aplica el tema guardado antes de dibujar la página (sin destello al recargar) -->
+    <script>
+        try { document.documentElement.dataset.tema = localStorage.getItem('tema_panel') === 'oscuro' ? 'oscuro' : 'claro'; }
+        catch { document.documentElement.dataset.tema = 'claro'; }
+    </script>
+    <script defer src="{{ asset('js/admin-tema.js') }}?v={{ filemtime(public_path('js/admin-tema.js')) }}"></script>
 
     <!-- JavaScript: conservar los módulos funcionales existentes -->
-    <script defer src="{{ asset('js/admin.js') }}?v=15"></script>
+    <script defer src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
     <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
 
 </head>
 
-<body>
+<body class="tema-soiree">
 
 <!-- =================================================
      ICONOS SVG
@@ -157,6 +166,17 @@
                 </svg>
 
                 <span>Eventos</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
+                    data-section="catalogo">
+
+                <svg class="nav-icon">
+                    <use href="#i-search"/>
+                </svg>
+
+                <span>Catálogo de eventos</span>
             </button>
 
             <button type="button"
@@ -318,6 +338,12 @@
                     SESIÓN ADMIN
                 </span>
 
+                {{-- Cambiar entre tema claro y oscuro (admin-tema.js) --}}
+                <button type="button" class="boton-tema" id="btnTema" aria-label="Cambiar a tema oscuro" title="Cambiar a tema oscuro">
+                    <svg class="icono-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+                    <svg class="icono-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
+                </button>
+
                 <span class="avatar">AD</span>
 
                 <span>Administrador</span>
@@ -342,6 +368,17 @@
                     Gestiona eventos, reservas y todo lo que hace
                     posible grandes experiencias.
                 </p>
+
+                {{-- Solo en la sección de eventos (admin-tema.css): antes estaba en un
+                     recuadro aparte (#eventos-tools) que repetía este mismo encabezado --}}
+                <div class="hero-acciones">
+                    <button
+                        type="button"
+                        class="primary"
+                        id="btn-nuevo-evento">
+                        + Nuevo evento
+                    </button>
+                </div>
 
             </div>
 
@@ -537,13 +574,18 @@
         </p>
     </div>
 
-    <button
-        type="button"
-        class="primary"
-        id="btn-nuevo-evento">
-        + Nuevo evento
-    </button>
+    {{-- El botón "+ Nuevo evento" pasó al encabezado (.hero-acciones) --}}
 
+</div>
+
+{{-- Eventos sirve para crear y editar; la lista con sus acciones está en el catálogo.
+     Se ve solo en Eventos y sin un formulario abierto (admin-tema.css) --}}
+<div class="eventos-aviso">
+    <div>
+        <strong>¿Buscas un evento que ya existe?</strong>
+        <span>Para verlo, editarlo, ponerle precios o publicarlo, búscalo en el catálogo.</span>
+    </div>
+    <button type="button" class="banner-boton" data-go="catalogo">Ir al catálogo de eventos</button>
 </div>
 
 <!-- ==========================================
@@ -865,6 +907,53 @@
 
             </article>
 
+        </section>
+
+        <!-- =================================================
+             CATÁLOGO DE EVENTOS (admin-catalogo-eventos.js)
+             Búsqueda con filtros sobre todos los eventos:
+             GET /api/admin/eventos/catalogo
+        ================================================= -->
+
+        <section id="catalogo-panel" class="catalogo-panel" hidden>
+            <form class="catalogo-filtros" id="catalogo-filtros" role="search" aria-label="Filtrar eventos">
+                <label class="catalogo-filtros__nombre">
+                    <span>Nombre</span>
+                    <input type="search" name="nombre" placeholder="Buscar un evento…" autocomplete="off">
+                </label>
+                <label>
+                    <span>Estado</span>
+                    <select name="estado">
+                        <option value="">Todos</option>
+                        <option value="publicado">Publicado</option>
+                        <option value="borrador">Borrador</option>
+                        <option value="agotado">Agotado</option>
+                        <option value="finalizado">Finalizado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Recinto</span>
+                    <select name="recinto_id" id="catalogo-recinto">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Desde</span>
+                    <input type="date" name="desde">
+                </label>
+                <label>
+                    <span>Hasta</span>
+                    <input type="date" name="hasta">
+                </label>
+                <button type="reset" class="catalogo-limpiar">Limpiar</button>
+            </form>
+
+            <p class="catalogo-resumen" id="catalogo-resumen" role="status" aria-live="polite"></p>
+            <div class="catalogo-grid" id="catalogo-grid"></div>
+            <div class="catalogo-mas">
+                <button type="button" class="banner-boton" id="catalogo-ver-mas" hidden>Ver más eventos</button>
+            </div>
         </section>
 
         <!-- =================================================

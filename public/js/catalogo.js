@@ -1103,8 +1103,8 @@ document.addEventListener('DOMContentLoaded', () => {
             crearEnlace('Mi perfil', '/perfil')
         );
 
-        // Los administradores pueden regresar a su panel.
-        if (rol === 'admin') {
+        // Administradores y agentes operativos (organizador) pueden regresar a su panel.
+        if (rol === 'admin' || rol === 'organizador') {
             menu.appendChild(
                 crearEnlace(
                     'Panel administrativo',
