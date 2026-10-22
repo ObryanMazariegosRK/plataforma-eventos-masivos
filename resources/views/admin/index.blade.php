@@ -218,7 +218,11 @@
                 </svg>
 
                 <span>Notificaciones</span>
-                <span class="nav-soon">Pronto</span>
+                <span id="so-notif-badge"
+                      class="so-notif-badge"
+                      aria-label="Notificaciones pendientes"
+                      hidden>0</span>
+
             </button>
 
             <button type="button"
@@ -241,7 +245,7 @@
                     <use href="#i-chart"/>
                 </svg>
 
-                <span>Reportes CSV</span>
+                <span>Reportes</span>
             </button>
 
             <button type="button"
@@ -253,7 +257,7 @@
                 </svg>
 
                 <span>Configuración</span>
-                <span class="nav-soon">Pronto</span>
+
             </button>
 
         </nav>
@@ -692,6 +696,43 @@
 
         </div>
 
+        <!-- PRECIOS SEGÚN EL RECINTO -->
+        <section id="evento-localidades-panel"
+                 class="evento-localidades-panel"
+                 aria-labelledby="evento-localidades-title">
+
+            <div class="evento-localidades-heading">
+                <div>
+                    <span class="evento-localidades-eyebrow">
+                        SOIRÉE · CONFIGURACIÓN DE TARIFAS
+                    </span>
+                    <h3 id="evento-localidades-title">
+                        Localidades y precios
+                    </h3>
+                    <p>
+                        Configura el precio de cada localidad
+                        disponible en el recinto seleccionado.
+                    </p>
+                </div>
+                <span class="evento-localidades-currency">
+                    GTQ · Quetzales
+                </span>
+            </div>
+
+            <div id="evento-localidades-lista"
+                 class="evento-localidades-lista"
+                 aria-live="polite">
+                <p class="muted">
+                    Selecciona un recinto para ver sus localidades.
+                </p>
+            </div>
+
+            <p id="evento-localidades-feedback"
+               class="evento-form-feedback"
+               role="status"
+               hidden></p>
+        </section>
+
         <div
             id="evento-form-feedback"
             class="evento-form-feedback"
@@ -858,6 +899,17 @@
                 <span class="banner-vista__estado" id="banner-estado">Cargando…</span>
             </div>
 
+            <div class="so-banner-info">
+                <div class="so-banner-info__item">
+                    <span>ESTADO DE PORTADA</span>
+                    <strong id="banner-info-estado">Consultando...</strong>
+                </div>
+                <div class="so-banner-info__item">
+                    <span>ARCHIVO</span>
+                    <strong id="banner-info-archivo">Sin cambios pendientes</strong>
+                </div>
+            </div>
+
             <label class="banner-zona" id="banner-zona">
                 <input type="file"
                        id="banner-archivo"
@@ -870,15 +922,272 @@
             <p id="banner-mensaje" class="banner-mensaje" role="status" aria-live="polite"></p>
 
             <div class="banner-acciones">
-                <button type="button" class="primary" id="banner-publicar" hidden>Publicar en el catálogo</button>
-                <button type="button" class="banner-boton" id="banner-cancelar" hidden>Cancelar</button>
-                <button type="button" class="banner-boton banner-boton--quitar" id="banner-quitar" hidden>Quitar y usar la foto por defecto</button>
+                <button type="button" class="primary" id="banner-publicar" hidden>Guardar y publicar portada</button>
+                <button type="button" class="banner-boton" id="banner-cancelar" hidden>Descartar cambios</button>
+                <button type="button" class="banner-boton banner-boton--quitar" id="banner-quitar" hidden>Restaurar portada original</button>
             </div>
         </section>
 
         <!-- =================================================
              SECCIONES PENDIENTES
         ================================================= -->
+
+        <!-- CENTRO DE NOTIFICACIONES DEL ADMINISTRADOR -->
+        <section id="notificaciones-panel"
+                 class="panel so-notifications"
+                 hidden>
+
+            <div class="so-notifications-head">
+                <div>
+                    <span class="section-kicker">ACTIVIDAD DE SOIRÉE</span>
+                    <h2>Centro de notificaciones</h2>
+                    <p class="muted">
+                        Reservas, pagos aprobados y boletos emitidos.
+                    </p>
+                </div>
+
+                <button type="button"
+                        class="banner-boton"
+                        id="so-notificaciones-recargar">
+                    Actualizar
+                </button>
+            </div>
+
+            <div class="so-notifications-stats">
+                <div><span>ACTIVIDAD RECIENTE</span>
+                    <strong id="so-notif-total">—</strong></div>
+                <div><span>RESERVAS</span>
+                    <strong id="so-notif-reservas">—</strong></div>
+                <div><span>PAGOS APROBADOS</span>
+                    <strong id="so-notif-pagos">—</strong></div>
+                <div><span>COMPRAS EMITIDAS</span>
+                    <strong id="so-notif-compras">—</strong></div>
+            </div>
+
+            <div class="so-notifications-filters"
+                 id="so-notificaciones-filtros"
+                 aria-label="Filtrar actividad">
+            </div>
+
+            <p id="so-notificaciones-estado"
+               class="muted"
+               role="status"
+               aria-live="polite"></p>
+
+            <div id="so-notificaciones-lista"
+                 class="so-notifications-list">
+            </div>
+
+            <p class="so-notifications-footnote">
+                Actividad reciente basada en registros del sistema.
+                Se actualiza automáticamente cada 30 segundos.
+            </p>
+        </section>
+
+
+        <!-- CONFIGURACIÓN DE CUENTA SOIRÉE -->
+        <section id="so-configuracion"
+                 class="panel so-config"
+                 hidden>
+
+            <div class="so-config-header">
+                <div class="so-config-avatar" id="so-config-iniciales">
+                    US
+                </div>
+
+                <div>
+                    <span class="so-config-eyebrow">
+                        SOIRÉE · MI CUENTA
+                    </span>
+                    <h2>Configuración de mi perfil</h2>
+                    <p>
+                        Información personal y seguridad de la cuenta.
+                    </p>
+                </div>
+            </div>
+
+            <h3>Información personal</h3>
+
+            <div class="so-config-grid">
+                <div class="so-config-field">
+                    <span>Nombre completo</span>
+                    <strong id="so-config-nombre">—</strong>
+                </div>
+
+                <div class="so-config-field">
+                    <span>Correo electrónico</span>
+                    <strong id="so-config-correo">—</strong>
+                </div>
+
+                <div class="so-config-field">
+                    <span>Rol</span>
+                    <strong id="so-config-rol">—</strong>
+                </div>
+
+                <div class="so-config-field">
+                    <span>Estado de cuenta</span>
+                    <strong id="so-config-estado">—</strong>
+                </div>
+
+                <div class="so-config-field">
+                    <span>ID de usuario</span>
+                    <strong id="so-config-id">—</strong>
+                </div>
+            </div>
+
+
+            <!-- SOIRÉE — CAMBIO DE CONTRASEÑA -->
+            <div class="so-password-card">
+                <div class="so-password-heading">
+                    <span class="so-password-icon">✦</span>
+                    <div>
+                        <h3>Cambiar contraseña</h3>
+                        <p>
+                            Actualiza tu contraseña para mantener
+                            protegida tu cuenta.
+                        </p>
+                    </div>
+                </div>
+
+                <form id="so-password-form" autocomplete="off">
+
+                    <label for="so-password-actual">
+                        Contraseña actual
+                    </label>
+                    <input
+                        id="so-password-actual"
+                        name="password_actual"
+                        type="password"
+                        autocomplete="current-password"
+                        required>
+
+                    <label for="so-password-nueva">
+                        Nueva contraseña
+                    </label>
+                    <input
+                        id="so-password-nueva"
+                        name="password"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required>
+
+                    <label for="so-password-confirmar">
+                        Confirmar nueva contraseña
+                    </label>
+                    <input
+                        id="so-password-confirmar"
+                        name="password_confirmation"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required>
+
+                    <p class="so-password-help">
+                        La contraseña debe cumplir las reglas
+                        de seguridad establecidas por Soirée.
+                    </p>
+
+                    <p
+                        id="so-password-mensaje"
+                        class="so-password-message"
+                        role="status"
+                        aria-live="polite">
+                    </p>
+
+                    <button
+                        type="submit"
+                        id="so-password-guardar">
+                        Actualizar contraseña
+                    </button>
+                </form>
+            </div>
+
+
+            <!-- SOIRÉE — EDITAR MI PERFIL -->
+            <div class="so-edit-profile">
+                <div class="so-edit-profile-heading">
+                    <div>
+                        <span class="so-config-eyebrow">
+                            INFORMACIÓN PERSONAL
+                        </span>
+                        <h3>Editar mi perfil</h3>
+                        <p>Actualiza los datos de tu cuenta.</p>
+                    </div>
+                </div>
+
+                <form id="so-perfil-form">
+                    <div class="so-edit-profile-grid">
+                        <label>
+                            Nombre
+                            <input id="so-perfil-nombre"
+                                   name="nombre"
+                                   maxlength="100"
+                                   autocomplete="given-name"
+                                   required>
+                        </label>
+
+                        <label>
+                            Apellido
+                            <input id="so-perfil-apellido"
+                                   name="apellido"
+                                   maxlength="100"
+                                   autocomplete="family-name"
+                                   required>
+                        </label>
+                    </div>
+
+                    <label>
+                        Correo electrónico
+                        <input id="so-perfil-email"
+                               type="email"
+                               readonly>
+                    </label>
+
+                    <p class="so-edit-profile-note">
+                        Por seguridad, el correo se mantiene
+                        protegido hasta habilitar su verificación.
+                    </p>
+
+                    <p id="so-perfil-mensaje"
+                       role="status"
+                       aria-live="polite"></p>
+
+                    <button id="so-perfil-guardar"
+                            type="submit">
+                        Guardar cambios
+                    </button>
+                </form>
+            </div>
+
+            <div class="so-config-security">
+                <h3>Seguridad y sesión</h3>
+                <p>
+                    Tu sesión está protegida mediante autenticación.
+                    Al salir deberás iniciar sesión nuevamente.
+                </p>
+
+                <button type="button"
+                        id="so-config-logout"
+                        class="so-config-logout">
+                    Cerrar sesión
+                </button>
+
+                <p id="so-config-mensaje"
+                   class="so-config-message"
+                   role="status"
+                   aria-live="polite">
+                    Puedes cerrar tu sesión de forma segura.
+                </p>
+            </div>
+
+            <div class="so-config-system">
+                <strong>SOIRÉE</strong>
+                <span>
+                    Plataforma de Eventos Masivos · Panel administrativo
+                </span>
+            </div>
+        </section>
 
         <section id="coming-soon"
                  class="panel coming-soon"
@@ -956,10 +1265,29 @@
                            type="date">
                 </label>
 
-                <button class="primary"
+
+<div class="soiree-export-field">
+    <label for="soiree-formato">
+        Formato del reporte
+    </label>
+
+    <select id="soiree-formato" name="formato">
+        <option value="excel">
+            Excel profesional (.xlsx)
+        </option>
+        <option value="pdf">
+            Documento PDF (.pdf)
+        </option>
+        <option value="csv">
+            Datos CSV (.csv)
+        </option>
+    </select>
+</div>
+
+<button class="primary"
                         type="submit">
 
-                    Descargar CSV
+                    Generar informe
                 </button>
 
             </form>

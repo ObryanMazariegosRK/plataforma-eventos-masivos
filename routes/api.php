@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -63,7 +64,6 @@ Route::prefix('auth')->group(function () {
         'restablecerPassword'
     ])->middleware('throttle:10,1');
 
-
     // Acciones de usuarios autenticados.
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -107,8 +107,11 @@ Route::get('/eventos/{id}', [
     'show'
 ])->whereNumber('id');
 
-// Fondo de la portada del catálogo (imagen o video); data = null → foto por defecto
-Route::get('/catalogo/banner', [BannerController::class, 'show']);
+// Fondo de la portada del catálogo.
+Route::get('/catalogo/banner', [
+    BannerController::class,
+    'show'
+]);
 
 
 // ======================================================
@@ -133,25 +136,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Crear reserva (máx. 10 por minuto POR USUARIO: frena scripts sin afectar a otros compradores).
+    // Crear reserva.
     Route::post('/reservas', [
         ReservaController::class,
         'store'
     ])->middleware('throttle:10,1');
 
-    // Cuántos boletos más puede apartar el usuario en un evento (máximo por persona).
+    // Consultar cupo disponible por usuario.
     Route::get('/eventos/{id}/mi-cupo', [
         ReservaController::class,
         'miCupo'
     ])->whereNumber('id');
 
-    // Mis compras: reservas pagadas del usuario (próximas y pasadas).
+    // Reservas pagadas del usuario.
     Route::get('/mis-compras', [
         ReservaController::class,
         'misCompras'
     ]);
 
-    // Consultar una reserva propia: evento y lugares.
+    // Consultar una reserva propia.
     Route::get('/reservas/{id}', [
         ReservaController::class,
         'show'
@@ -193,7 +196,6 @@ Route::middleware('auth:sanctum')->group(function () {
 // 6. PASARELAS DE PAGO
 // ======================================================
 
-// Consultar pasarelas disponibles.
 Route::get('/pasarelas', [
     PasarelaController::class,
     'index'
@@ -284,38 +286,117 @@ Route::middleware('auth:sanctum')->group(function () {
 // ======================================================
 
 /*
-| Las rutas administrativas se encuentran en:
+|--------------------------------------------------------------------------
+| Rutas administrativas
+|--------------------------------------------------------------------------
+| Las rutas administrativas están definidas en:
 |
 | routes/admin-api.php
 |
-| Sus operaciones deben estar protegidas mediante
+| Sus operaciones deben estar protegidas con
 | auth:sanctum y rol:admin.
-|
+|--------------------------------------------------------------------------
 */
 
 require __DIR__ . '/admin-api.php';
 
-// ---- Inventario: lugares disponibles de un evento (para el mapa de asientos) ----
-Route::get('/eventos/{id}/disponibilidad', [DisponibilidadController::class, 'show'])->whereNumber('id');
 
 // ======================================================
-// COLA VIRTUAL — RF-08
+// 11. INVENTARIO DE ASIENTOS
+// ======================================================
+
+// Lugares disponibles de un evento.
+Route::get('/eventos/{id}/disponibilidad', [
+    DisponibilidadController::class,
+    'show'
+])->whereNumber('id');
+
+
+// ======================================================
+// 12. CONFIGURACIÓN DEL PERFIL - SOIRÉE
+// ======================================================
+
+// Cerrar la sesión actual del panel administrativo.
+Route::middleware('auth:sanctum')
+    ->post('/auth/logout-panel', function (
+        \Illuminate\Http\Request $request
+    ) {
+        $usuario = $request->user();
+        $token = $usuario?->currentAccessToken();
+
+        if (!$token || !method_exists($token, 'delete')) {
+            return response()->json([
+                'message' => 'No se pudo revocar la sesión actual.',
+            ], 409);
+        }
+
+        $token->delete();
+
+        return response()->json([
+            'message' => 'Sesión cerrada correctamente.',
+        ]);
+    });
+
+
+// Actualizar datos personales del usuario autenticado.
+Route::middleware('auth:sanctum')
+    ->patch('/auth/actualizar-mi-perfil', function (
+        \Illuminate\Http\Request $request
+    ) {
+        $datos = $request->validate([
+            'nombre' => ['required', 'string', 'max:100'],
+            'apellido' => ['required', 'string', 'max:100'],
+        ]);
+
+        $usuarioId = $request->user()->id;
+
+        $actualizados = \Illuminate\Support\Facades\DB::table('usuarios')
+            ->where('id', $usuarioId)
+            ->whereNull('deleted_at')
+            ->update([
+                'nombre' => trim($datos['nombre']),
+                'apellido' => trim($datos['apellido']),
+                'updated_by' => $usuarioId,
+                'updated_at' => now(),
+            ]);
+
+        if (!$actualizados) {
+            return response()->json([
+                'message' => 'No fue posible actualizar tu perfil.',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Tu perfil fue actualizado correctamente.',
+        ]);
+    });
+
+
+// ======================================================
+// 13. COLA VIRTUAL - RF-08
 // ======================================================
 
 // Ingreso de un usuario autenticado a la cola de un evento.
 Route::post('/cola-virtual/ingresar', [
     \App\Http\Controllers\ColaVirtual\ColaVirtualController::class,
     'ingresar',
-])->middleware(['auth:sanctum', 'throttle:10,1']);
+])->middleware([
+    'auth:sanctum',
+    'throttle:10,1'
+]);
 
-/*
-|--------------------------------------------------------------------------
-| Consulta del turno del usuario — RF-09
-|--------------------------------------------------------------------------
-*/
+
+// ======================================================
+// 14. CONSULTA DEL TURNO - RF-09
+// ======================================================
+
+// Consultar el turno del usuario para un evento.
 Route::get('/cola-virtual/mi-turno/{eventoId}', [
     \App\Http\Controllers\ColaVirtual\ColaVirtualController::class,
     'miTurno',
 ])
     ->whereNumber('eventoId')
-    ->middleware(['auth:sanctum', 'throttle:60,1']);
+    ->middleware([
+        'auth:sanctum',
+        'throttle:60,1'
+    ]);

@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPublicar = document.getElementById('banner-publicar');
     const btnCancelar = document.getElementById('banner-cancelar');
     const btnQuitar = document.getElementById('banner-quitar');
+    const infoEstado = document.getElementById('banner-info-estado');
+    const infoArchivo = document.getElementById('banner-info-archivo');
 
     let actual = null;          // banner publicado: {tipo, url} o null
     let pendiente = null;       // archivo elegido, aún sin publicar
@@ -61,6 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
         estado.textContent = actual
             ? (actual.tipo === 'video' ? 'Publicado · video' : 'Publicado · imagen')
             : 'Foto por defecto';
+        if (infoEstado) {
+            infoEstado.textContent = actual
+                ? (actual.tipo === 'video' ? 'Video publicado' : 'Imagen publicada')
+                : 'Portada predeterminada';
+        }
+
+        if (infoArchivo) {
+            infoArchivo.textContent = 'Sin cambios pendientes';
+        }
+
         estado.classList.remove('es-nuevo');
         btnQuitar.hidden = !actual;
     }
@@ -124,6 +136,16 @@ document.addEventListener('DOMContentLoaded', () => {
         urlLocal = url;
         pintar(url, esVideo);
         estado.textContent = 'Vista previa · sin publicar';
+        if (infoEstado) {
+            infoEstado.textContent = 'Pendiente de publicación';
+        }
+
+        if (infoArchivo) {
+            const tamano = (archivo.size / 1024 / 1024).toFixed(2);
+            infoArchivo.textContent =
+                archivo.name + ' · ' + tamano + ' MB';
+        }
+
         estado.classList.add('es-nuevo');
         btnPublicar.hidden = false;
         btnCancelar.hidden = false;

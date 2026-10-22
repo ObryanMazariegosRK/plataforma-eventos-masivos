@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminEventoController;
 use App\Http\Controllers\Admin\AdminPrecioEventoController;
 use App\Http\Controllers\Admin\AdminUsuarioController;
+use App\Http\Controllers\Admin\AdminNotificacionController;
+use App\Http\Controllers\Admin\AdminReporteDocumentoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -141,6 +143,34 @@ Route::middleware(['auth:sanctum'])
         Route::middleware('rol:admin')
             ->group(function () {
 
+                // ELIMINAR EVENTOS
+                // Exclusivo del Administrador.
+                // Solo borradores sin actividad relacionada.
+
+                Route::delete('/eventos/{id}', [
+                    AdminEventoController::class,
+                    'destroy'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.eliminar');
+
+                // MODIFICAR CONTENIDO DE EVENTO PUBLICADO
+                // Exclusivo del Administrador.
+
+                Route::patch('/eventos/{id}/contenido', [
+                    AdminEventoController::class,
+                    'actualizarContenidoPublicado'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.contenido.actualizar');
+
+                // ACTIVIDAD Y NOTIFICACIONES ADMINISTRATIVAS
+
+                Route::get('/notificaciones', [
+                    AdminNotificacionController::class,
+                    'index'
+                ])->name('notificaciones');
+
                 // RESUMEN
 
                 Route::get('/resumen', [
@@ -195,6 +225,13 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('usuario')
                     ->name('usuarios.eliminar');
 
+                Route::get('/reservas/{id}', [
+                    AdministracionController::class,
+                    'reservaDetalle'
+                ])
+                    ->whereNumber('id')
+                    ->name('reservas.detalle');
+
                 // RESERVAS
 
                 Route::get('/reservas', [
@@ -202,12 +239,32 @@ Route::middleware(['auth:sanctum'])
                     'reservas'
                 ])->name('reservas');
 
+                Route::get('/pagos/{id}', [
+                    AdministracionController::class,
+                    'pagoDetalle'
+                ])
+                    ->whereNumber('id')
+                    ->name('pagos.detalle');
+
                 // PAGOS
 
                 Route::get('/pagos', [
                     AdministracionController::class,
                     'pagos'
                 ])->name('pagos');
+
+                // REPORTES PROFESIONALES
+                // Exclusivos del Administrador.
+
+                Route::get('/reportes/excel', [
+                    AdminReporteDocumentoController::class,
+                    'excel'
+                ])->name('reportes.excel');
+
+                Route::get('/reportes/pdf', [
+                    AdminReporteDocumentoController::class,
+                    'pdf'
+                ])->name('reportes.pdf');
 
                 // REPORTES CSV
 
