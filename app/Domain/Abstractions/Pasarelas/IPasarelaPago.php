@@ -1,6 +1,8 @@
 <?php
 namespace App\Domain\Abstractions\Pasarelas;
 
+use DateTimeImmutable;
+
 /**
  * Contrato que cumple CUALQUIER pasarela (simulada, PayPal, Paggo...).
  * El cobro siempre es en dos pasos, como en las pasarelas reales:
@@ -16,6 +18,9 @@ interface IPasarelaPago
         string $referencia,
         string $urlRetorno,
         string $urlCancelacion,
+        // Después de esta hora la orden ya no se puede aprobar (se pasa la expiración de la
+        // reserva: pagar un asiento que ya se liberó no tiene sentido)
+        DateTimeImmutable $venceEn,
     ): OrdenPasarela;
 
     public function capturar(string $ordenId): ResultadoCaptura;

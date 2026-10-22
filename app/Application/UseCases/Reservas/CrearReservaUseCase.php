@@ -6,6 +6,7 @@ use App\Application\DTOs\Reservas\CrearReservaDTO;
 use App\Domain\Abstractions\Reservas\IReservaRepository;
 use App\Domain\Entities\Reservas\Reserva;
 use App\Domain\Enums\Reservas\EstadoReserva;
+use App\Domain\Exceptions\Reservas\LimitePorPersonaException;
 use DateTimeImmutable;
 use App\Domain\Enums\Inventario\EstadoAsiento;
 use Illuminate\Support\Facades\DB;
@@ -29,15 +30,22 @@ class CrearReservaUseCase implements ICrearReservaUseCase
             ]);
         }
 
-        // Límite de lugares por reserva: una sola cuenta no puede acaparar la localidad.
+        // Límite por persona y evento. Primero lo obvio (sin tocar la base)...
         $cantidadTotal = count($ids) + array_sum(array_column($cupos, 'cantidad'));
-        if ($cantidadTotal > $dto->maxAsientos) {
-            throw ValidationException::withMessages([
-                'asientos' => "Puedes reservar como máximo {$dto->maxAsientos} lugares por compra.",
-            ]);
+        if ($cantidadTotal > $dto->maxPorPersona) {
+            throw new LimitePorPersonaException($dto->maxPorPersona, 0);
         }
 
-        return DB::transaction(function () use ($dto, $ids, $cupos): Reserva {
+        return DB::transaction(function () use ($dto, $ids, $cupos, $cantidadTotal): Reserva {
+
+            // ...y dentro de la transacción, con la fila del usuario bloqueada, lo que ya tiene en
+            // el evento. Sin el bloqueo, dos pestañas a la vez leerían "tiene 0" y ambas pasarían.
+            $yaTiene = $this->reservas->lugaresDePersonaEnEvento(
+                $dto->usuarioId, $dto->eventoId, new DateTimeImmutable(), bloquear: true
+            );
+            if ($yaTiene + $cantidadTotal > $dto->maxPorPersona) {
+                throw new LimitePorPersonaException($dto->maxPorPersona, $yaTiene);
+            }
 
             // 0. Localidades generales: el cliente pide una CANTIDAD y aquí se eligen los lugares.
             //    SKIP LOCKED salta las filas que otra transacción está tomando en este instante:

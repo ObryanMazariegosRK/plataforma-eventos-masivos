@@ -17,7 +17,9 @@ use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
 use App\Domain\Exceptions\Pagos\ReservaNoEncontradaException;
 use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
+use App\Domain\Exceptions\Catalogo\ArchivoBannerInvalidoException;
 use App\Domain\Exceptions\Inventario\EventoNoDisponibleException;
+use App\Domain\Exceptions\Reservas\LimitePorPersonaException;
 use App\Domain\Exceptions\Inventario\LocalidadesSinPrecioException;
 use App\Domain\Exceptions\Inventario\RecintoSinLugaresException;
 use App\Domain\Exceptions\ReglaDeNegocioException;
@@ -74,6 +76,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ReservaYaPagadaException::class             => [409, 'reserva_ya_pagada'],
             PasarelaNoDisponibleException::class        => [422, 'pasarela_no_disponible'],
             PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
+            // ---- Catálogo ----
+            ArchivoBannerInvalidoException::class       => [422, 'banner_archivo_invalido'],
+            // ---- Reservas ----
+            LimitePorPersonaException::class            => [422, 'limite_por_persona'],
             // ---- Inventario ----
             EventoNoDisponibleException::class          => [404, 'evento_no_disponible'],
             LocalidadesSinPrecioException::class        => [422, 'localidades_sin_precio'],

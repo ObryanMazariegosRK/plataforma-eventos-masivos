@@ -67,6 +67,19 @@ class AppServiceProvider extends ServiceProvider
             \App\Data\Reservas\ReservaRepository::class,
         );
 
+        $this->app->bind(
+            \App\Application\Abstractions\Reservas\IConsultarReservaUseCase::class,
+            \App\Application\UseCases\Reservas\ConsultarReservaUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reservas\IListarMisComprasUseCase::class,
+            \App\Application\UseCases\Reservas\ListarMisComprasUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reservas\IConsultarMiCupoUseCase::class,
+            \App\Application\UseCases\Reservas\ConsultarMiCupoUseCase::class,
+        );
+
         // Crear reserva y registrar automáticamente su historial.
         $this->app->bind(
             \App\Application\Abstractions\Reservas\ICrearReservaUseCase::class,
@@ -149,6 +162,28 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             \App\Application\Abstractions\Catalogo\IListarEventosUseCase::class,
             \App\Application\UseCases\Catalogo\ListarEventosUseCase::class,
+        );
+
+        // ---- Catálogo: banner de la portada ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Catalogo\IBannerRepository::class,
+            \App\Data\Catalogo\BannerRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Catalogo\IAlmacenMultimedia::class,
+            \App\Infrastructure\Catalogo\AlmacenMultimediaLaravel::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IObtenerBannerCatalogoUseCase::class,
+            \App\Application\UseCases\Catalogo\ObtenerBannerCatalogoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IActualizarBannerCatalogoUseCase::class,
+            \App\Application\UseCases\Catalogo\ActualizarBannerCatalogoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Catalogo\IEliminarBannerCatalogoUseCase::class,
+            \App\Application\UseCases\Catalogo\EliminarBannerCatalogoUseCase::class,
         );
 
         // ---- Inventario ----

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta name="robots" content="noindex,nofollow">
-    <meta name="theme-color" content="#191126">
+    <meta name="theme-color" content="#100E0D">
 
     <title>Soirée | Administración</title>
 
@@ -17,63 +17,15 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap"
           rel="stylesheet">
 
-    <!-- Estilos y JavaScript -->
-    <!-- Base: estructura, formularios, tablas y diseño responsivo -->
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v=12">
-    <!-- Soirée: primera identidad visual -->
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree.css') }}?v=3">
-    <!-- Soirée: refinamiento de interfaz -->
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree-v2.css') }}?v=1">
-    <!-- Funcionalidad administrativa existente -->
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree-v4.css') }}?v=1">
-    <script defer src="{{ asset('js/admin.js') }}?v=14"></script>
-    <link rel="stylesheet" href="{{ asset('css/admin-soiree-final.css') }}?v=1">
+    <!-- Administración: una sola hoja de estilos consolidada -->
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ filemtime(public_path('css/admin.css')) }}">
+
+    <!-- JavaScript: conservar los módulos funcionales existentes -->
+    <script defer src="{{ asset('js/admin.js') }}?v=15"></script>
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
+    <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
-    <!-- Estilos exclusivos de la vista previa de imagen -->
-    <style>
-        .evento-image-help {
-            color: #8192a8;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        .evento-image-preview {
-            max-width: 420px;
-            padding: 8px;
-            border: 1px solid #dbe8ed;
-            border-radius: 13px;
-            background: #f4f8fa;
-        }
-        .evento-image-preview img {
-            display: block;
-            width: 100%;
-            max-height: 240px;
-            object-fit: cover;
-            border-radius: 9px;
-        }
 
-        /* Gestión de precios por localidad */
-        .evento-precios-panel { margin-bottom: 14px; }
-        .evento-precios-lista { display: grid; gap: 10px; }
-        .evento-precio-fila {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(140px, 185px);
-            gap: 14px;
-            align-items: center;
-            padding: 13px 15px;
-            border: 1px solid #e3ebf2;
-            border-radius: 11px;
-            background: #f8fbfd;
-        }
-        .evento-precio-fila strong { display: block; font-size: 13px; color: #18324a; }
-        .evento-precio-fila small { color: #8496aa; font-size: 11px; }
-        .evento-precio-fila label { display: grid; gap: 5px; color: #536b82; font-size: 11px; font-weight: 800; }
-        .evento-precio-fila input { width: 100%; min-width: 0; }
-        #btn-guardar-precios:disabled { opacity: .45; cursor: not-allowed; }
-        @media (max-width: 600px) {
-            .evento-precio-fila { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 
 <body>
@@ -93,6 +45,12 @@
     <symbol id="i-users" viewBox="0 0 24 24">
         <circle cx="9" cy="8" r="4"/>
         <path d="M2 21v-2a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v2zM16 4a4 4 0 0 1 0 8M18 14a5 5 0 0 1 4 5v2"/>
+    </symbol>
+
+    <symbol id="i-image" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <circle cx="9" cy="10" r="2"/>
+        <path d="m21 16-5-5L5 20"/>
     </symbol>
 
     <symbol id="i-calendar" viewBox="0 0 24 24">
@@ -232,6 +190,17 @@
                 </svg>
 
                 <span>Usuarios</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
+                    data-section="banner">
+
+                <svg class="nav-icon">
+                    <use href="#i-image"/>
+                </svg>
+
+                <span>Banner</span>
             </button>
 
             <div class="nav-divider"></div>
@@ -676,6 +645,42 @@
                 </small>
             </label>
 
+
+            <!-- Fotografías adicionales de la galería -->
+            <label class="evento-full" for="evento-imagen-url-2">
+                URL de imagen 2 — Galería
+
+                <input
+                    type="url"
+                    name="imagen_url_2"
+                    id="evento-imagen-url-2"
+                    maxlength="2048"
+                    placeholder="https://ejemplo.com/imagen-2.jpg"
+                    inputmode="url"
+                    autocomplete="off">
+
+                <small class="evento-image-help">
+                    Segunda fotografía del evento. Enlace HTTPS opcional.
+                </small>
+            </label>
+
+            <label class="evento-full" for="evento-imagen-url-3">
+                URL de imagen 3 — Galería
+
+                <input
+                    type="url"
+                    name="imagen_url_3"
+                    id="evento-imagen-url-3"
+                    maxlength="2048"
+                    placeholder="https://ejemplo.com/imagen-3.jpg"
+                    inputmode="url"
+                    autocomplete="off">
+
+                <small class="evento-image-help">
+                    Tercera fotografía del evento. Enlace HTTPS opcional.
+                </small>
+            </label>
+
             <!-- Vista previa: visible cuando la imagen carga -->
             <div id="evento-image-preview"
                  class="evento-full evento-image-preview"
@@ -819,6 +824,56 @@
 
             </article>
 
+        </section>
+
+        <!-- =================================================
+             BANNER DEL CATÁLOGO (admin-banner.js)
+        ================================================= -->
+
+        <section id="banner-panel"
+                 class="panel banner-panel"
+                 data-max-mb="{{ config('catalogo.banner.max_mb') }}"
+                 data-max-segundos="{{ config('catalogo.banner.max_segundos_video') }}"
+                 hidden>
+
+            <div class="banner-encabezado">
+                <div>
+                    <div class="section-kicker">PORTADA DEL CATÁLOGO</div>
+                    <h2>Fondo del catálogo</h2>
+                    <p class="muted">
+                        Elige una imagen o un video corto. Se muestra detrás del carrusel
+                        con el tono oscuro del catálogo; así se verá:
+                    </p>
+                </div>
+                <a class="text-link" href="{{ route('catalogo.index') }}" target="_blank" rel="noopener">Ver el catálogo ↗</a>
+            </div>
+
+            {{-- Vista previa con el mismo tratamiento oscuro que catalogo.css --}}
+            <div class="banner-vista">
+                <div class="banner-vista__fondo" id="banner-vista-fondo"></div>
+                <div class="banner-vista__texto" aria-hidden="true">
+                    <span>Temporada {{ now()->year }}</span>
+                    <strong>Una noche que se <em>recuerda.</em></strong>
+                </div>
+                <span class="banner-vista__estado" id="banner-estado">Cargando…</span>
+            </div>
+
+            <label class="banner-zona" id="banner-zona">
+                <input type="file"
+                       id="banner-archivo"
+                       accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+                <strong>Arrastra aquí una imagen o un video</strong>
+                <span>o haz clic para elegirlo · JPG, PNG, WEBP, MP4 o WEBM ·
+                    máx. {{ config('catalogo.banner.max_mb') }} MB · videos de hasta {{ config('catalogo.banner.max_segundos_video') }} s</span>
+            </label>
+
+            <p id="banner-mensaje" class="banner-mensaje" role="status" aria-live="polite"></p>
+
+            <div class="banner-acciones">
+                <button type="button" class="primary" id="banner-publicar" hidden>Publicar en el catálogo</button>
+                <button type="button" class="banner-boton" id="banner-cancelar" hidden>Cancelar</button>
+                <button type="button" class="banner-boton banner-boton--quitar" id="banner-quitar" hidden>Quitar y usar la foto por defecto</button>
+            </div>
         </section>
 
         <!-- =================================================

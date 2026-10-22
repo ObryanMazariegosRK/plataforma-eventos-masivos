@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Reservas\ReservaController;
 use App\Http\Controllers\Catalogo\CatalogoController;
 use App\Http\Controllers\Catalogo\DetalleEventoController;
+use App\Http\Controllers\Catalogo\BannerController;
 use App\Http\Controllers\Precios\PrecioEventoController;
 use App\Http\Controllers\Boletos\BoletoController;
 use App\Http\Controllers\Pagos\PagoController;
@@ -106,6 +107,9 @@ Route::get('/eventos/{id}', [
     'show'
 ])->whereNumber('id');
 
+// Fondo de la portada del catálogo (imagen o video); data = null → foto por defecto
+Route::get('/catalogo/banner', [BannerController::class, 'show']);
+
 
 // ======================================================
 // 3. PRECIOS POR LOCALIDAD
@@ -134,6 +138,24 @@ Route::middleware('auth:sanctum')->group(function () {
         ReservaController::class,
         'store'
     ])->middleware('throttle:10,1');
+
+    // Cuántos boletos más puede apartar el usuario en un evento (máximo por persona).
+    Route::get('/eventos/{id}/mi-cupo', [
+        ReservaController::class,
+        'miCupo'
+    ])->whereNumber('id');
+
+    // Mis compras: reservas pagadas del usuario (próximas y pasadas).
+    Route::get('/mis-compras', [
+        ReservaController::class,
+        'misCompras'
+    ]);
+
+    // Consultar una reserva propia: evento y lugares.
+    Route::get('/reservas/{id}', [
+        ReservaController::class,
+        'show'
+    ])->whereNumber('id');
 
     // Cancelar reserva.
     Route::delete('/reservas/{id}', [

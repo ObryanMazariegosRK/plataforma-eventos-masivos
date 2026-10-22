@@ -28,6 +28,10 @@
             'Registro de pagos',
             'Consulta los pagos y sus estados.'
         ],
+        banner: [
+            'Banner del catálogo',
+            'Imagen o video de fondo de la portada del catálogo.'
+        ],
         reportes: [
             'Centro de reportes',
             'Exporta información de la plataforma.'
@@ -83,6 +87,17 @@
         'configuracion'
     ]);
 
+    // El rol se verifica con /api/auth/perfil antes de habilitar la navegación.
+    let currentRole = null;
+    const operativeSections = new Set([
+        'eventos', 'banner', 'notificaciones', 'configuracion'
+    ]);
+
+    function canAccessSection(name) {
+        if (currentRole === 'admin') return true;
+        return currentRole === 'organizador' && operativeSections.has(name);
+    }
+
     let section = 'resumen';
     let page = 1;
     let query = '';
@@ -96,6 +111,63 @@
 
     function token() {
         return localStorage.getItem('auth_token');
+    }
+
+    async function loadCurrentUser() {
+        const accessToken = token();
+        if (!accessToken) {
+            throw new Error('Debes iniciar sesión para acceder al panel.');
+        }
+
+        const response = await fetch('/api/auth/perfil', {
+            headers: {
+                Accept: 'application/json',
+                Authorization: 'Bearer ' + accessToken
+            }
+        });
+
+        if (response.status === 401) {
+            throw new Error('Tu sesión ha caducado. Inicia sesión nuevamente.');
+        }
+        if (!response.ok) {
+            throw new Error('No fue posible verificar el perfil de tu cuenta.');
+        }
+
+        // El endpoint devuelve directamente el usuario, incluido su campo rol.
+        const profile = await response.json();
+        if (!['admin', 'organizador'].includes(profile?.rol)) {
+            throw new Error('Tu cuenta no tiene acceso al panel operativo.');
+        }
+
+        currentRole = profile.rol;
+        document.querySelectorAll('#nav [data-section]').forEach(item => {
+            item.hidden = !canAccessSection(item.dataset.section);
+        });
+
+        const search = $('global-search');
+        if (search) {
+            const isAdmin = currentRole === 'admin';
+            search.disabled = !isAdmin;
+            const searchArea = search.closest('.top-search');
+            if (searchArea) searchArea.hidden = !isAdmin;
+        }
+
+        const userLabel = document.querySelector('.utility-person > span:last-child');
+        if (userLabel) {
+            userLabel.textContent = currentRole === 'organizador'
+                ? 'Agente Operativo'
+                : 'Administrador';
+        }
+        const sessionLabel = document.querySelector('.top-online');
+        if (sessionLabel) {
+            const indicator = sessionLabel.querySelector('.online-indicator');
+            sessionLabel.textContent = currentRole === 'organizador'
+                ? 'SESIÓN OPERATIVA'
+                : 'SESIÓN ADMIN';
+            if (indicator) sessionLabel.prepend(indicator);
+        }
+
+        return profile;
     }
 
     function el(tag, value, className) {
@@ -162,7 +234,7 @@
 
         if (!accessToken) {
             throw new Error(
-                'Inicia sesión como administrador para continuar.'
+                'Inicia sesión para continuar.'
             );
         }
 
@@ -189,7 +261,7 @@
 
         if (response.status === 403) {
             throw new Error(
-                'Tu cuenta no tiene permisos de administrador.'
+                'No tienes permisos para realizar esta acción.'
             );
         }
 
@@ -393,6 +465,512 @@
         return button;
     }
 
+
+    // =====================================================
+    // ADMINISTRACION DE USUARIOS
+    // =====================================================
+
+
+    function renderUserActions(item) {
+        const cell = el('td');
+        const group = el('div', undefined, 'eventos-row-actions');
+
+        group.append(
+            actionButton('Ver', 'evento-action', () => viewUser(item.id)),
+            actionButton('Editar', 'evento-action', () => openUserForm(item.id)),
+            actionButton('Cambiar rol', 'evento-action', () => changeUserRole(item)),
+            actionButton(
+                item.estado === 'activo' ? 'Bloquear' : 'Activar',
+                'evento-action',
+                () => changeUserStatus(item)
+            ),
+            actionButton('Eliminar', 'evento-action', () => deleteUser(item))
+        );
+
+        cell.append(group);
+        return cell;
+    }
+
+
+    async function changeUserRole(item) {
+        if (!canAccessSection('usuarios')) return;
+
+        const roles = [
+            {
+                value: 'cliente',
+                title: 'Cliente',
+                detail: 'Acceso al catálogo, compras y reservas.'
+            },
+            {
+                value: 'organizador',
+                title: 'Agente Operativo',
+                detail: 'Gestión de eventos, banner y funciones operativas.'
+            },
+            {
+                value: 'admin',
+                title: 'Administrador',
+                detail: 'Acceso completo a la administración de Soirée.'
+            }
+        ];
+
+        const anterior = $('so-role-dialog');
+        if (anterior) anterior.remove();
+
+        const dialog = document.createElement('dialog');
+        dialog.id = 'so-role-dialog';
+        dialog.className = 'so-role-dialog';
+
+        const header = el('div', undefined, 'so-role-header');
+        header.append(
+            el('span', 'SOIRÉE · ADMINISTRACIÓN', 'so-role-eyebrow'),
+            el('h2', 'Cambiar rol de usuario'),
+            el('p', 'Selecciona los permisos que tendrá esta cuenta.')
+        );
+
+        const identity = el('div', undefined, 'so-role-identity');
+        identity.append(
+            el('strong', `${item.nombre} ${item.apellido}`),
+            el('span', item.email)
+        );
+
+        const form = document.createElement('form');
+        form.className = 'so-role-form';
+
+        const options = el('div', undefined, 'so-role-options');
+
+        for (const role of roles) {
+            const label = document.createElement('label');
+            label.className = 'so-role-option';
+
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'nuevo_rol';
+            radio.value = role.value;
+            radio.checked = item.rol === role.value;
+
+            const content = el('span', undefined, 'so-role-option-copy');
+            content.append(
+                el('strong', role.title),
+                el('small', role.detail)
+            );
+
+            label.append(radio, content);
+            options.append(label);
+        }
+
+        const message = el('p', '', 'so-role-message');
+        message.setAttribute('role', 'alert');
+        message.hidden = true;
+
+        const footer = el('div', undefined, 'so-role-footer');
+
+        const cancel = actionButton(
+            'Cancelar',
+            'so-role-cancel',
+            () => dialog.close()
+        );
+
+        const save = document.createElement('button');
+        save.type = 'submit';
+        save.className = 'so-role-save';
+        save.textContent = 'Guardar cambio';
+
+        footer.append(cancel, save);
+        form.append(options, message, footer);
+        dialog.append(header, identity, form);
+        document.body.append(dialog);
+
+        dialog.addEventListener('close', () => dialog.remove(), {
+            once: true
+        });
+
+        dialog.addEventListener('click', event => {
+            if (event.target === dialog) dialog.close();
+        });
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+
+            const seleccionado = form.querySelector(
+                'input[name="nuevo_rol"]:checked'
+            );
+
+            if (!seleccionado) return;
+
+            const rol = seleccionado.value;
+
+            if (rol === item.rol) {
+                dialog.close();
+                return;
+            }
+
+            const titulo = roles.find(r => r.value === rol)?.title;
+
+            if (!window.confirm(
+                `¿Confirmas asignar el rol ${titulo} a ${item.email}?\n\n` +
+                'Las sesiones actuales de esta cuenta serán cerradas.'
+            )) {
+                return;
+            }
+
+            save.disabled = true;
+            cancel.disabled = true;
+            save.textContent = 'Guardando...';
+            message.hidden = true;
+
+            try {
+                const response = await api(
+                    'usuarios/' + item.id + '/rol',
+                    {
+                        method: 'PATCH',
+                        body: JSON.stringify({ rol })
+                    }
+                );
+
+                const result = await response.json();
+
+                dialog.close();
+                await load();
+
+                feedback(
+                    result.message || 'Rol actualizado correctamente.'
+                );
+
+            } catch (error) {
+                message.textContent = error.message;
+                message.hidden = false;
+
+            } finally {
+                save.disabled = false;
+                cancel.disabled = false;
+                save.textContent = 'Guardar cambio';
+            }
+        });
+
+        dialog.showModal();
+    }
+
+    async function changeUserStatus(item) {
+        if (!canAccessSection('usuarios')) return;
+
+        const estado = item.estado === 'activo'
+            ? 'bloqueado'
+            : 'activo';
+
+        if (!window.confirm(
+            '¿Deseas cambiar la cuenta ' + item.email +
+            ' al estado ' + estado + '?'
+        )) return;
+
+        try {
+            const response = await api('usuarios/' + item.id + '/estado', {
+                method: 'PATCH',
+                body: JSON.stringify({ estado })
+            });
+
+            const result = await response.json();
+            await load();
+
+            feedback(result.message || 'Estado actualizado correctamente.');
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
+    async function deleteUser(item) {
+        if (!canAccessSection('usuarios')) return;
+
+        if (!window.confirm(
+            '¿Eliminar la cuenta ' + item.email + '?' +
+            '\\n\\nSe conservará su historial mediante eliminación lógica.'
+        )) return;
+
+        try {
+            const response = await api('usuarios/' + item.id, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+            await load();
+
+            feedback(result.message || 'Usuario eliminado correctamente.');
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
+
+    async function viewUser(id) {
+        if (!canAccessSection('usuarios')) return;
+
+        try {
+            const response = await api('usuarios/' + id);
+            const result = await response.json();
+            const user = result.data;
+
+            if (!user) {
+                throw new Error('No se encontró el usuario.');
+            }
+
+            const anterior = $('so-user-detail-dialog');
+            if (anterior) anterior.remove();
+
+            const dialog = document.createElement('dialog');
+            dialog.id = 'so-user-detail-dialog';
+            dialog.className = 'so-role-dialog';
+
+            const header = el('div', undefined, 'so-role-header');
+
+            header.append(
+                el('span', 'SOIRÉE · ADMINISTRACIÓN', 'so-role-eyebrow'),
+                el('h2', 'Información del usuario'),
+                el('p', 'Consulta los datos y permisos de esta cuenta.')
+            );
+
+            const identity = el('div', undefined, 'so-role-identity');
+
+            const nombre = [user.nombre, user.apellido]
+                .filter(Boolean)
+                .join(' ');
+
+            identity.append(
+                el('strong', nombre || 'Usuario sin nombre'),
+                el('span', user.email || 'Correo no disponible')
+            );
+
+            const roles = {
+                admin: 'Administrador',
+                organizador: 'Agente Operativo',
+                cliente: 'Cliente'
+            };
+
+            const estados = {
+                activo: 'Activo',
+                bloqueado: 'Bloqueado'
+            };
+
+            const fecha = value => {
+                if (!value) return 'No disponible';
+
+                const date = new Date(value);
+
+                return Number.isNaN(date.getTime())
+                    ? 'No disponible'
+                    : date.toLocaleString('es-GT', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    });
+            };
+
+            const details = el('div', undefined, 'so-user-detail-list');
+
+            const addDetail = (label, value) => {
+                const row = el('div', undefined, 'so-user-detail-row');
+
+                row.append(
+                    el('span', label),
+                    el('strong', String(value ?? 'No disponible'))
+                );
+
+                details.append(row);
+            };
+
+            addDetail('Identificador', '#' + user.id);
+            addDetail('Nombre completo', nombre);
+            addDetail('Correo electrónico', user.email);
+            addDetail('Teléfono', user.telefono || 'No registrado');
+            addDetail('Rol asignado', roles[user.rol] || user.rol);
+            addDetail('Estado', estados[user.estado] || user.estado);
+            addDetail('Fecha de registro', fecha(user.created_at));
+            addDetail('Última actualización', fecha(user.updated_at));
+
+            const footer = el('div', undefined, 'so-role-footer');
+
+            const close = actionButton(
+                'Cerrar',
+                'so-role-cancel',
+                () => dialog.close()
+            );
+
+            const edit = actionButton(
+                'Editar usuario',
+                'so-role-save',
+                () => {
+                    dialog.close();
+                    openUserForm(user.id);
+                }
+            );
+
+            footer.append(close, edit);
+
+            dialog.append(header, identity, details, footer);
+            document.body.append(dialog);
+
+            dialog.addEventListener(
+                'close',
+                () => dialog.remove(),
+                { once: true }
+            );
+
+            dialog.addEventListener('click', event => {
+                if (event.target === dialog) {
+                    dialog.close();
+                }
+            });
+
+            dialog.showModal();
+
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
+    function ensureUserDialog() {
+        let dialog = $('so-user-dialog');
+        if (dialog) return dialog;
+
+        dialog = document.createElement('dialog');
+        dialog.id = 'so-user-dialog';
+        dialog.className = 'so-event-dialog';
+        dialog.style.maxWidth = '540px';
+        dialog.style.width = 'calc(100% - 32px)';
+        dialog.style.padding = '24px';
+
+        document.body.append(dialog);
+        return dialog;
+    }
+
+    async function openUserForm(id = null) {
+        if (!canAccessSection('usuarios')) return;
+
+        try {
+            let user = null;
+
+            if (id !== null) {
+                const result = await (await api('usuarios/' + id)).json();
+                user = result.data;
+            }
+
+            const dialog = ensureUserDialog();
+            dialog.replaceChildren();
+
+            const title = el('h2', user ? 'Editar usuario' : 'Nuevo usuario');
+            const form = document.createElement('form');
+            form.style.display = 'grid';
+            form.style.gap = '12px';
+
+            const field = (name, label, type = 'text', value = '') => {
+                const wrapper = document.createElement('label');
+                wrapper.style.display = 'grid';
+                wrapper.style.gap = '5px';
+
+                wrapper.append(el('span', label));
+
+                const input = document.createElement('input');
+                input.name = name;
+                input.type = type;
+                input.value = value ?? '';
+                input.required = !['telefono'].includes(name);
+                input.style.width = '100%';
+                input.style.padding = '10px';
+
+                if (name === 'password' || name === 'password_confirmation') {
+                    input.minLength = 8;
+                }
+
+                wrapper.append(input);
+                form.append(wrapper);
+                return input;
+            };
+
+            field('nombre', 'Nombre', 'text', user?.nombre);
+            field('apellido', 'Apellido', 'text', user?.apellido);
+            field('email', 'Correo electrónico', 'email', user?.email);
+            field('telefono', 'Teléfono', 'tel', user?.telefono);
+
+            if (!user) {
+                field('password', 'Contraseña', 'password');
+                field('password_confirmation', 'Confirmar contraseña', 'password');
+
+                const wrapper = document.createElement('label');
+                wrapper.append(el('span', 'Rol'));
+
+                const select = document.createElement('select');
+                select.name = 'rol';
+                select.required = true;
+                select.style.width = '100%';
+                select.style.padding = '10px';
+
+                [
+                    ['cliente', 'Cliente'],
+                    ['organizador', 'Agente Operativo'],
+                    ['admin', 'Administrador']
+                ].forEach(([value, label]) => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = label;
+                    select.append(option);
+                });
+
+                wrapper.append(select);
+                form.append(wrapper);
+            }
+
+            const message = el('p', '');
+            message.setAttribute('role', 'alert');
+            form.append(message);
+
+            const buttons = el('div');
+            buttons.style.display = 'flex';
+            buttons.style.gap = '10px';
+
+            const cancel = actionButton('Cancelar', 'evento-action', () => {
+                dialog.close();
+            });
+
+            const save = actionButton('Guardar', 'primary', () => {
+                form.requestSubmit();
+            });
+
+            buttons.append(cancel, save);
+            form.append(buttons);
+            dialog.append(title, form);
+
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                if (!form.reportValidity()) return;
+
+                const payload = Object.fromEntries(new FormData(form));
+
+                save.disabled = true;
+                message.textContent = 'Guardando...';
+
+                try {
+                    const response = await api(
+                        user ? 'usuarios/' + user.id : 'usuarios',
+                        {
+                            method: user ? 'PUT' : 'POST',
+                            body: JSON.stringify(payload)
+                        }
+                    );
+
+                    const result = await response.json();
+                    dialog.close();
+                    await load();
+                    feedback(result.message || 'Usuario guardado correctamente.');
+                } catch (error) {
+                    message.textContent = error.message;
+                } finally {
+                    save.disabled = false;
+                }
+            });
+
+            dialog.showModal();
+        } catch (error) {
+            feedback(error.message, true);
+        }
+    }
+
     function renderEventActions(item) {
         const cell = el('td');
 
@@ -466,7 +1044,7 @@
             headerRow.append(el('th', label));
         });
 
-        if (kind === 'eventos') {
+        if (kind === 'eventos' || kind === 'usuarios') {
             headerRow.append(el('th', 'Acciones'));
         }
 
@@ -522,6 +1100,10 @@
                 row.append(renderEventActions(item));
             }
 
+            if (kind === 'usuarios') {
+                row.append(renderUserActions(item));
+            }
+
             tbody.append(row);
         }
 
@@ -535,7 +1117,7 @@
             );
 
             cell.colSpan = cols.length +
-                (kind === 'eventos' ? 1 : 0);
+                (['eventos', 'usuarios'].includes(kind) ? 1 : 0);
 
             row.append(cell);
             tbody.append(row);
@@ -622,9 +1204,11 @@
         const isOverview = section === 'resumen';
         const isEvents = section === 'eventos';
         const isReports = section === 'reportes';
+        const isBanner = section === 'banner';   // lo maneja admin-banner.js
         const isPending = pendingSections.has(section);
 
-        show('dashboard', !isReports && !isPending);
+        show('dashboard', !isReports && !isPending && !isBanner);
+        show('banner-panel', isBanner);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
@@ -677,7 +1261,13 @@
             }
         });
 
-        filters.append(search, button);
+        const createButton = actionButton(
+            '+ Nuevo usuario',
+            'primary',
+            () => openUserForm()
+        );
+
+        filters.append(search, button, createButton);
     }
 
     // =====================================================
@@ -772,6 +1362,14 @@
 
             form.elements.namedItem('fecha_evento').value =
                 dateForInput(evento.fecha_evento);
+        }
+
+        // Cargar las fotografías adicionales al editar.
+        for (const campo of ['imagen_url_2', 'imagen_url_3']) {
+            const input = form.elements.namedItem(campo);
+            if (input) {
+                input.value = evento?.[campo] || '';
+            }
         }
 
         // Cargar también la fotografía existente.
@@ -1259,6 +1857,14 @@
                     formData.get('imagen_url') || ''
                 ).trim() || null,
 
+                imagen_url_2: String(
+                    formData.get('imagen_url_2') || ''
+                ).trim() || null,
+
+                imagen_url_3: String(
+                    formData.get('imagen_url_3') || ''
+                ).trim() || null,
+
                 recinto_id: Number(
                     formData.get('recinto_id')
                 ),
@@ -1336,7 +1942,8 @@
 
         if (
             pendingSections.has(section) ||
-            section === 'reportes'
+            section === 'reportes' ||
+            section === 'banner'
         ) {
             clearFeedback();
             return;
@@ -1414,7 +2021,7 @@
     }
 
     function navigate(target) {
-        if (!(target in titles)) {
+        if (!(target in titles) || !canAccessSection(target)) {
             return;
         }
 
@@ -1561,6 +2168,27 @@
     // INICIO
     // =====================================================
 
-    navigate('resumen');
+    // No mostrar contenido administrativo antes de validar el token y el rol.
+    const nav = $('nav');
+    if (nav) nav.hidden = true;
+    show('dashboard', false);
+    show('banner-panel', false);
+    show('reports', false);
+    show('coming-soon', false);
+
+    (async () => {
+        try {
+            const profile = await loadCurrentUser();
+            if (nav) nav.hidden = false;
+            navigate(profile.rol === 'organizador' ? 'eventos' : 'resumen');
+        } catch (error) {
+            currentRole = null;
+            feedback(error.message, true);
+            show('dashboard', false);
+            show('banner-panel', false);
+            show('reports', false);
+            show('coming-soon', false);
+        }
+    })();
 
 })();

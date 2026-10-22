@@ -19,38 +19,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAnterior = document.getElementById('btnAnterior');
     const btnSiguiente = document.getElementById('btnSiguiente');
 
-    const IMAGEN_EVENTO_ILUSTRATIVA =
-        'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=820&q=80';
+    // Fotos de teatro para las tarjetas de muestra y los eventos sin afiche.
+    // Son dos fotos; cada entrada muestra otro encuadre (object-position) para que no se repitan.
+    const FOTOS_TEATRO = [
+        { imagen: '/img/landing/auditorio-general.jpg', encuadre: '50% 50%' },
+        { imagen: '/img/landing/auditorio-butacas.jpg', encuadre: '25% 50%' },
+        { imagen: '/img/landing/auditorio-general.jpg', encuadre: '10% 50%' },
+        { imagen: '/img/landing/auditorio-butacas.jpg', encuadre: '80% 50%' },
+        { imagen: '/img/landing/auditorio-general.jpg', encuadre: '90% 50%' }
+    ];
 
     const RESPALDO_EVENTO_ILUSTRATIVA =
-        '/img/eventos/demo-04.jpg';
+        '/img/landing/auditorio-general.jpg';
 
     const DEMOS = [
-        {
-            titulo: 'La música nos une',
-            imagen: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=800&q=80',
-            respaldo: '/img/eventos/demo-01.jpg'
-        },
-        {
-            titulo: 'Luces de otro mundo',
-            imagen: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80',
-            respaldo: '/img/eventos/demo-02.jpg'
-        },
-        {
-            titulo: 'Una noche inolvidable',
-            imagen: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80',
-            respaldo: '/img/eventos/demo-03.jpg'
-        },
-        {
-            titulo: 'Siente el escenario',
-            imagen: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80',
-            respaldo: '/img/eventos/demo-04.jpg'
-        },
-        {
-            titulo: 'Que empiece la emoción',
-            imagen: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=800&q=80',
-            respaldo: '/img/eventos/demo-05.jpg'
-        }
+        { titulo: 'Noche de estreno', ...FOTOS_TEATRO[0] },
+        { titulo: 'Detrás del telón', ...FOTOS_TEATRO[1] },
+        { titulo: 'La gran función', ...FOTOS_TEATRO[2] },
+        { titulo: 'Primera fila', ...FOTOS_TEATRO[3] },
+        { titulo: 'Que se abra el telón', ...FOTOS_TEATRO[4] }
     ];
 
     let controladorBusqueda = null;
@@ -117,9 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function imagenConRespaldo(
         url,
         texto,
-        respaldo = RESPALDO_EVENTO_ILUSTRATIVA
+        respaldo = RESPALDO_EVENTO_ILUSTRATIVA,
+        encuadre = ''
     ) {
         const imagen = elemento('img', 'destacado-imagen');
+
+        if (encuadre) {
+            imagen.style.objectPosition = encuadre;
+        }
 
         imagen.alt = texto;
         imagen.loading = 'lazy';
@@ -145,8 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ? origen
             : null;
 
+        // Sin afiche: una foto de teatro, siempre la misma para el mismo evento.
+        const teatro = FOTOS_TEATRO[Math.abs(Number(evento.id) || 0) % FOTOS_TEATRO.length];
+
         return {
-            url: url || IMAGEN_EVENTO_ILUSTRATIVA,
+            url: url || teatro.imagen,
+            encuadre: url ? '' : teatro.encuadre,
             ilustrativa: !url
         };
     }
@@ -166,7 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
             foto.ilustrativa
                 ? 'Fotografía de referencia'
                 : `Afiche de ${evento.nombre || 'evento'}`,
-            RESPALDO_EVENTO_ILUSTRATIVA
+            RESPALDO_EVENTO_ILUSTRATIVA,
+            foto.encuadre
         );
 
         imagen.className = 'evento-foto';
@@ -174,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (foto.ilustrativa) {
             thumb.appendChild(
-                elemento('span', 'foto-etiqueta', 'FOTO ILUSTRATIVA')
+                elemento('span', 'foto-etiqueta', 'Foto ilustrativa')
             );
         }
 
@@ -192,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const estado = elemento(
             'span',
             `evento-estado${agotado ? ' agotado' : ''}`,
-            agotado ? 'Agotado' : 'Publicado'
+            agotado ? 'Agotado' : 'En venta'
         );
 
         const titulo = elemento(
@@ -204,13 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const fecha = elemento(
             'p',
             'evento-meta',
-            `◷ ${formatearFecha(evento.fecha_evento)}`
+            formatearFecha(evento.fecha_evento)
         );
 
         const lugar = elemento(
             'p',
             'evento-meta',
-            `⌖ ${evento.recinto || 'Recinto por confirmar'} · ${evento.ciudad || 'Ciudad por confirmar'}`
+            `${evento.recinto || 'Recinto por confirmar'} · ${evento.ciudad || 'Ciudad por confirmar'}`
         );
 
         const descripcion = elemento(
@@ -224,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const boton = elemento(
             'button',
             'btn-descripcion',
-            'Ver descripción +'
+            'Ver descripción'
         );
 
         boton.type = 'button';
@@ -239,14 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             boton.textContent = descripcion.hidden
-                ? 'Ver descripción +'
-                : 'Ocultar descripción −';
+                ? 'Ver descripción'
+                : 'Ocultar descripción';
         });
 
         const verEvento = elemento(
             'a',
             'btn-detalle',
-            'Ver evento ↗'
+            'Ver evento'
         );
 
         verEvento.href =
@@ -284,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 subtitulo:
                     `${evento.ciudad || 'Ciudad por confirmar'} · ${formatearFecha(evento.fecha_evento)}`,
                 imagen: foto.url,
+                encuadre: foto.encuadre,
                 ilustrativa: foto.ilustrativa,
                 respaldo: RESPALDO_EVENTO_ILUSTRATIVA,
                 evento
@@ -303,9 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 demo: true,
                 titulo: demo.titulo,
                 subtitulo:
-                    'Inspiración visual · No disponible para compra',
+                    'Imagen de muestra · No disponible para compra',
                 imagen: demo.imagen,
-                respaldo: demo.respaldo
+                encuadre: demo.encuadre
             };
         });
     }
@@ -334,7 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 datos.demo || datos.ilustrativa
                     ? `Imagen ilustrativa: ${datos.titulo}`
                     : `Afiche de ${datos.titulo}`,
-                datos.respaldo || RESPALDO_EVENTO_ILUSTRATIVA
+                datos.respaldo || RESPALDO_EVENTO_ILUSTRATIVA,
+                datos.encuadre
             )
         );
 
@@ -345,8 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'span',
                 `destacado-etiqueta${datos.demo ? ' es-demo' : ''}`,
                 datos.demo
-                    ? 'VISTA DE MUESTRA'
-                    : 'EVENTO PUBLICADO'
+                    ? 'Muestra'
+                    : 'En cartelera'
             )
         );
 
@@ -364,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     elemento(
                         'span',
                         'nota-foto',
-                        'Fotografía ilustrativa · Afiche pendiente del administrador'
+                        'Foto ilustrativa'
                     )
                 );
             }
@@ -372,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const enlace = elemento(
                 'a',
                 'destacado-boton',
-                'Ver evento ↗'
+                'Ver evento →'
             );
 
             enlace.href =
@@ -621,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lista.replaceChildren();
 
         contador.textContent =
-            `${eventos.length} evento(s)`;
+            eventos.length === 1 ? '1 función' : `${eventos.length} funciones`;
 
         if (!eventos.length) {
             lista.appendChild(
@@ -659,13 +658,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         mensaje.textContent = '';
-        contador.textContent = 'Buscando...';
+        contador.textContent = 'Buscando…';
 
         lista.replaceChildren(
             elemento(
                 'p',
                 'mensaje-carga',
-                'Cargando eventos...'
+                'Cargando la cartelera…'
             )
         );
 
@@ -901,13 +900,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     cursor: pointer;
                     display: flex;
                     align-items: center;
-                    gap: 9px;
-                    padding: 9px 14px;
-                    border-radius: 12px;
-                    background: #102536;
-                    color: #fff;
-                    font-weight: 700;
+                    gap: 10px;
+                    padding: 6px 4px;
+                    color: #f2ede4;
                     font-size: 13px;
+                    font-weight: 400;
                 }
 
                 .pulso-cuenta summary::-webkit-details-marker {
@@ -915,34 +912,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 .pulso-cuenta summary:focus-visible {
-                    outline: 3px solid #12b8b5;
-                    outline-offset: 3px;
+                    outline: 1px solid #c8b48c;
+                    outline-offset: 4px;
                 }
 
                 .pulso-avatar {
-                    width: 29px;
-                    height: 29px;
+                    width: 32px;
+                    height: 32px;
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
+                    border: 1px solid rgba(200, 180, 140, .55);
                     border-radius: 50%;
-                    background: #00a7a3;
-                    color: white;
-                    font-size: 11px;
-                    font-weight: 800;
+                    color: #c8b48c;
+                    font-family: "Cormorant Garamond", serif;
+                    font-size: 15px;
+                    letter-spacing: .04em;
                 }
 
                 .pulso-menu {
                     position: absolute;
                     right: 0;
-                    top: calc(100% + 8px);
+                    top: calc(100% + 12px);
                     z-index: 1000;
-                    width: 225px;
-                    padding: 8px;
-                    border: 1px solid #dce7ec;
-                    border-radius: 14px;
-                    background: white;
-                    box-shadow: 0 12px 30px #10253628;
+                    width: 230px;
+                    padding: 8px 0;
+                    border: 1px solid rgba(242, 237, 228, .16);
+                    background: rgba(21, 19, 17, .97);
+                    backdrop-filter: blur(12px);
+                    box-shadow: 0 24px 50px rgba(0, 0, 0, .5);
                 }
 
                 .pulso-menu a,
@@ -951,11 +949,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     display: block;
                     box-sizing: border-box;
                     width: 100%;
-                    padding: 11px 12px;
+                    padding: 11px 18px;
                     border: 0;
-                    border-radius: 8px;
                     background: transparent;
-                    color: #102536;
+                    color: #f2ede4;
                     font: inherit;
                     font-size: 13px;
                     text-align: left;
@@ -964,28 +961,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 .pulso-menu a:hover,
                 .pulso-menu button:hover {
-                    background: #e8f7f6;
+                    background: rgba(200, 180, 140, .1);
+                    color: #c8b48c;
                     cursor: pointer;
                 }
 
+                .pulso-menu button {
+                    margin-top: 6px;
+                    border-top: 1px solid rgba(242, 237, 228, .12);
+                    padding-top: 14px;
+                }
+
                 .pulso-menu .pulso-pendiente {
-                    color: #71808a;
+                    color: rgba(242, 237, 228, .38);
                     cursor: not-allowed;
                 }
 
-                .pulso-boletos {
-                    font-weight: 700;
-                    color: #008e90;
-                    text-decoration: none;
-                }
-
                 @media (max-width: 650px) {
-                    .pulso-menu {
-                        right: 0;
-                    }
-
-                    .pulso-cuenta summary {
-                        padding: 8px;
+                    .pulso-cuenta summary > span:last-child {
+                        display: none;
                     }
                 }
             `;
@@ -1039,18 +1033,11 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        // Estas páginas aún necesitan integrarse.
-        const compras = document.createElement('span');
-        compras.className = 'pulso-pendiente';
-        compras.textContent =
-            'Mis compras · Próximamente';
+        // Historial de compras (reservas pagadas, con espacio para ver los boletos)
+        const compras = crearEnlace('Mis compras', '/mis-compras');
 
-        const boletos = document.createElement('span');
-        boletos.className = 'pulso-pendiente';
-        boletos.textContent =
-            'Mis boletos · Próximamente';
-
-        menu.append(compras, boletos);
+        // Los boletos (con su QR) se abren desde cada compra
+        menu.append(compras);
 
         // =================================================
         // CERRAR SESIÓN
@@ -1106,9 +1093,79 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =====================================================
+    // FONDO DE LA PORTADA (BANNER DEL ADMIN)
+    // =====================================================
+
+    // Imagen o video corto elegido en el panel (Admin → Banner). Si no hay,
+    // o no carga, queda la foto del teatro. El tono oscuro lo da catalogo.css.
+    async function cargarBanner() {
+        const fondo = document.getElementById('portadaFondo');
+
+        if (!fondo) {
+            return;
+        }
+
+        const respaldo = fondo.dataset.respaldo;
+        let banner = null;
+
+        try {
+            const respuesta = await fetch('/api/catalogo/banner', {
+                headers: { Accept: 'application/json' }
+            });
+
+            banner = respuesta.ok ? (await respuesta.json()).data : null;
+        } catch (error) {
+            console.warn('No se pudo consultar el banner:', error);
+        }
+
+        const mostrar = (medio) => {
+            medio.className = 'portada-fondo__medio';
+            fondo.replaceChildren(medio);
+        };
+
+        const ponerFoto = (url) => {
+            const imagen = new Image();
+            imagen.alt = '';
+            imagen.decoding = 'async';
+            imagen.addEventListener('load', () => imagen.classList.add('listo'), { once: true });
+            imagen.addEventListener('error', () => {
+                if (url !== respaldo) ponerFoto(respaldo);
+            }, { once: true });
+            imagen.src = url;
+            mostrar(imagen);
+        };
+
+        if (banner?.tipo === 'video') {
+            const video = document.createElement('video');
+            // muted + playsinline: requisitos del navegador para reproducir solo
+            video.muted = true;
+            video.loop = true;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.setAttribute('playsinline', '');
+            video.preload = 'auto';
+
+            // Con "reducir movimiento" el video se queda quieto en su primer cuadro
+            const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (quieto) {
+                video.autoplay = false;
+            }
+
+            video.addEventListener('loadeddata', () => video.classList.add('listo'), { once: true });
+            video.addEventListener('error', () => ponerFoto(respaldo), { once: true });
+            video.src = banner.url;
+            mostrar(video);
+            return;
+        }
+
+        ponerFoto(banner?.url || respaldo);
+    }
+
+    // =====================================================
     // INICIALIZACIÓN
     // =====================================================
 
+    cargarBanner();
     cargarEventos({}, true);
     iniciarMenuSesion();
 

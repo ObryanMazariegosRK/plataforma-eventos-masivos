@@ -50,6 +50,22 @@ class GuardarEventoRequest extends FormRequest
                 'max:2048',
             ],
 
+            'imagen_url_2' => [
+                'nullable',
+                'string',
+                'url',
+                'starts_with:https://',
+                'max:2048',
+            ],
+
+            'imagen_url_3' => [
+                'nullable',
+                'string',
+                'url',
+                'starts_with:https://',
+                'max:2048',
+            ],
+
             'recinto_id' => [
                 'required',
                 'integer',

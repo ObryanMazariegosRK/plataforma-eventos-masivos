@@ -14,7 +14,7 @@ Requiere: css/asientos.css, js/autenticacion.js, js/asientos.js y js/seleccion-a
       id="seleccionAsientos"
       data-evento="{{ $eventoId }}"
       data-volver="{{ $volver ?? '' }}"
-      data-maximo="{{ config('reservas.max_asientos_por_reserva') }}"
+      data-maximo="{{ config('reservas.max_boletos_por_persona') }}"
       data-minutos="{{ intdiv(config('reservas.ttl_segundos'), 60) }}">
 
     <section class="tarjeta mapa" id="mapa" aria-label="Mapa de asientos">
@@ -33,6 +33,12 @@ Requiere: css/asientos.css, js/autenticacion.js, js/asientos.js y js/seleccion-a
         <p class="resumen__ayuda" id="ayuda"></p>
 
         <div class="aviso" id="aviso" role="alert"></div>
+
+        {{-- Ya tiene el máximo de boletos por persona para este evento --}}
+        <p class="limite" id="limite" hidden>
+            <span id="limiteTexto"></span>
+            <a href="{{ route('reservas.mis-compras') }}">Ver mis compras</a>
+        </p>
 
         <ul class="lista" id="lista" data-lenis-prevent></ul>
 
