@@ -12,7 +12,7 @@
 </head>
 <body class="pagina-asientos">
     <header class="cabecera">
-        <a href="{{ route('landing.experiencia') }}" class="marca">{{ config('marca.nombre') }}</a>
+        <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
         <nav class="cabecera__enlaces">
             <a href="/admin">Panel de administración</a>
         </nav>

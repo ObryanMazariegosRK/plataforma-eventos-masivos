@@ -34,7 +34,7 @@ class RegistrarUsuarioUseCase implements IRegistrarUsuarioUseCase
             email: $dto->email,
             rol: RolUsuario::CLIENTE,
             estado: EstadoUsuario::ACTIVO,
-            telefono: $dto->telefono,
+            // sin teléfono: no se pide (minimización de datos; ver /privacidad)
             passwordHash: $this->hasher->hashear($dto->password),
         );
 

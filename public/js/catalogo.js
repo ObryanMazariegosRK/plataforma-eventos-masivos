@@ -19,30 +19,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAnterior = document.getElementById('btnAnterior');
     const btnSiguiente = document.getElementById('btnSiguiente');
 
-    // Fotos de teatro para las tarjetas de muestra y los eventos sin afiche.
+    // Fotos de teatro para los eventos sin afiche, en tamaño de tarjeta (800 px de alto, WebP):
+    // las originales de 2000 px tardaban en decodificarse y trababan el scroll en celular.
     // Son dos fotos; cada entrada muestra otro encuadre (object-position) para que no se repitan.
     const FOTOS_TEATRO = [
-        { imagen: '/img/landing/auditorio-general.jpg', encuadre: '50% 50%' },
-        { imagen: '/img/landing/auditorio-butacas.jpg', encuadre: '25% 50%' },
-        { imagen: '/img/landing/auditorio-general.jpg', encuadre: '10% 50%' },
-        { imagen: '/img/landing/auditorio-butacas.jpg', encuadre: '80% 50%' },
-        { imagen: '/img/landing/auditorio-general.jpg', encuadre: '90% 50%' }
+        { imagen: '/img/landing/tarjetas/auditorio-general.webp', encuadre: '50% 50%' },
+        { imagen: '/img/landing/tarjetas/auditorio-butacas.webp', encuadre: '25% 50%' },
+        { imagen: '/img/landing/tarjetas/auditorio-general.webp', encuadre: '10% 50%' },
+        { imagen: '/img/landing/tarjetas/auditorio-butacas.webp', encuadre: '80% 50%' },
+        { imagen: '/img/landing/tarjetas/auditorio-general.webp', encuadre: '90% 50%' }
     ];
 
     const RESPALDO_EVENTO_ILUSTRATIVA =
-        '/img/landing/auditorio-general.jpg';
-
-    const DEMOS = [
-        { titulo: 'Noche de estreno', ...FOTOS_TEATRO[0] },
-        { titulo: 'Detrás del telón', ...FOTOS_TEATRO[1] },
-        { titulo: 'La gran función', ...FOTOS_TEATRO[2] },
-        { titulo: 'Primera fila', ...FOTOS_TEATRO[3] },
-        { titulo: 'Que se abra el telón', ...FOTOS_TEATRO[4] }
-    ];
+        '/img/landing/tarjetas/auditorio-general.webp';
 
     let controladorBusqueda = null;
     let tarjetasDestacadas = [];
-    let indiceActivo = 2;
+    let indiceActivo = 0;
+    // Con 1 o 2 eventos no hay efecto 3D: las tarjetas se muestran lado a lado, sin flechas
+    let modoPlano = false;
     let inicioToque = null;
 
     // =====================================================
@@ -268,14 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // CARRUSEL DE EVENTOS
     // =====================================================
 
+    // Solo eventos reales a la venta: los 5 más próximos (la API los ordena por fecha)
     function crearDatosCarrusel(eventos) {
-        const tarjetas = new Array(5).fill(null);
-        const posicionesReales = [2, 3, 1, 4, 0];
-
-        eventos.slice(0, 5).forEach((evento, i) => {
+        return eventos.slice(0, 5).map(evento => {
             const foto = resolverImagenEvento(evento);
 
-            tarjetas[posicionesReales[i]] = {
+            return {
                 demo: false,
                 titulo: evento.nombre || 'Evento sin nombre',
                 subtitulo:
@@ -285,25 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ilustrativa: foto.ilustrativa,
                 respaldo: RESPALDO_EVENTO_ILUSTRATIVA,
                 evento
-            };
-        });
-
-        let posDemo = 0;
-
-        return tarjetas.map(item => {
-            if (item) {
-                return item;
-            }
-
-            const demo = DEMOS[posDemo++];
-
-            return {
-                demo: true,
-                titulo: demo.titulo,
-                subtitulo:
-                    'Imagen de muestra · No disponible para compra',
-                imagen: demo.imagen,
-                encuadre: demo.encuadre
             };
         });
     }
@@ -326,16 +300,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tarjeta.tabIndex = -1;
 
-        tarjeta.appendChild(
-            imagenConRespaldo(
-                datos.imagen,
-                datos.demo || datos.ilustrativa
-                    ? `Imagen ilustrativa: ${datos.titulo}`
-                    : `Afiche de ${datos.titulo}`,
-                datos.respaldo || RESPALDO_EVENTO_ILUSTRATIVA,
-                datos.encuadre
-            )
+        const foto = imagenConRespaldo(
+            datos.imagen,
+            datos.demo || datos.ilustrativa
+                ? `Imagen ilustrativa: ${datos.titulo}`
+                : `Afiche de ${datos.titulo}`,
+            datos.respaldo || RESPALDO_EVENTO_ILUSTRATIVA,
+            datos.encuadre
         );
+
+        // El carrusel está a una pantalla de la portada: sus fotos se piden desde el inicio y
+        // se decodifican fuera del hilo principal, para que no frenen el scroll al llegar a él
+        foto.loading = 'eager';
+        foto.decoding = 'async';
+        tarjeta.appendChild(foto);
 
         const cuerpo = elemento('div', 'destacado-info');
 
@@ -387,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (indiceActivo !== i) {
+            if (!modoPlano && indiceActivo !== i) {
                 seleccionarTarjeta(i);
             }
         });
@@ -478,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function moverCarrusel(direccion) {
-        if (tarjetasDestacadas.length > 1) {
+        if (!modoPlano && tarjetasDestacadas.length > 1) {
             seleccionarTarjeta(indiceActivo + direccion);
         }
     }
@@ -489,15 +467,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         tarjetasDestacadas = crearDatosCarrusel(eventos);
-        indiceActivo = 2;
+        indiceActivo = 0;   // el evento más próximo, al centro
+        modoPlano = tarjetasDestacadas.length <= 2;
+
+        // Sin eventos a la venta no se muestra la sección (la cartelera de abajo lo explica)
+        const seccion = document.getElementById('destacados');
+        if (seccion) {
+            seccion.hidden = tarjetasDestacadas.length === 0;
+        }
+        if (!tarjetasDestacadas.length) {
+            return;
+        }
 
         listaDestacados.replaceChildren();
+        listaDestacados.classList.toggle('escenario-destacados--plano', modoPlano);
+        listaDestacados.dataset.cantidad = String(tarjetasDestacadas.length);
 
         tarjetasDestacadas.forEach((datos, i) => {
             listaDestacados.appendChild(
                 crearTarjetaDestacada(datos, i)
             );
         });
+
+        const barra = document.getElementById('barraCarrusel');
+        if (barra) {
+            barra.hidden = modoPlano;
+        }
+
+        if (modoPlano) {
+            // Todas visibles y accesibles: no hay tarjeta "activa"
+            [...listaDestacados.children].forEach(tarjeta => {
+                tarjeta.dataset.posicion = 'plano';
+                tarjeta.removeAttribute('aria-hidden');
+                tarjeta.tabIndex = -1;
+                const enlace = tarjeta.querySelector('a');
+                if (enlace) enlace.tabIndex = 0;
+            });
+            return;
+        }
 
         if (puntos) {
             puntos.replaceChildren();
@@ -612,17 +619,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // API PÚBLICA Y BÚSQUEDA
     // =====================================================
 
-    function mostrarEventos(eventos) {
+    // ---- Cartelera paginada: 6 funciones por tanda; "Ver más funciones" trae la siguiente ----
+    const verMas = document.getElementById('verMasEventos');
+    let filtrosActuales = {};
+    let paginaActual = 0;
+    let totalEventos = 0;
+    let mostrados = 0;
+
+    // agregar = true: la tanda se suma debajo de las que ya están (botón "Ver más")
+    function mostrarEventos(eventos, total, agregar = false) {
         if (!lista || !contador) {
             return;
         }
 
-        lista.replaceChildren();
+        if (!agregar) {
+            lista.replaceChildren();
+            mostrados = 0;
+        }
 
+        totalEventos = total;
         contador.textContent =
-            eventos.length === 1 ? '1 función' : `${eventos.length} funciones`;
+            total === 1 ? '1 función' : `${total} funciones`;
 
-        if (!eventos.length) {
+        if (!total) {
             lista.appendChild(
                 elemento(
                     'p',
@@ -630,15 +649,74 @@ document.addEventListener('DOMContentLoaded', () => {
                     'No encontramos eventos con esos filtros. Prueba otra búsqueda.'
                 )
             );
+        }
 
+        // Escalonadas por columna (3 por fila en escritorio)
+        eventos.forEach((evento, i) => {
+            const tarjeta = crearTarjeta(evento);
+            lista.appendChild(tarjeta);
+            revelar(tarjeta, (i % 3) * 140);
+        });
+        mostrados += eventos.length;
+
+        actualizarVerMas();
+    }
+
+    function actualizarVerMas(cargando = false) {
+        if (!verMas) {
             return;
         }
 
-        eventos.forEach(evento => {
-            lista.appendChild(crearTarjeta(evento));
-        });
+        const quedan = totalEventos - mostrados;
+        verMas.hidden = quedan <= 0;
+        verMas.disabled = cargando;
+        verMas.replaceChildren(
+            cargando ? 'Cargando…' : 'Ver más funciones',
+            ...(cargando ? [] : [elemento('span', '', ` · quedan ${quedan}`)])
+        );
     }
 
+    async function pedirPagina(filtros, pagina, señal) {
+        const parametros = new URLSearchParams({ pagina: String(pagina) });
+
+        Object.entries(filtros).forEach(([clave, valor]) => {
+            if (valor) {
+                parametros.set(clave, valor);
+            }
+        });
+
+        const respuesta = await fetch(
+            `/api/eventos?${parametros.toString()}`,
+            {
+                headers: {
+                    Accept: 'application/json'
+                },
+                signal: señal
+            }
+        );
+
+        if (!respuesta.ok) {
+            throw new Error(
+                `Error HTTP ${respuesta.status}`
+            );
+        }
+
+        const resultado = await respuesta.json();
+
+        if (
+            resultado.success !== true ||
+            !Array.isArray(resultado.data) ||
+            !resultado.meta
+        ) {
+            throw new Error(
+                'Respuesta inesperada de /api/eventos'
+            );
+        }
+
+        return resultado;
+    }
+
+    // Primera tanda (al abrir o al buscar): reemplaza la cartelera
     async function cargarEventos(filtros = {}, inicial = false) {
         if (!lista || !contador || !mensaje) {
             return;
@@ -648,17 +726,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const controladorActual = new AbortController();
         controladorBusqueda = controladorActual;
-
-        const parametros = new URLSearchParams();
-
-        Object.entries(filtros).forEach(([clave, valor]) => {
-            if (valor) {
-                parametros.set(clave, valor);
-            }
-        });
+        filtrosActuales = filtros;
 
         mensaje.textContent = '';
         contador.textContent = 'Buscando…';
+        if (verMas) verMas.hidden = true;
 
         lista.replaceChildren(
             elemento(
@@ -669,35 +741,12 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         try {
-            const respuesta = await fetch(
-                `/api/eventos?${parametros.toString()}`,
-                {
-                    headers: {
-                        Accept: 'application/json'
-                    },
-                    signal: controladorActual.signal
-                }
-            );
+            const resultado = await pedirPagina(filtros, 1, controladorActual.signal);
 
-            if (!respuesta.ok) {
-                throw new Error(
-                    `Error HTTP ${respuesta.status}`
-                );
-            }
+            paginaActual = 1;
+            mostrarEventos(resultado.data, resultado.meta.total);
 
-            const resultado = await respuesta.json();
-
-            if (
-                resultado.success !== true ||
-                !Array.isArray(resultado.data)
-            ) {
-                throw new Error(
-                    'Respuesta inesperada de /api/eventos'
-                );
-            }
-
-            mostrarEventos(resultado.data);
-
+            // El carrusel usa los primeros de esta misma tanda (no hace otra consulta)
             if (inicial) {
                 mostrarDestacados(resultado.data);
             }
@@ -736,6 +785,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // "Ver más funciones": siguiente tanda, debajo de las que ya se ven
+    verMas?.addEventListener('click', async () => {
+        actualizarVerMas(true);
+        mensaje.textContent = '';
+
+        try {
+            const resultado = await pedirPagina(filtrosActuales, paginaActual + 1);
+            paginaActual += 1;
+            mostrarEventos(resultado.data, resultado.meta.total, true);
+        } catch (error) {
+            console.error('Error al cargar más eventos:', error);
+            mensaje.textContent = 'No pudimos cargar más funciones. Inténtalo otra vez.';
+            actualizarVerMas();
+        }
+    });
+
     formulario?.addEventListener('submit', event => {
         event.preventDefault();
 
@@ -755,12 +820,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // EFECTOS VISUALES
     // =====================================================
 
-    if ('IntersectionObserver' in window) {
-        document.documentElement.classList.add(
-            'animaciones-activas'
-        );
-
-        const observador = new IntersectionObserver(
+    // Las secciones y las tarjetas aparecen con calma al entrar en pantalla (desvanecido y
+    // subiendo un poco). Sin IntersectionObserver o con "reducir movimiento" se ven directo.
+    const observador = 'IntersectionObserver' in window
+        ? new IntersectionObserver(
             entradas => {
                 entradas.forEach(entrada => {
                     if (entrada.isIntersecting) {
@@ -770,14 +833,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             {
-                threshold: 0.1
+                threshold: 0.12,
+                rootMargin: '0px 0px -6% 0px'   // un poco antes del borde: se nota que "entra"
             }
-        );
+        )
+        : null;
 
-        document.querySelectorAll('.reveal').forEach(
-            nodo => observador.observe(nodo)
-        );
+    if (observador) {
+        document.documentElement.classList.add('animaciones-activas');
     }
+
+    // retraso en ms: para que las tarjetas de una misma fila aparezcan una tras otra
+    function revelar(nodo, retraso = 0) {
+        if (!nodo) {
+            return;
+        }
+
+        nodo.classList.add('reveal');
+        nodo.style.setProperty('--retraso', `${retraso}ms`);
+        observador?.observe(nodo);
+    }
+
+    document.querySelectorAll('.reveal').forEach(nodo => revelar(nodo));
+    revelar(document.querySelector('.destacados-titulo'));
+    // El carrusel no lleva animación de aparición: sumada al 3D era lo que frenaba el scroll en celular
+    revelar(document.getElementById('barraCarrusel'), 300);
 
     // =====================================================
     // MENÚ DE SESIÓN DEL CATÁLOGO
@@ -1165,7 +1245,89 @@ document.addEventListener('DOMContentLoaded', () => {
     // INICIALIZACIÓN
     // =====================================================
 
+    // =====================================================
+    // PORTADA QUE SE APAGA AL BAJAR
+    // =====================================================
+
+    // Al bajar, la portada se oscurece poco a poco (--oscuro: 0 → 1 a lo largo de toda su
+    // altura) y, más abajo, los destacados se atenúan un poco al pasarlos (--atenuado).
+    // Los valores siguen al scroll con suavizado, así no cambian de golpe con la rueda.
+    function iniciarPortadaQueSeApaga() {
+        const portada = document.querySelector('.portada');
+        const destacados = document.getElementById('destacados');
+
+        if (!portada || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        const limitar = (valor) => Math.min(1, Math.max(0, valor));
+        const efectos = [
+            {
+                nodo: portada,
+                variable: '--oscuro',
+                meta: () => limitar(window.scrollY / (portada.offsetHeight * .9)),
+                actual: 0
+            },
+            {
+                nodo: destacados,
+                variable: '--atenuado',
+                // empieza cuando la sección ya subió un tercio y termina cuando casi sale
+                meta: () => {
+                    if (!destacados || destacados.hidden) return 0;
+                    const caja = destacados.getBoundingClientRect();
+                    return limitar((-caja.top - caja.height * .33) / (caja.height * .5));
+                },
+                actual: 0
+            }
+        ].filter(efecto => efecto.nodo);
+
+        let animando = false;
+
+        function paso() {
+            let quieto = true;
+
+            efectos.forEach(efecto => {
+                const meta = efecto.meta();
+                efecto.actual += (meta - efecto.actual) * .08;   // más pequeño = más lento y suave
+
+                if (Math.abs(meta - efecto.actual) < .001) {
+                    efecto.actual = meta;
+                } else {
+                    quieto = false;
+                }
+
+                efecto.nodo.style.setProperty(efecto.variable, efecto.actual.toFixed(4));
+            });
+
+            animando = !quieto;
+
+            if (animando) {
+                requestAnimationFrame(paso);
+            }
+        }
+
+        function alBajar() {
+            if (!animando) {
+                animando = true;
+                requestAnimationFrame(paso);
+            }
+        }
+
+        window.addEventListener('scroll', alBajar, { passive: true });
+        window.addEventListener('resize', alBajar, { passive: true });
+        alBajar();   // por si la página abre ya bajada (recargar a media página)
+    }
+
+    // Sin sesión: "Iniciar sesión" y "Registrarse" recuerdan esta página para volver a ella
+    if (!localStorage.getItem('auth_token')) {
+        const aqui = encodeURIComponent(location.pathname + location.search + location.hash);
+        document.querySelectorAll('.nav-enlaces a[href="/login"], .nav-enlaces a[href="/registro"]').forEach(enlace => {
+            enlace.href = `${enlace.getAttribute('href')}?volver=${aqui}`;
+        });
+    }
+
     cargarBanner();
+    iniciarPortadaQueSeApaga();
     cargarEventos({}, true);
     iniciarMenuSesion();
 

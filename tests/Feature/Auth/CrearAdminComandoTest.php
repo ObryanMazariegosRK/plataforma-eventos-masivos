@@ -16,7 +16,6 @@ class CrearAdminComandoTest extends TestCase
     public function test_crea_un_admin_verificado_y_activo(): void
     {
         $this->artisan('usuario:crear-admin', ['--email' => 'Ana@Correo.com', '--nombre' => 'Ana', '--apellido' => 'López'])
-            ->expectsQuestion('Teléfono (opcional)', '55551234')
             ->expectsQuestion('Contraseña', 'Secreto#123')
             ->expectsQuestion('Repite la contraseña', 'Secreto#123')
             ->assertSuccessful();
@@ -35,7 +34,7 @@ class CrearAdminComandoTest extends TestCase
 
     public function test_rechaza_una_contrasena_debil(): void
     {
-        $this->artisan('usuario:crear-admin', ['--email' => 'ana@correo.com', '--nombre' => 'Ana', '--apellido' => 'López', '--telefono' => '1'])
+        $this->artisan('usuario:crear-admin', ['--email' => 'ana@correo.com', '--nombre' => 'Ana', '--apellido' => 'López'])
             ->expectsQuestion('Contraseña', '123')
             ->expectsQuestion('Repite la contraseña', '123')
             ->assertFailed();

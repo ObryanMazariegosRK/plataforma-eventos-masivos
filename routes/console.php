@@ -40,6 +40,25 @@ Schedule::call(function (): void {
     ->everyMinute()
     ->withoutOverlapping();
 
+ // ---- Procesamiento automático de Cola Virtual (RF-09) ----
+ // Revisa los turnos cada minuto cuando esté habilitado.
+ // Expira los vencidos y habilita a los siguientes usuarios.
+
+Schedule::call(function (): void {
+
+    // Protección: no procesar mientras esté desactivado.
+    if (!config('cola_virtual.procesamiento_automatico_habilitado', false)) {
+        return;
+    }
+
+    app(\App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase::class)
+        ->execute();
+
+})
+    ->name('cola-virtual.procesar.turnos')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 // Genera el inventario de un evento que se publicó antes de que existiera la generación automática.
 // Uso: php artisan inventario:generar 4
 Artisan::command('inventario:generar {evento : id del evento}', function (int $evento) {
@@ -51,7 +70,7 @@ Artisan::command('inventario:generar {evento : id del evento}', function (int $e
 // Uso: php artisan usuario:crear-admin            → pregunta los datos
 //      php artisan usuario:crear-admin --email=ana@correo.com --nombre=Ana --apellido=López
 // La contraseña siempre se pide oculta (nunca como parámetro, para que no quede en el historial).
-Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=} {--telefono=}', function () {
+Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=}', function () {
     $email = strtolower(trim($this->option('email') ?: $this->ask('Correo')));
 
     if (\Illuminate\Support\Facades\Validator::make(['email' => $email], ['email' => 'required|email'])->fails()) {
@@ -71,10 +90,9 @@ Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=} {--te
     }
 
     // Una cuenta existente conserva sus datos; para una nueva se piden
-    $datos = $usuario ? $usuario->only(['nombre', 'apellido', 'telefono']) : [
+    $datos = $usuario ? $usuario->only(['nombre', 'apellido']) : [
         'nombre'   => $this->option('nombre') ?: $this->ask('Nombre'),
         'apellido' => $this->option('apellido') ?: $this->ask('Apellido'),
-        'telefono' => $this->option('telefono') ?: $this->ask('Teléfono (opcional)', ''),
     ];
 
     $password = null;
@@ -96,7 +114,6 @@ Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=} {--te
     $usuario->fill([
         'nombre'            => $datos['nombre'],
         'apellido'          => $datos['apellido'],
-        'telefono'          => $datos['telefono'] ?: null,
         'rol'               => \App\Domain\Enums\Auth\RolUsuario::ADMIN,
         'estado'            => \App\Domain\Enums\Auth\EstadoUsuario::ACTIVO,
         'email_verified_at' => $usuario->email_verified_at ?? now(),

@@ -19,7 +19,6 @@ class RegistrarUsuarioRequest extends FormRequest
             // sin 'unique': el caso de uso lo valida y responde 409
             'email'    => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', Password::defaults()],   // reglas en AppServiceProvider::boot()
-            'telefono' => ['nullable', 'string', 'regex:/^[0-9+\-\s]{8,15}$/'],
         ];
     }
 
@@ -35,7 +34,6 @@ class RegistrarUsuarioRequest extends FormRequest
             'password.mixed'    => 'La contraseña debe incluir mayúsculas y minúsculas.',
             'password.numbers'  => 'La contraseña debe incluir al menos un número.',
             'password.symbols'  => 'La contraseña debe incluir al menos un símbolo (@, #, $, %...).',
-            'telefono.regex'    => 'El teléfono debe tener entre 8 y 15 dígitos.',
         ];
     }
 }

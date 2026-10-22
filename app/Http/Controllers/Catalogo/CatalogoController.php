@@ -21,16 +21,30 @@ class CatalogoController extends Controller
             'nombre' => 'sometimes|nullable|string|max:255',
             'ciudad' => 'sometimes|nullable|string|max:255',
             'fecha'  => 'sometimes|nullable|date_format:Y-m-d',
+            // Paginación opcional (la cartelera pide de 6 en 6); sin "pagina" se devuelven todos
+            'pagina'     => 'sometimes|integer|min:1',
+            'por_pagina' => 'sometimes|integer|min:1|max:48',
         ]);
 
-        // Ejecutar el caso de uso
-        $eventos = $this->listarEventos->execute($filtros);
+        $pagina = isset($filtros['pagina']) ? (int) $filtros['pagina'] : null;
+        $porPagina = $pagina === null ? null : (int) ($filtros['por_pagina'] ?? config('catalogo.eventos_por_pagina'));
+        unset($filtros['pagina'], $filtros['por_pagina']);
 
-        // Devolver los eventos en formato JSON
+        // Ejecutar el caso de uso
+        $resultado = $this->listarEventos->execute($filtros, $pagina, $porPagina);
+
+        // Devolver los eventos en formato JSON (meta solo si se pidió una página)
         return response()->json([
             'success' => true,
             'message' => 'Eventos consultados correctamente',
-            'data' => $eventos,
-        ]);
+            'data' => $resultado['eventos'],
+        ] + ($pagina === null ? [] : [
+            'meta' => [
+                'pagina'     => $pagina,
+                'por_pagina' => $porPagina,
+                'total'      => $resultado['total'],
+                'hay_mas'    => $pagina * $porPagina < $resultado['total'],
+            ],
+        ]));
     }
 }

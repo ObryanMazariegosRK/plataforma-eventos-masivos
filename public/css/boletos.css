@@ -156,7 +156,7 @@
 @media print {
     @page { margin: 14mm; }
     body { background: #fff !important; color: #111 !important; }
-    .navbar, .boletos__volver, .boletos__imprimir, .boletos__consejo { display: none !important; }
+    .navbar, .boletos__volver, .boletos__imprimir, .boletos__consejo, .pie-pagina { display: none !important; }
     .boletos { padding: 0; }
     .boletos__encabezado { border-color: #ccc; margin-bottom: 18px; }
     .boletos__encabezado h1, .boletos__datos, .label-seccion { color: #111 !important; }

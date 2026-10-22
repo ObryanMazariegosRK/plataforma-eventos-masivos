@@ -87,6 +87,26 @@ class CrearReservaUseCase implements ICrearReservaUseCase
                     'evento_id' => 'El evento no está disponible para reservas.',
                 ]);
             }
+            
+            // Verificar autorización de Cola Virtual.
+            // Los eventos sin cola conservan su funcionamiento normal.
+            if ((bool) $evento->cola_virtual_activa) {
+
+                $turno = DB::table('cola_virtual')
+                    ->where('evento_id', $dto->eventoId)
+                    ->where('usuario_id', $dto->usuarioId)
+                    ->where('estado', 'habilitado')
+                    ->where('habilitado_hasta', '>', now())
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$turno) {
+                    throw ValidationException::withMessages([
+                        'cola_virtual' => 'Debes esperar a que tu turno de Cola Virtual esté habilitado y vigente para reservar.',
+                    ]);
+                }
+            }
 
             // 2. Bloquear los registros de inventario en MySQL.
             $items = DB::table('inventario')
@@ -186,6 +206,28 @@ class CrearReservaUseCase implements ICrearReservaUseCase
                 throw ValidationException::withMessages([
                     'inventario_ids' => 'No se pudieron bloquear todos los asientos.',
                 ]);
+            }
+            
+            // Consumir el turno de Cola Virtual después de crear
+            // correctamente la reserva y bloquear el inventario.
+            if ((bool) $evento->cola_virtual_activa) {
+
+                $turnosActualizados = DB::table('cola_virtual')
+                    ->where('id', $turno->id)
+                    ->where('evento_id', $dto->eventoId)
+                    ->where('usuario_id', $dto->usuarioId)
+                    ->where('estado', 'habilitado')
+                    ->where('habilitado_hasta', '>', now())
+                    ->update([
+                        'estado' => 'atendido',
+                        'updated_at' => now(),
+                    ]);
+
+                if ($turnosActualizados !== 1) {
+                    throw ValidationException::withMessages([
+                        'cola_virtual' => 'El turno ya no está disponible para reservar.',
+                    ]);
+                }
             }
 
             return $reserva;
