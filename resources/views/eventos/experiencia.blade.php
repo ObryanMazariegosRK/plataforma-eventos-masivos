@@ -21,7 +21,8 @@
 <body>
     <header class="cabecera" data-cabecera>
         <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
-        <a href="#asientos" class="cabecera__boton">Elegir asientos</a>
+        {{-- data-corte: fundido a negro y salto directo al plano (landing.js) --}}
+        <a href="#asientos" class="cabecera__boton" data-corte>Elegir asientos</a>
     </header>
 
     {{-- 1. El recorrido por el teatro, con el nombre del evento en la entrada --}}

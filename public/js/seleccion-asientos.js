@@ -152,7 +152,16 @@
         requestAnimationFrame(paso);
     }
 
+    // Huella de lo que muestra el plano: si el refresco trae lo mismo, no se vuelve a dibujar
+    // (redibujar ~80 asientos cada 8 s trababa el scroll en celular)
+    const huellaDatos = () => JSON.stringify([
+        restantes,
+        datos.localidades.map((l) => [l.id, l.disponibles, l.asientos.map((a) => a.estado)]),
+    ]);
+    let huellaDibujada = '';
+
     function actualizar() {
+        huellaDibujada = huellaDatos();
         MapaAsientos.dibujar(mapa, datos, { modo: 'cliente', seleccion, cupos, puedeAgregar, alAlternarAsiento, alCambiarCupo });
         dibujarResumen();
         try {
@@ -252,6 +261,7 @@
         setInterval(async () => {
             if (document.hidden || !(await cargar())) return;
             await cargarCupo();
+            if (huellaDatos() === huellaDibujada) return;   // nada cambió: no se toca el plano
             depurarSeleccion();
             actualizar();
         }, 8000);
