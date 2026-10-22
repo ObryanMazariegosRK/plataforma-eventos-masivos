@@ -20,9 +20,8 @@ use App\Http\Controllers\Inventario\ExperienciaEventoController;
 // 1. PÁGINA PRINCIPAL
 // ======================================================
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// La tienda empieza en la cartelera
+Route::redirect('/', '/catalogo');
 
 
 // ======================================================
@@ -98,6 +97,10 @@ Route::view('/pagos/retorno', 'pagos.retorno')
 Route::view('/pagos/cancelado', 'pagos.cancelado')
     ->name('pagos.cancelado');
 
+// Política de privacidad: qué datos pedimos y para qué (enlazada desde el pie y el registro)
+Route::view('/privacidad', 'legal.privacidad')
+    ->name('legal.privacidad');
+
 // Historial de compras del cliente (los datos vienen de GET /api/mis-compras)
 Route::view('/mis-compras', 'reservas.mis-compras')
     ->name('reservas.mis-compras');
@@ -123,14 +126,6 @@ Route::post('/pasarela-simulada/{orden}', [
     PasarelaSimuladaController::class,
     'decidir'
 ])->name('pasarela-simulada.decidir');
-
-
-// ======================================================
-// 8. LANDING (recorrido por scroll)
-// ======================================================
-
-Route::view('/experiencia', 'landing.experiencia')
-    ->name('landing.experiencia');
 
 
 // ======================================================

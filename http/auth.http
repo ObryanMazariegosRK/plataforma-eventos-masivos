@@ -17,8 +17,7 @@ Accept: application/json
     "nombre": "Ana",
     "apellido": "López",
     "email": "{{email}}",
-    "password": "{{password}}",
-    "telefono": "55551234"
+    "password": "{{password}}"
 }
 
 ### 2) Verificar correo → 200 con token

@@ -15,7 +15,36 @@ class EventoRepository implements IEventoRepository
      * Incluye la imagen de cada evento,
      * pero no expone precios al público.
      */
-    public function listarPublicados(array $filtros = []): array
+    public function listarPublicados(array $filtros = [], ?int $limite = null, int $desde = 0): array
+    {
+        $consulta = $this->consultaPublicados($filtros)
+            ->select([
+                'eventos.id',
+                'eventos.nombre',
+                'eventos.descripcion',
+                'eventos.imagen_url',
+                'eventos.fecha_evento',
+                'eventos.estado',
+                'recintos.nombre as recinto',
+                'recintos.ciudad',
+            ])
+            ->orderBy('eventos.fecha_evento')
+            ->orderBy('eventos.id');   // desempate estable: la paginación no repite ni salta eventos
+
+        if ($limite !== null) {
+            $consulta->skip($desde)->take($limite);
+        }
+
+        return $consulta->get()->toArray();
+    }
+
+    public function contarPublicados(array $filtros = []): int
+    {
+        return $this->consultaPublicados($filtros)->count();
+    }
+
+    // Eventos publicados (o agotados) y vigentes, de recintos activos, con los filtros aplicados
+    private function consultaPublicados(array $filtros): \Illuminate\Database\Eloquent\Builder
     {
         $consulta = Evento::query()
             ->join(
@@ -30,17 +59,7 @@ class EventoRepository implements IEventoRepository
             ])
             ->where('recintos.estado', 'activo')
             ->whereNull('recintos.deleted_at')
-            ->where('eventos.fecha_evento', '>=', now())
-            ->select([
-                'eventos.id',
-                'eventos.nombre',
-                'eventos.descripcion',
-                'eventos.imagen_url',
-                'eventos.fecha_evento',
-                'eventos.estado',
-                'recintos.nombre as recinto',
-                'recintos.ciudad',
-            ]);
+            ->where('eventos.fecha_evento', '>=', now());
 
         if (!empty($filtros['nombre'])) {
             $consulta->where(
@@ -65,10 +84,7 @@ class EventoRepository implements IEventoRepository
             );
         }
 
-        return $consulta
-            ->orderBy('eventos.fecha_evento')
-            ->get()
-            ->toArray();
+        return $consulta;
     }
 
     /**

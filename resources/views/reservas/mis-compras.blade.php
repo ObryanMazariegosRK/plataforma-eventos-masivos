@@ -23,7 +23,7 @@
 
     <header class="navbar">
         <div class="contenedor nav-contenido">
-            <a class="logo" href="{{ route('landing.experiencia') }}" aria-label="{{ config('marca.nombre') }}, ir al inicio">
+            <a class="logo" href="{{ route('catalogo.index') }}" aria-label="{{ config('marca.nombre') }}, ir a la cartelera">
                 {{ config('marca.nombre') }}
             </a>
 
@@ -66,6 +66,8 @@
             <a class="btn-explorar" href="{{ route('catalogo.index') }}">Ver la cartelera</a>
         </div>
     </main>
+
+    @include('partials.pie-pagina')
 
 </body>
 </html>
