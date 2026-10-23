@@ -20,12 +20,7 @@
                 </span>
                 <span class="cabecera__volver-texto">Catálogo de eventos</span>
             </a>
-            <span class="cabecera__separador" aria-hidden="true"></span>
-            <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
         </div>
-        <nav class="cabecera__enlaces">
-            <a href="/admin">Panel de administración</a>
-        </nav>
     </header>
 
     <main class="contenido contenido--admin asientos-app" id="pagina" data-evento="{{ $eventoId }}">

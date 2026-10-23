@@ -575,8 +575,6 @@ body.pagina-asientos {
     border-color: var(--marfil); background: var(--marfil); color: var(--tinta);
 }
 .pagina-asientos .cabecera__volver:hover svg, .pagina-asientos .cabecera__volver:focus-visible svg { transform: translateX(-3px); }
-.pagina-asientos .cabecera__separador { width: 1px; height: 22px; background: var(--hilo-fuerte); }
 @media (max-width: 640px) {
     .pagina-asientos .cabecera__inicio { gap: 12px; }
-    .pagina-asientos .cabecera__volver-texto, .pagina-asientos .cabecera__separador { display: none; }
 }
