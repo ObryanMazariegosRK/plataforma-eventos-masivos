@@ -101,11 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function pintarCifras() {
         const t = datos.totales;
         const p = datos.periodo;
-        let variacion = `Sin ventas en los ${p.dias} días anteriores`;
+        // De qué período son las ventas; si antes hubo ventas, además cuánto cambiaron
+        const hastaHoy = p.hasta === hoyEnGuatemala();
+        const periodo = hastaHoy
+            ? (p.dias === 1 ? 'Ventas de hoy' : `Ventas de los últimos ${p.dias} días`)
+            : `Ventas del ${diaCorto.format(diaDe(p.desde))} al ${diaCorto.format(diaDe(p.hasta))}`;
+        let variacion = periodo;
         let tono = null;
         if (t.variacion !== null) {
             const sube = t.variacion >= 0;
-            variacion = `${sube ? '▲' : '▼'} ${pct.format(Math.abs(t.variacion))} frente a los ${p.dias} días anteriores`;
+            const antes = hastaHoy ? `los ${p.dias} días anteriores` : 'el período anterior';
+            variacion = `${periodo} · ${sube ? '▲' : '▼'} ${pct.format(Math.abs(t.variacion))} frente a ${antes}`;
             tono = sube ? 'bien' : 'mal';
         }
 
