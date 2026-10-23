@@ -9,6 +9,7 @@ use App\Infrastructure\Auth\Mail\CodigoVerificacionMail;
 use App\Models\Auth\Usuario as UsuarioModel;
 use App\Domain\Exceptions\Auth\CredencialesInvalidasException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -67,6 +68,39 @@ class AuthTest extends TestCase
         $this->postJson('/api/auth/login', ['email' => 'ana@example.com', 'password' => 'Secreto#123'])
             ->assertOk()
             ->assertJsonStructure(['message', 'token', 'usuario' => ['id', 'nombre', 'email', 'rol']]);
+    }
+
+    public function test_la_sesion_vence_a_las_12_horas_aunque_se_siga_usando(): void
+    {
+        $this->crearUsuario();
+        $token = $this->postJson('/api/auth/login', ['email' => 'ana@example.com', 'password' => 'Secreto#123'])->json('token');
+
+        $this->travel(11)->hours();
+        $this->withToken($token)->getJson('/api/auth/perfil')->assertOk();
+
+        $this->app['auth']->forgetGuards();
+        $this->travel(61)->minutes();
+        $this->withToken($token)->getJson('/api/auth/perfil')->assertUnauthorized();
+    }
+
+    public function test_cada_rol_entra_por_su_propio_acceso(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);   // aquí se prueban varias cuentas seguidas
+        $this->crearUsuario('admin@example.com', RolUsuario::ADMIN);
+        $this->crearUsuario('operador@example.com', RolUsuario::ORGANIZADOR);
+        $this->crearUsuario('ana@example.com');
+
+        foreach (['admin@example.com' => 'admin', 'operador@example.com' => 'organizador'] as $email => $rol) {
+            $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'Secreto#123'])
+                ->assertForbidden()->assertJsonPath('error', 'acceso_personal');
+            $this->postJson('/api/auth/login-personal', ['email' => $email, 'password' => 'Secreto#123'])
+                ->assertOk()->assertJsonPath('usuario.rol', $rol);
+        }
+        $this->postJson('/api/auth/login-personal', ['email' => 'ana@example.com', 'password' => 'Secreto#123'])
+            ->assertForbidden()->assertJsonPath('error', 'sin_acceso_panel');
+        // Contraseña incorrecta: el mismo 401 de siempre, sin revelar de qué tipo es la cuenta
+        $this->postJson('/api/auth/login-personal', ['email' => 'ana@example.com', 'password' => 'Otra#1234'])
+            ->assertUnauthorized()->assertJsonPath('error', 'credenciales_invalidas');
     }
 
     public function test_login_con_contrasena_incorrecta_responde_401_sin_ensuciar_el_log(): void
@@ -248,6 +282,13 @@ class AuthTest extends TestCase
         foreach (['/login', '/registro', '/verificar', '/perfil', '/olvide-password', '/restablecer-password'] as $ruta) {
             $this->get($ruta)->assertOk();
         }
+        $this->get('/login')->assertSee('auth/google/redirect');
+
+        // Acceso del personal: sin Google ni registro, con su propia recuperación de contraseña
+        $this->get('/admin/login')->assertOk()->assertSee('/auth/login-personal')
+            ->assertDontSee('auth/google/redirect')->assertDontSee('Regístrate')->assertSee('/admin/olvide-password');
+        $this->get('/admin/olvide-password')->assertOk()->assertSee('/admin/restablecer-password');
+        $this->get('/admin/restablecer-password')->assertOk()->assertSee('/admin/login');
     }
 
     private function crearUsuario(

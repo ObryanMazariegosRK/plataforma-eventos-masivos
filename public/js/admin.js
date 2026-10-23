@@ -3217,7 +3217,7 @@
             localStorage.removeItem('auth_token');
             sessionStorage.removeItem('auth_token');
 
-            window.location.replace('/login');
+            window.location.replace('/admin/login');
 
         } catch (error) {
             if (mensaje) {
@@ -3488,10 +3488,16 @@
             if (pedida) {
                 window.history.replaceState(null, '', window.location.pathname);
             }
+            // Sin sección pedida: el admin empieza en el Dashboard y el operador en el Catálogo
             navigate(pedida && pedida in titles && canAccessSection(pedida)
                 ? pedida
-                : profile.rol === 'organizador' ? 'eventos' : 'resumen');
+                : profile.rol === 'organizador' ? 'catalogo' : 'resumen');
         } catch (error) {
+            // Sin sesión válida del personal: al acceso del personal (sesion.js), que regresa aquí
+            if (window.SesionPanel) {
+                window.SesionPanel.irAlAcceso(error.message);
+                return;
+            }
             currentRole = null;
             feedback(error.message, true);
             show('dashboard', false);

@@ -43,20 +43,30 @@ class CatalogoBitacora
         $nombreUsuario = fn (?array $antes) => $antes ? trim("{$antes['nombre']} {$antes['apellido']}")." ({$antes['email']})" : 'un usuario';
         $motivo = fn (?string $error) => $error ? ": {$error}" : '';
 
+        // Login de la tienda y del personal: mismo texto, con el lugar por donde se intentó
+        $inicioSesion = fn (string $exitoso, string $donde) => fn (Request $r, $antes, $id, bool $exito, ?string $error, ?string $codigo) => $exito
+            ? $exitoso
+            : match ($codigo) {
+                'credenciales_invalidas' => "Intento de inicio de sesión{$donde} con contraseña incorrecta ({$r->input('email')})",
+                'usuario_bloqueado' => "Una cuenta bloqueada intentó iniciar sesión{$donde} ({$r->input('email')})",
+                'correo_no_verificado' => "Intento de inicio de sesión{$donde} sin verificar el correo ({$r->input('email')})",
+                'acceso_personal' => "Una cuenta del personal intentó entrar por la tienda ({$r->input('email')})",
+                'sin_acceso_panel' => "Una cuenta de cliente intentó entrar al acceso del personal ({$r->input('email')})",
+                'demasiados_intentos' => "Demasiados intentos de inicio de sesión{$donde} ({$r->input('email')})",
+                default => "Intento fallido de inicio de sesión{$donde} ({$r->input('email')})",
+            };
+
         return [
             // ---------- Sesiones ----------
             'POST api/auth/login' => [
                 'categoria' => C::SESION, 'accion' => 'sesion.inicio', 'entidad' => 'usuario',
                 'campos' => ['email'], 'registrarFallos' => true,
-                'describir' => fn (Request $r, $antes, $id, bool $exito, ?string $error, ?string $codigo) => $exito
-                    ? 'Inició sesión con correo y contraseña'
-                    : match ($codigo) {
-                        'credenciales_invalidas' => "Intento de inicio de sesión con contraseña incorrecta ({$r->input('email')})",
-                        'usuario_bloqueado' => "Una cuenta bloqueada intentó iniciar sesión ({$r->input('email')})",
-                        'correo_no_verificado' => "Intento de inicio de sesión sin verificar el correo ({$r->input('email')})",
-                        'demasiados_intentos' => "Demasiados intentos de inicio de sesión ({$r->input('email')})",
-                        default => "Intento fallido de inicio de sesión ({$r->input('email')})",
-                    },
+                'describir' => $inicioSesion('Inició sesión con correo y contraseña', ''),
+            ],
+            'POST api/auth/login-personal' => [
+                'categoria' => C::SESION, 'accion' => 'sesion.inicio_personal', 'entidad' => 'usuario',
+                'campos' => ['email'], 'registrarFallos' => true,
+                'describir' => $inicioSesion('Inició sesión en el acceso del personal', ' en el acceso del personal'),
             ],
             'GET auth/google/callback' => [
                 'categoria' => C::SESION, 'accion' => 'sesion.inicio_google', 'entidad' => 'usuario',

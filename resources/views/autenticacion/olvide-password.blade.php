@@ -1,9 +1,14 @@
+{{-- Recuperar contraseña: tienda (/olvide-password) o personal (/admin/olvide-password, $personal = true) --}}
+@php($personal = $personal ?? false)
 @extends('layouts.autenticacion')
 
 @section('titulo', 'Recuperar contraseña')
 @section('eslogan', 'Te ayudamos a recuperar tu cuenta.')
 
 @section('contenido')
+    @if ($personal)
+        <p class="etiqueta-acceso">Acceso del personal</p>
+    @endif
     <h1>¿Olvidaste tu contraseña?</h1>
     <p class="subtitulo">Escribe tu correo y te enviaremos un código de 6 dígitos para crear una nueva.</p>
 
@@ -18,7 +23,7 @@
         <button type="submit" id="btnEnviar" class="boton">Enviar código</button>
     </form>
 
-    <p class="pie"><a href="{{ route('login') }}">Volver a iniciar sesión</a></p>
+    <p class="pie"><a href="{{ route($personal ? 'admin.login' : 'login') }}">Volver a iniciar sesión</a></p>
 @endsection
 
 @push('scripts')
@@ -37,7 +42,7 @@
         if (respuesta.ok) {
             // La API responde lo mismo exista o no el correo; seguimos al siguiente paso igual.
             Auth.mostrar(alerta, respuesta.data.message, 'exito');
-            setTimeout(() => window.location.href = `/restablecer-password?email=${encodeURIComponent(email)}`, 1500);
+            setTimeout(() => window.location.href = `{{ route($personal ? 'admin.restablecer-password' : 'restablecer-password', [], false) }}?email=${encodeURIComponent(email)}`, 1500);
             return;
         }
 

@@ -55,6 +55,12 @@ Route::prefix('auth')->group(function () {
         'login'
     ])->middleware('throttle:10,1');
 
+    // Acceso del personal (admin y operador): más estricto con los intentos
+    Route::post('/login-personal', [
+        AuthController::class,
+        'loginPersonal'
+    ])->middleware('throttle:5,1');
+
     Route::post('/olvide-password', [
         AuthController::class,
         'solicitarRecuperacion'

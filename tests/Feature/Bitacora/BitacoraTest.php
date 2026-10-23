@@ -75,6 +75,22 @@ class BitacoraTest extends TestCase
         $this->assertStringNotContainsString('Equivocada#1', $todo);
     }
 
+    public function test_registra_el_acceso_del_personal_y_quien_entra_por_la_puerta_equivocada(): void
+    {
+        $admin = $this->usuario(RolUsuario::ADMIN, 'Luis');
+        $cliente = $this->usuario(RolUsuario::CLIENTE);
+
+        $this->postJson('/api/auth/login', ['email' => $admin->email, 'password' => 'Secreto#123'])->assertForbidden()->assertJsonPath('error', 'acceso_personal');
+        $this->postJson('/api/auth/login-personal', ['email' => $cliente->email, 'password' => 'Secreto#123'])->assertForbidden()->assertJsonPath('error', 'sin_acceso_panel');
+        $this->postJson('/api/auth/login-personal', ['email' => $admin->email, 'password' => 'Secreto#123'])->assertOk();
+
+        $filas = $this->bitacora()->orderBy('id')->get();
+        $this->assertSame(['sesion.inicio_fallido', 'sesion.inicio_personal_fallido', 'sesion.inicio_personal'], $filas->pluck('accion')->all());
+        $this->assertSame('Una cuenta del personal intentó entrar por la tienda (admin@test.com)', $filas[0]->descripcion);
+        $this->assertSame('Una cuenta de cliente intentó entrar al acceso del personal (cliente@test.com)', $filas[1]->descripcion);
+        $this->assertSame(['Inició sesión en el acceso del personal', 'admin'], [$filas[2]->descripcion, $filas[2]->usuario_rol]);
+    }
+
     public function test_registra_la_compra_completa_y_el_pago_rechazado(): void
     {
         Mail::fake();

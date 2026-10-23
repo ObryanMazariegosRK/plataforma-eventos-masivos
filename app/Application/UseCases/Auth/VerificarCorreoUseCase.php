@@ -44,6 +44,6 @@ class VerificarCorreoUseCase implements IVerificarCorreoUseCase
         $usuario = $this->usuarios->guardar($usuario);
 
         // Inicia sesión de una vez, para no pedir credenciales justo después de verificar.
-        return new SesionDTO($this->tokens->crear($usuario, false), $usuario);
+        return new SesionDTO($this->tokens->crear($usuario), $usuario);
     }
 }

@@ -6,7 +6,8 @@ use App\Domain\Entities\Auth\Usuario;
 interface ITokenService
 {
     /** Crea un token de acceso y devuelve su valor en texto plano. */
-    public function crear(Usuario $usuario, bool $recordar): string;
+    // La sesión dura config('autenticacion.token_horas') desde que se inicia (aunque la pestaña siga abierta)
+    public function crear(Usuario $usuario): string;
 
     /** Invalida un token (cerrar sesión en ese dispositivo). */
     public function revocar(int $tokenId): void;

@@ -1,9 +1,14 @@
+{{-- Nueva contraseña: tienda (/restablecer-password) o personal (/admin/restablecer-password, $personal = true) --}}
+@php($personal = $personal ?? false)
 @extends('layouts.autenticacion')
 
 @section('titulo', 'Nueva contraseña')
 @section('eslogan', 'Crea una contraseña nueva y segura.')
 
 @section('contenido')
+    @if ($personal)
+        <p class="etiqueta-acceso">Acceso del personal</p>
+    @endif
     <h1>Crea tu nueva contraseña</h1>
     <p class="subtitulo">Escribe el código que enviamos a tu correo (vence en 15 minutos) y tu nueva contraseña.</p>
 
@@ -44,7 +49,7 @@
         <button type="submit" id="btnGuardar" class="boton">Guardar contraseña</button>
     </form>
 
-    <p class="pie">¿No te llegó el código? <a href="{{ route('olvide-password') }}">Pedir otro</a></p>
+    <p class="pie">¿No te llegó el código? <a href="{{ route($personal ? 'admin.olvide-password' : 'olvide-password') }}">Pedir otro</a></p>
 @endsection
 
 @push('scripts')
@@ -86,7 +91,8 @@
 
         if (respuesta.ok) {
             Auth.borrarToken();   // el servidor cerró todas las sesiones; la local tampoco sirve
-            window.location.href = '/login?mensaje=' + encodeURIComponent(respuesta.data.message);
+            window.location.href = '{{ route($personal ? 'admin.login' : 'login', [], false) }}?email=' + encodeURIComponent(inputEmail.value.trim())
+                + '&mensaje=' + encodeURIComponent(respuesta.data.message);
             return;
         }
 

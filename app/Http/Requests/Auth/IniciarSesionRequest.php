@@ -15,7 +15,6 @@ class IniciarSesionRequest extends FormRequest
         return [
             'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
-            'recordar' => ['sometimes', 'boolean'],
         ];
     }
 

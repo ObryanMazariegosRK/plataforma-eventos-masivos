@@ -10,6 +10,8 @@ use App\Domain\Exceptions\Auth\IntentosAgotadosException;
 use App\Domain\Exceptions\Auth\PasswordActualIncorrectaException;
 use App\Domain\Exceptions\Auth\PasswordNuevaIgualException;
 use App\Domain\Exceptions\Auth\UsuarioBloqueadoException;
+use App\Domain\Exceptions\Auth\AccesoDePersonalException;
+use App\Domain\Exceptions\Auth\SinAccesoAlPanelException;
 use App\Domain\Exceptions\Auth\UsuarioNoEncontradoException;
 use App\Domain\Exceptions\Pagos\PagoNoEncontradoException;
 use App\Domain\Exceptions\Pagos\PagoRechazadoException;
@@ -70,6 +72,8 @@ return Application::configure(basePath: dirname(__DIR__))
             CredencialesInvalidasException::class       => [401, 'credenciales_invalidas'],
             CorreoNoVerificadoException::class          => [403, 'correo_no_verificado'],
             UsuarioBloqueadoException::class            => [403, 'usuario_bloqueado'],
+            AccesoDePersonalException::class            => [403, 'acceso_personal'],
+            SinAccesoAlPanelException::class            => [403, 'sin_acceso_panel'],
             UsuarioNoEncontradoException::class         => [404, 'usuario_no_encontrado'],
             CorreoYaRegistradoException::class          => [409, 'correo_ya_registrado'],
             CorreoYaVerificadoException::class          => [409, 'correo_ya_verificado'],

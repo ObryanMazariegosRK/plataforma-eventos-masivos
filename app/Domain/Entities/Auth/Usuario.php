@@ -72,6 +72,12 @@ class Usuario
         return $this->estado === EstadoUsuario::BLOQUEADO;
     }
 
+    // Administradores y operadores (organizador): entran por el acceso del personal, nunca con Google
+    public function esPersonal(): bool
+    {
+        return in_array($this->rol, [RolUsuario::ADMIN, RolUsuario::ORGANIZADOR], true);
+    }
+
     public function nombreCompleto(): string
     {
         return "{$this->nombre} {$this->apellido}";

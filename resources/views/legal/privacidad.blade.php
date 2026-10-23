@@ -8,6 +8,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#0d0c0b">
@@ -71,7 +72,8 @@
                 <li><strong>Cuando compras:</strong> el evento, los asientos que elegiste, el monto pagado, la fecha
                     del pago y los boletos emitidos con su código QR.</li>
                 <li><strong>Al usar el sitio:</strong> la sesión se guarda en tu navegador para no pedirte la
-                    contraseña en cada página, y usamos cookies técnicas indispensables para que el sitio funcione.
+                    contraseña en cada página; termina al cerrar sesión, al cerrar el navegador o, como máximo,
+                    12 horas después de iniciarla. Usamos cookies técnicas indispensables para que el sitio funcione.
                     No usamos cookies de publicidad ni de rastreo.</li>
                 <li><strong>Si activas los avisos en tu dispositivo:</strong> la dirección que tu navegador crea para
                     recibirlos (no incluye tu nombre ni tu ubicación). Puedes desactivarlos cuando quieras tocando la

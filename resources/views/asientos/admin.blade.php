@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
     <title>Ocupación en vivo · {{ config('marca.nombre') }}</title>
@@ -126,7 +127,7 @@
 
         (async () => {
             if (!(await verificarAdmin())) {
-                location.href = `/login?tipo=aviso&mensaje=${encodeURIComponent('Inicia sesión como administrador para ver la ocupación.')}`;
+                location.href = `/admin/login?volver=${encodeURIComponent(location.pathname)}&tipo=aviso&mensaje=${encodeURIComponent('Inicia sesión como administrador para ver la ocupación.')}`;
                 return;
             }
             await refrescar();

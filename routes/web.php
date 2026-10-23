@@ -46,6 +46,17 @@ Route::view('/olvide-password', 'autenticacion.olvide-password')
 Route::view('/restablecer-password', 'autenticacion.restablecer-password')
     ->name('restablecer-password');
 
+// Acceso del personal (admin y operador): mismas pantallas con $personal = true — sin Google ni
+// registro, con su propia recuperación de contraseña y de regreso al panel
+Route::view('/admin/login', 'autenticacion.login', ['personal' => true])
+    ->name('admin.login');
+
+Route::view('/admin/olvide-password', 'autenticacion.olvide-password', ['personal' => true])
+    ->name('admin.olvide-password');
+
+Route::view('/admin/restablecer-password', 'autenticacion.restablecer-password', ['personal' => true])
+    ->name('admin.restablecer-password');
+
 
 // ======================================================
 // 3. AUTENTICACIÓN CON GOOGLE
