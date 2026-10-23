@@ -1118,3 +1118,6 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .estados-tira__estado:hover { background: var(--t-velo-2); }
 .tema-soiree .estados-tira__estado[aria-pressed="true"] { border-color: var(--t-acento-borde); background: var(--t-acento-suave); }
 .tema-soiree .estados-tira__estado .bar-label { margin-bottom: 8px; }
+
+/* Barra superior sin buscador: el tema y el usuario quedan a la derecha */
+.tema-soiree .utility-bar { justify-content: flex-end; }

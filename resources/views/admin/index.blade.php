@@ -337,19 +337,6 @@
         <!-- BARRA SUPERIOR -->
         <div class="utility-bar">
 
-            <div class="top-search">
-
-                <svg class="utility-icon">
-                    <use href="#i-search"/>
-                </svg>
-
-                <input id="global-search"
-                       type="search"
-                       placeholder="Buscar usuarios..."
-                       aria-label="Buscar usuarios">
-
-            </div>
-
             <div class="utility-person">
 
                 <span class="top-online">
@@ -503,74 +490,6 @@
                     </article>
                 </section>
 
-                <!-- GRÁFICAS Y ACCIONES RÁPIDAS -->
-                <div class="insights-grid">
-
-                    <!-- ACCIONES RÁPIDAS -->
-                    <article class="panel quick-card">
-
-                        <div class="panel-heading">
-
-                            <div>
-                                <div class="heading-icon">
-                                    <svg>
-                                        <use href="#i-zap"/>
-                                    </svg>
-                                </div>
-
-                                <h2>Acciones rápidas</h2>
-
-                                <p>
-                                    Accede a tus herramientas administrativas
-                                </p>
-                            </div>
-
-                        </div>
-
-                        <div class="quick-links">
-
-                            <button type="button"
-                                    class="quick-link featured"
-                                    data-go="reportes">
-
-                                <svg>
-                                    <use href="#i-download"/>
-                                </svg>
-
-                                <span>Descargar reporte</span>
-                                <b>→</b>
-                            </button>
-
-                            <button type="button"
-                                    class="quick-link"
-                                    data-go="eventos">
-
-                                <svg>
-                                    <use href="#i-calendar"/>
-                                </svg>
-
-                                <span>Ver eventos</span>
-                                <b>›</b>
-                            </button>
-
-                            <button type="button"
-                                    class="quick-link"
-                                    data-go="usuarios">
-
-                                <svg>
-                                    <use href="#i-users"/>
-                                </svg>
-
-                                <span>Consultar usuarios</span>
-                                <b>›</b>
-                            </button>
-
-                        </div>
-
-                    </article>
-
-                </div>
-                <!-- FIN DE GRÁFICAS -->
 
             </div>
             <!-- FIN DE overview-content:
