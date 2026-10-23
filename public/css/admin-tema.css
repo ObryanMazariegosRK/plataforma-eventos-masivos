@@ -661,6 +661,30 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .reembolsos-panel { display: grid; gap: 18px; }
 .tema-soiree .reembolsos-panel[hidden] { display: none; }
 
+.tema-soiree .reembolsos-periodos {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-self: start;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid var(--t-hilo);
+    border-radius: 999px;
+    background: var(--t-panel);
+}
+.tema-soiree .reembolsos-periodos button {
+    padding: 7px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--t-piedra);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color .2s ease, color .2s ease;
+}
+.tema-soiree .reembolsos-periodos button:hover { color: var(--t-texto); }
+.tema-soiree .reembolsos-periodos button[aria-pressed="true"] { background: var(--t-boton); color: var(--t-boton-texto); }
 .tema-soiree .reembolsos-estados { display: flex; flex-wrap: wrap; gap: 8px; }
 .tema-soiree .reembolsos-estado {
     display: inline-flex;

@@ -7,6 +7,8 @@
 //   Rechazar → la misma ruta con 'rechazar': los boletos siguen válidos.
 //   Si la pasarela falla, queda "aprobado" y "Reintentar devolución" llama a
 //   POST /api/admin/reembolsos/{id}/procesar.
+// Filtros: período por fecha de solicitud (hoy / 7 días / 1 mes / 1 año) y estado; llegan de 10
+// en 10 y "Ver más" pide la página siguiente.
 // admin.js muestra la sección y avisa con "admin:recargar" cada vez que se entra a ella.
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lista = document.getElementById('reembolsos-lista');
     const resumen = document.getElementById('reembolsos-resumen');
     const verMas = document.getElementById('reembolsos-ver-mas');
+    const periodos = document.getElementById('reembolsos-periodos');
 
     if (!panel || !lista) {
         return;
@@ -33,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let filtro = '';
+    let periodo = '';   // '' = todas; hoy | semana | mes | anio (por fecha de solicitud)
+    const PERIODOS = { hoy: 'de hoy', semana: 'de los últimos 7 días', mes: 'del último mes', anio: 'del último año' };
     let pagina = 0;
     let mostrados = 0;
     let controlador = null;
@@ -243,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const parametros = new URLSearchParams({ pagina: String(pagina + 1) });
         if (filtro) parametros.set('estado', filtro);
+        if (periodo) parametros.set('periodo', periodo);
 
         try {
             const respuesta = await fetch(`/api/admin/reembolsos?${parametros}`, {
@@ -262,10 +268,14 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrados = (siguiente ? mostrados : 0) + reembolsos.length;
 
             const pendientes = porEstado.find((e) => e.estado === 'solicitado')?.total ?? 0;
+            const cuando = periodo ? ` ${PERIODOS[periodo]}` : '';
             resumen.textContent = meta.total === 0
-                ? (filtro ? `No hay solicitudes «${ETIQUETAS[filtro]}».` : 'Todavía no hay solicitudes de reembolso.')
-                : `${meta.total} ${meta.total === 1 ? 'solicitud' : 'solicitudes'}`
-                    + (pendientes ? ` · ${pendientes} por revisar` : '');
+                ? (filtro || periodo
+                    ? `No hay solicitudes${filtro ? ` «${ETIQUETAS[filtro]}»` : ''}${cuando}.`
+                    : 'Todavía no hay solicitudes de reembolso.')
+                : `${meta.total} ${meta.total === 1 ? 'solicitud' : 'solicitudes'}${cuando}`
+                    + (pendientes ? ` · ${pendientes} por revisar` : '')
+                    + (meta.total > mostrados ? ` · mostrando ${mostrados}` : '');
 
             const quedan = meta.total - mostrados;
             verMas.hidden = quedan <= 0;
@@ -280,6 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     verMas.addEventListener('click', () => buscar(true));
+
+    periodos?.addEventListener('click', (evento) => {
+        const boton = evento.target.closest('button[data-periodo]');
+        if (!boton || boton.dataset.periodo === periodo) return;
+        periodo = boton.dataset.periodo;
+        periodos.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
+        buscar();
+    });
 
     document.addEventListener('admin:recargar', (evento) => {
         if (evento.detail?.section !== 'reembolsos') return;

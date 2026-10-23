@@ -210,6 +210,31 @@ class FlujoReembolsoTest extends TestCase
         $this->getJson('/api/admin/reembolsos?estado=otro')->assertStatus(422);
     }
 
+    public function test_el_panel_filtra_por_periodo_y_pagina_con_ver_mas(): void
+    {
+        $this->travelTo(now()->setTimezone('America/Guatemala')->setTime(15, 0)->utc());
+        $cliente = $this->usuario('cliente@test.com');
+        $compra = $this->compra($cliente, now()->addDays(20));
+        // Tres solicitudes (otros pagos de la misma compra): hoy, hace 3 días y hace 20 días
+        foreach ([0, 3, 20] as $i => $dias) {
+            $pago = $i === 0 ? $compra['pago'] : DB::table('pagos')->insertGetId(['reserva_id' => $compra['reserva'], 'monto' => 100, 'estado' => 'aprobado', 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('reembolsos')->insert(['pago_id' => $pago, 'monto' => 50, 'estado' => 'solicitado', 'created_at' => now()->subDays($dias), 'updated_at' => now()]);
+        }
+
+        Sanctum::actingAs($this->usuario('admin@test.com', RolUsuario::ADMIN));
+        $total = fn (string $periodo) => $this->getJson("/api/admin/reembolsos?periodo={$periodo}")->assertOk()->json('data.meta.total');
+        $this->assertSame([1, 2, 3, 3], [$total('hoy'), $total('semana'), $total('mes'), $total('anio')]);
+        $this->assertSame(2, $this->getJson('/api/admin/reembolsos?periodo=semana')->json('data.por_estado.0.total'));
+        $this->getJson('/api/admin/reembolsos?periodo=siglo')->assertStatus(422);
+
+        // De a dos: la primera página avisa que hay más y la segunda trae la que falta
+        $primera = $this->getJson('/api/admin/reembolsos?por_pagina=2')->json('data');
+        $segunda = $this->getJson('/api/admin/reembolsos?por_pagina=2&pagina=2')->json('data');
+        $this->assertSame([2, true], [count($primera['reembolsos']), $primera['meta']['hay_mas']]);
+        $this->assertSame([1, false], [count($segunda['reembolsos']), $segunda['meta']['hay_mas']]);
+        $this->assertEmpty(array_intersect(array_column($primera['reembolsos'], 'id'), array_column($segunda['reembolsos'], 'id')));
+    }
+
     public function test_cancelar_el_evento_devuelve_el_100_por_ciento_automaticamente(): void
     {
         $cliente = $this->usuario('cliente@test.com');

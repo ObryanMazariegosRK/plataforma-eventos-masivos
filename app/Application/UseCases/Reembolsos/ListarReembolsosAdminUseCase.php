@@ -17,9 +17,9 @@ class ListarReembolsosAdminUseCase implements IListarReembolsosAdminUseCase
 
     public function __construct(private readonly IReembolsoRepository $reembolsos) {}
 
-    public function execute(?string $estado, int $pagina, int $porPagina): array
+    public function execute(?string $estado, ?\DateTimeImmutable $desde, int $pagina, int $porPagina): array
     {
-        $resultado = $this->reembolsos->listar($estado, $pagina, $porPagina);
+        $resultado = $this->reembolsos->listar($estado, $desde, $pagina, $porPagina);
 
         return [
             'reembolsos' => $resultado['reembolsos'],

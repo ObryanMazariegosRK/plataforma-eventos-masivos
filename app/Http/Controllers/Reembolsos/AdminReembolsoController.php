@@ -17,12 +17,21 @@ class AdminReembolsoController extends Controller
     {
         $datos = $request->validate([
             'estado' => ['sometimes', 'nullable', Rule::enum(EstadoReembolso::class)],
+            'periodo' => ['sometimes', 'nullable', Rule::in(array_keys(config('reembolsos.periodos')))],
             'pagina' => ['sometimes', 'integer', 'min:1'],
             'por_pagina' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
 
+        // "Hoy" = desde las 00:00 de Guatemala; "7 días" = hoy y los 6 anteriores, etc.
+        $desde = empty($datos['periodo']) ? null : now(config('reembolsos.zona_horaria'))
+            ->startOfDay()
+            ->subDays(config('reembolsos.periodos')[$datos['periodo']] - 1)
+            ->utc()
+            ->toDateTimeImmutable();
+
         return response()->json(['data' => $listar->execute(
             $datos['estado'] ?? null,
+            $desde,
             (int) ($datos['pagina'] ?? 1),
             (int) ($datos['por_pagina'] ?? config('reembolsos.admin_por_pagina')),
         )]);

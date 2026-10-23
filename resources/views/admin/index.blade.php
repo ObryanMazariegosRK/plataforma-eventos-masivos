@@ -990,6 +990,13 @@
              REEMBOLSOS (admin-reembolsos.js): solo admin
              ================================================= -->
         <section id="reembolsos-panel" class="reembolsos-panel" hidden>
+            <div class="reembolsos-periodos" id="reembolsos-periodos" role="group" aria-label="Solicitudes hechas en">
+                <button type="button" data-periodo="" aria-pressed="true">Todas</button>
+                <button type="button" data-periodo="hoy" aria-pressed="false">Hoy</button>
+                <button type="button" data-periodo="semana" aria-pressed="false">7 días</button>
+                <button type="button" data-periodo="mes" aria-pressed="false">1 mes</button>
+                <button type="button" data-periodo="anio" aria-pressed="false">1 año</button>
+            </div>
             <div class="reembolsos-estados" id="reembolsos-estados" role="group" aria-label="Filtrar por estado"></div>
             <p class="catalogo-resumen" id="reembolsos-resumen" role="status" aria-live="polite"></p>
             <ol class="reembolsos-lista" id="reembolsos-lista"></ol>

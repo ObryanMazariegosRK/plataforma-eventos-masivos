@@ -165,9 +165,12 @@ class ReembolsoRepository implements IReembolsoRepository
             ->all();
     }
 
-    public function listar(?string $estado, int $pagina, int $porPagina): array
+    public function listar(?string $estado, ?\DateTimeImmutable $desde, int $pagina, int $porPagina): array
     {
-        $base = DB::table('reembolsos')->whereNull('reembolsos.deleted_at');
+        // El período también acota los conteos por estado
+        $base = DB::table('reembolsos')
+            ->whereNull('reembolsos.deleted_at')
+            ->when($desde, fn ($q) => $q->where('reembolsos.created_at', '>=', $desde->format('Y-m-d H:i:s')));
 
         $porEstado = (clone $base)
             ->groupBy('estado')

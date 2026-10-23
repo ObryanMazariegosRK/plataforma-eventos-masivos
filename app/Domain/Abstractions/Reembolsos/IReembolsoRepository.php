@@ -42,5 +42,5 @@ interface IReembolsoRepository
      * Panel de administración: del más reciente al más antiguo.
      * @return array{reembolsos: list<array>, total: int, por_estado: array<string, int>}
      */
-    public function listar(?string $estado, int $pagina, int $porPagina): array;
+    public function listar(?string $estado, ?\DateTimeImmutable $desde, int $pagina, int $porPagina): array;
 }

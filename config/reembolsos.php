@@ -34,7 +34,11 @@ return [
     // Se implementara en el flujo de cancelacion masiva.
     'reembolso_cancelacion_evento_porcentaje' => 100,
 
-    // Panel → Reembolsos: solicitudes por página
-    'admin_por_pagina' => 15,
+    // Panel → Reembolsos: solicitudes por página ("Ver más" trae las siguientes)
+    'admin_por_pagina' => 10,
+
+    // Días del filtro por fecha de solicitud ("Hoy" = desde las 00:00 de Guatemala)
+    'zona_horaria' => 'America/Guatemala',
+    'periodos' => ['hoy' => 1, 'semana' => 7, 'mes' => 30, 'anio' => 365],
 
 ];
