@@ -12,8 +12,10 @@ class GeneradorQrBoletoSvg implements IGeneradorQrBoleto
 {
     public function generarSvg(string $contenido): string
     {
+        // El código va en el fragmento (#): el navegador no lo envía al servidor,
+        // así que no queda en los registros de acceso de nginx.
         $qrCode = new QrCode(
-            data: $contenido,
+            data: route('boletos.entrada').'#'.$contenido,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
             size: 300,

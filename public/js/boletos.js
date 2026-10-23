@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ---- Un boleto por lugar ----
     function boleto(lugar, indice) {
         const articulo = crear('article', 'boleto');
+        articulo.id = `boleto-${lugar.boleto.id}`;   // /b lleva aquí al dueño que escaneó su QR
         articulo.style.setProperty('--color-zona', lugar.color || '#c8b48c');
         articulo.style.animationDelay = `${Math.min(indice, 6) * 80}ms`;
         const estadoBoleto = lugar.boleto.estado;
@@ -185,6 +186,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     lista.append(...boletos.map(boleto));
+
+    // Llegó escaneando el QR de uno de sus boletos (/b): se centra y se resalta
+    const escaneado = location.hash.startsWith('#boleto-') && document.getElementById(location.hash.slice(1));
+    if (escaneado) {
+        escaneado.classList.add('boleto--resaltado');
+        requestAnimationFrame(() => escaneado.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    }
 
     document.getElementById('boletosConsejo').hidden = false;
     const imprimir = document.getElementById('btnImprimir');

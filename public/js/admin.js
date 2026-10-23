@@ -44,6 +44,10 @@
             'Notificaciones',
             'Reservas, pagos y boletos registrados en Soirée.'
         ],
+        acceso: [
+            'Control de acceso',
+            'Escanea el QR de cada boleto en la entrada y registra a quien pasa.'
+        ],
         reembolsos: [
             'Reembolsos',
             'Solicitudes de los clientes: apruébalas para devolver el dinero o recházalas.'
@@ -97,7 +101,7 @@
     let currentRole = null;
     let currentProfile = null;
     const operativeSections = new Set([
-        'eventos', 'catalogo', 'banner', 'configuracion'
+        'eventos', 'catalogo', 'banner', 'acceso', 'configuracion'
     ]);
 
     function canAccessSection(name) {
@@ -2191,10 +2195,11 @@
         const isCatalogo = section === 'catalogo';   // lo maneja admin-catalogo-eventos.js
         const isBitacora = section === 'bitacora';   // lo maneja admin-bitacora.js
         const isReembolsos = section === 'reembolsos';   // lo maneja admin-reembolsos.js
+        const isAcceso = section === 'acceso';   // lo maneja admin-acceso.js
         const isConfig = section === 'configuracion';
         const isPending = pendingSections.has(section) && !isConfig;
 
-        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora && !isReembolsos);
+        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora && !isReembolsos && !isAcceso);
         show('banner-panel', isBanner);
         show('catalogo-panel', isCatalogo);
         show('reservas-estados', section === 'reservas');
@@ -2202,6 +2207,7 @@
         show('tabla-datos', !isOverview);
         show('bitacora-panel', isBitacora);
         show('reembolsos-panel', isReembolsos);
+        show('acceso-panel', isAcceso);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
@@ -3252,7 +3258,8 @@
             section === 'banner' ||
             section === 'catalogo' ||
             section === 'bitacora' ||
-            section === 'reembolsos'
+            section === 'reembolsos' ||
+            section === 'acceso'
         ) {
             clearFeedback();
             return;

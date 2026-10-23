@@ -183,6 +183,12 @@ Route::middleware('auth:sanctum')->group(function () {
         'qr'
     ])->whereNumber('id');
 
+    // QR escaneado: qué ve quien lo escanea (personal, dueño u otra persona).
+    Route::post('/boletos/consultar', [
+        \App\Http\Controllers\Boletos\EscaneoBoletoController::class,
+        'consultar'
+    ])->middleware('throttle:60,1');
+
     // Validar boleto.
     Route::post('/boletos/validar', [
         BoletoController::class,

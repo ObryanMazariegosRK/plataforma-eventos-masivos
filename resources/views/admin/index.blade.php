@@ -35,6 +35,9 @@
     <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-bitacora.js') }}?v={{ filemtime(public_path('js/admin-bitacora.js')) }}"></script>
     <script defer src="{{ asset('js/admin-reembolsos.js') }}?v={{ filemtime(public_path('js/admin-reembolsos.js')) }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/verificacion-boleto.css') }}?v={{ filemtime(public_path('css/verificacion-boleto.css')) }}">
+    <script defer src="{{ asset('js/verificacion-boleto.js') }}?v={{ filemtime(public_path('js/verificacion-boleto.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-acceso.js') }}?v={{ filemtime(public_path('js/admin-acceso.js')) }}"></script>
     <script defer src="{{ asset('js/asientos.js') }}?v={{ filemtime(public_path('js/asientos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-evento-formulario.js') }}?v={{ filemtime(public_path('js/admin-evento-formulario.js')) }}"></script>
     <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
@@ -91,6 +94,11 @@
 
     <symbol id="i-bell" viewBox="0 0 24 24">
         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 10h18c0-2-3-3-3-10zM10 22h4"/>
+    </symbol>
+
+    <symbol id="i-scan" viewBox="0 0 24 24">
+        <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/>
+        <path d="M8 12h8"/>
     </symbol>
 
     <symbol id="i-refund" viewBox="0 0 24 24">
@@ -229,6 +237,17 @@
                 </svg>
 
                 <span>Pagos</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
+                    data-section="acceso">
+
+                <svg class="nav-icon">
+                    <use href="#i-scan"/>
+                </svg>
+
+                <span>Control de acceso</span>
             </button>
 
             <button type="button"
@@ -983,6 +1002,42 @@
             <div class="catalogo-grid" id="catalogo-grid"></div>
             <div class="catalogo-mas">
                 <button type="button" class="banner-boton" id="catalogo-ver-mas" hidden>Ver más eventos</button>
+            </div>
+        </section>
+
+        <!-- =================================================
+             CONTROL DE ACCESO (admin-acceso.js): admin y operador.
+             Escanea el QR del boleto y registra la entrada con un toque.
+             ================================================= -->
+        <section id="acceso-panel" class="acceso-panel" hidden>
+            <div class="acceso-escaner">
+                <div class="acceso-camara" id="acceso-camara">
+                    <video id="acceso-video" playsinline muted aria-label="Vista de la cámara"></video>
+                    <span class="acceso-marco" aria-hidden="true"></span>
+                    <div class="acceso-camara__velo" id="acceso-velo">
+                        <p id="acceso-camara-estado">Apunta la cámara al QR del boleto.</p>
+                        <button type="button" class="acceso-boton" id="acceso-camara-boton">Activar cámara</button>
+                    </div>
+                </div>
+
+                <form class="acceso-manual" id="acceso-manual" autocomplete="off">
+                    <label for="acceso-codigo">¿El QR no se lee? Pega el código o el enlace del boleto</label>
+                    <div>
+                        <input type="text" id="acceso-codigo" name="codigo" spellcheck="false" placeholder="Código del boleto">
+                        <button type="submit" class="acceso-boton">Verificar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="acceso-lado">
+                <div class="acceso-resultado" id="acceso-resultado">
+                    <p class="acceso-espera">El resultado del escaneo aparecerá aquí.</p>
+                </div>
+                <button type="button" class="acceso-boton acceso-siguiente" id="acceso-siguiente" hidden>Escanear el siguiente</button>
+
+                <h3 class="acceso-historial__titulo">Últimos escaneos</h3>
+                <ol class="acceso-historial" id="acceso-historial"></ol>
+                <p class="acceso-historial__vacio" id="acceso-historial-vacio">Todavía no escaneas boletos en esta sesión.</p>
             </div>
         </section>
 

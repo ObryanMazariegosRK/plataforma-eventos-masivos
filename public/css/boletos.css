@@ -115,6 +115,19 @@
 .boleto__codigo { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .08em; color: #4a443c; }
 .boleto__estado { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #6b5a33; }
 
+/* El boleto cuyo QR se acaba de escanear (/b → #boleto-{id}) */
+.boleto--resaltado { scroll-margin: 120px; }
+.boleto--resaltado::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border: 1px solid var(--champan);
+    border-radius: 22px;
+    pointer-events: none;
+    animation: boleto-resalta 2.4s ease-out 2;
+}
+@keyframes boleto-resalta { 0% { opacity: 0; } 20% { opacity: 1; box-shadow: 0 0 0 6px rgba(200, 180, 140, .18); } 100% { opacity: .55; box-shadow: none; } }
+
 /* Boleto que ya no sirve (función pasada, usado o anulado): QR en gris con una leyenda fina */
 .boleto--inactivo .boleto__qr img,
 .boleto__qr-adorno { width: 100%; height: 100%; display: block; color: #1a1714; opacity: .2; filter: grayscale(1); }

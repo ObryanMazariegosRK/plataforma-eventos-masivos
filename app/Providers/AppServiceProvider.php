@@ -70,6 +70,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Domain\Abstractions\Boletos\IBoletoRepository::class,
             \App\Data\Boletos\BoletoRepository::class,
         );
+        $this->app->bind(
+            \App\Domain\Abstractions\Boletos\IConsultaBoletoRepository::class,
+            \App\Data\Boletos\ConsultaBoletoRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Boletos\IConsultarBoletoEscaneadoUseCase::class,
+            \App\Application\UseCases\Boletos\ConsultarBoletoEscaneadoUseCase::class,
+        );
 
          // Caso de uso para emitir boletos
         $this->app->bind(

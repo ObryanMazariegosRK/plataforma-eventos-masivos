@@ -147,3 +147,7 @@ Route::view('/admin/eventos/{eventoId}/asientos', 'asientos.admin')
 Route::get('/eventos/{eventoId}/experiencia', [ExperienciaEventoController::class, 'show'])
     ->whereNumber('eventoId')
     ->name('eventos.experiencia');
+
+// Al escanear el QR de un boleto (<app>/b#<código>): entrada-boleto.js decide según quién escanea
+// (POST /api/boletos/consultar): personal → registrar entrada, dueño → sus boletos, otro → la tienda
+Route::view('/b', 'boletos.entrada')->name('boletos.entrada');
