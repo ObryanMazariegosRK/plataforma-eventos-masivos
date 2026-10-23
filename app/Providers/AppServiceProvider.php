@@ -30,6 +30,22 @@ class AppServiceProvider extends ServiceProvider
             \App\Domain\Abstractions\Reembolsos\IReembolsoRepository::class,
             \App\Data\Reembolsos\ReembolsoRepository::class,
         );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\IProcesarReembolsoUseCase::class,
+            \App\Application\UseCases\Reembolsos\ProcesarReembolsoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\IConsultarReembolsoDeCompraUseCase::class,
+            \App\Application\UseCases\Reembolsos\ConsultarReembolsoDeCompraUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\ISolicitarReembolsoDeCompraUseCase::class,
+            \App\Application\UseCases\Reembolsos\SolicitarReembolsoDeCompraUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\IListarReembolsosAdminUseCase::class,
+            \App\Application\UseCases\Reembolsos\ListarReembolsosAdminUseCase::class,
+        );
 
         //Transacciones
         $this->app->bind(

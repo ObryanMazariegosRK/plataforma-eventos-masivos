@@ -14,6 +14,7 @@ use App\Http\Controllers\Pasarelas\PasarelaController;
 use App\Http\Controllers\Inventario\DisponibilidadController;
 use App\Http\Controllers\Transacciones\TransaccionController;
 use App\Http\Controllers\Reembolsos\ReembolsoController;
+use App\Http\Controllers\Reembolsos\ReembolsoCompraController;
 
 /*
 |--------------------------------------------------------------------------
@@ -254,6 +255,19 @@ Route::middleware('auth:sanctum')->group(function () {
 // ======================================================
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Mis compras: vista previa y solicitud del reembolso de una compra propia.
+    Route::get('/reservas/{id}/reembolso', [
+        ReembolsoCompraController::class,
+        'show'
+    ])->whereNumber('id');
+
+    Route::post('/reservas/{id}/reembolso', [
+        ReembolsoCompraController::class,
+        'store'
+    ])
+    ->whereNumber('id')
+    ->middleware('throttle:10,1');
 
     // Solicitar reembolso.
     Route::post('/reembolsos', [

@@ -4,6 +4,7 @@ namespace App\Infrastructure\Pasarelas;
 use App\Domain\Abstractions\Pasarelas\IPasarelaPago;
 use App\Domain\Abstractions\Pasarelas\OrdenPasarela;
 use App\Domain\Abstractions\Pasarelas\ResultadoCaptura;
+use App\Domain\Abstractions\Pasarelas\ResultadoReembolso;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -58,6 +59,22 @@ class PasarelaSimulada implements IPasarelaPago
                 : 'El pago todavía no fue autorizado en la pasarela.'),
             default         => ResultadoCaptura::rechazado('La orden de pago no existe o venció.'),
         };
+    }
+
+    public function reembolsar(string $referenciaCobro, float $monto, string $claveIdempotencia): ResultadoReembolso
+    {
+        if (! str_starts_with($referenciaCobro, 'SIMCAP-') || $monto <= 0) {
+            return ResultadoReembolso::rechazado('La pasarela no reconoce el cobro a devolver.');
+        }
+
+        // Misma clave → misma devolución (un reintento no devuelve el dinero dos veces)
+        $referencia = Cache::remember(
+            'pasarela_simulada:reembolso:'.$claveIdempotencia,
+            now()->addYear(),
+            fn () => 'SIMREF-'.Str::upper(Str::random(16)),
+        );
+
+        return ResultadoReembolso::aprobado($referencia);
     }
 
     // ---- Usados por la página de la pasarela simulada (PasarelaSimuladaController) ----

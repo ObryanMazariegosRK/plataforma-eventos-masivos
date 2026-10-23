@@ -169,18 +169,22 @@ class CancelarEventoApiTest extends TestCase
             'updated_by' => $admin->id,
         ]);
 
-        // Se prepara el reembolso completo de cada pago.
+        // Se aprueba el reembolso completo de cada pago.
+        // Estos pagos de prueba no tienen cobro en una pasarela,
+        // así que la devolución queda pendiente (aprobado).
         $this->assertDatabaseHas('reembolsos', [
             'pago_id' => $pago1,
             'monto' => 500,
-            'estado' => 'solicitado',
+            'estado' => 'aprobado',
         ]);
 
         $this->assertDatabaseHas('reembolsos', [
             'pago_id' => $pago2,
             'monto' => 250,
-            'estado' => 'solicitado',
+            'estado' => 'aprobado',
         ]);
+
+        $respuesta->assertJsonPath('resultado.reembolsos_devueltos', 0);
 
         $this->assertDatabaseCount('reembolsos', 2);
 

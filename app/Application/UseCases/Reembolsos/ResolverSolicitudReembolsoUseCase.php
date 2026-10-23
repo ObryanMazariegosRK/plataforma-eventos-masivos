@@ -95,6 +95,18 @@ class ResolverSolicitudReembolsoUseCase
 
                 $reembolso->aprobar();
 
+                // 3.1 Aprobar es cancelar la compra: sus boletos se anulan
+                // y sus lugares vuelven a la venta (si el evento sigue en pie).
+                $compra = $this->reembolsos->contextoDePago(
+                    $reembolso->getPagoId()
+                );
+
+                $this->reembolsos->anularBoletosYLiberarLugares(
+                    reservaId: $compra['reserva_id'],
+                    registradoPor: $administradorId,
+                    liberar: $compra['evento_estado'] !== EstadoEvento::CANCELADO->value
+                );
+
             } else {
 
                 // 4. Comprobar si el organizador ya cancelo el evento.

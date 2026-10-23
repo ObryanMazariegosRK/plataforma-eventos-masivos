@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminUsuarioController;
 use App\Http\Controllers\Admin\AdminNotificacionController;
 use App\Http\Controllers\Admin\AdminReporteDocumentoController;
 use App\Http\Controllers\Bitacora\BitacoraController;
+use App\Http\Controllers\Reembolsos\AdminReembolsoController;
 use App\Http\Controllers\Finanzas\CostoEventoController;
 use App\Http\Controllers\Finanzas\FinanzasController;
 use Illuminate\Support\Facades\Route;
@@ -320,6 +321,19 @@ Route::middleware(['auth:sanctum'])
                     BitacoraController::class,
                     'index'
                 ])->name('bitacora');
+
+                // REEMBOLSOS: solicitudes y reintento de la devolución
+                // (aprobar/rechazar: PATCH /api/reembolsos/{id}/resolver)
+
+                Route::get('/reembolsos', [
+                    AdminReembolsoController::class,
+                    'index'
+                ])->name('reembolsos');
+
+                Route::post('/reembolsos/{id}/procesar', [
+                    AdminReembolsoController::class,
+                    'procesar'
+                ])->whereNumber('id')->middleware('throttle:10,1')->name('reembolsos.procesar');
 
                 // REPORTES CSV
 

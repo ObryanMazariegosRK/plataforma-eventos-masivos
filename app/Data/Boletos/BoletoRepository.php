@@ -2,6 +2,7 @@
 
 namespace App\Data\Boletos;
 
+use App\Domain\Enums\Boletos\EstadoBoleto;
 use App\Domain\Abstractions\Boletos\IBoletoRepository;
 use App\Domain\Entities\Boletos\Boleto;
 use App\Models\Boletos\Boleto as BoletoModel;
@@ -33,8 +34,11 @@ class BoletoRepository implements IBoletoRepository
     {
         // Incluir eliminados lógicamente porque
         // la restricción UNIQUE sigue vigente.
+        // Un boleto anulado por reembolso ya no ocupa el lugar:
+        // ese lugar se pudo volver a vender en otra compra.
         $modelo = BoletoModel::withTrashed()
             ->where('inventario_id', $inventarioId)
+            ->where('estado', '!=', EstadoBoleto::ANULADO->value)
             ->first();
 
         return $modelo ? $this->aEntidad($modelo) : null;

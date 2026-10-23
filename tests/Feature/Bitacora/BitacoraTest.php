@@ -109,6 +109,42 @@ class BitacoraTest extends TestCase
         $this->assertStringStartsWith("Pago #{$rechazado} de Q125.00 para «Concierto» rechazado", $fallido->descripcion);
     }
 
+    public function test_registra_la_solicitud_y_la_devolucion_de_un_reembolso(): void
+    {
+        Mail::fake();
+        $this->seed(PasarelaSeeder::class);
+        $cliente = $this->usuario(RolUsuario::CLIENTE);
+        $token = $cliente->createToken('pruebas')->plainTextToken;
+
+        $recinto = DB::table('recintos')->insertGetId(['nombre' => 'Estadio', 'direccion' => 'Z1', 'ciudad' => 'Guatemala', 'created_at' => now(), 'updated_at' => now()]);
+        $evento = DB::table('eventos')->insertGetId(['recinto_id' => $recinto, 'nombre' => 'Concierto', 'fecha_evento' => now()->addMonth(), 'estado' => 'publicado', 'created_at' => now(), 'updated_at' => now()]);
+        $localidad = DB::table('localidades')->insertGetId(['recinto_id' => $recinto, 'nombre' => 'General', 'tipo' => 'general', 'capacidad' => 10, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('precios')->insert(['evento_id' => $evento, 'localidad_id' => $localidad, 'precio' => 125, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('inventario')->insert(['evento_id' => $evento, 'localidad_id' => $localidad, 'estado' => 'disponible', 'created_at' => now(), 'updated_at' => now()]);
+
+        // Compra real con la pasarela simulada (la devolución usa su referencia de cobro)
+        $reserva = $this->withToken($token)->postJson('/api/reservas', ['evento_id' => $evento, 'cupos' => [['localidad_id' => $localidad, 'cantidad' => 1]]])->assertCreated()->json('id');
+        $inicio = $this->withToken($token)->postJson('/api/pagos', ['reserva_id' => $reserva, 'pasarela' => 'simulada'])->assertCreated();
+        $tarjeta = config('pagos.simulada.tarjetas.aprobada');
+        $this->post($inicio->json('url_aprobacion'), ['accion' => 'pagar', 'titular' => 'Ana', 'numero' => $tarjeta['numero'], 'vence' => $tarjeta['vence'], 'cvv' => $tarjeta['cvv']]);
+        $this->withToken($token)->postJson("/api/pagos/{$inicio->json('pago_id')}/confirmar")->assertOk();
+
+        $id = $this->withToken($token)->postJson("/api/reservas/{$reserva}/reembolso", ['motivo' => 'Viaje'])->assertCreated()->json('data.reembolso.id');
+
+        Sanctum::actingAs($this->usuario(RolUsuario::ADMIN, 'Luis'));
+        $this->patchJson("/api/reembolsos/{$id}/resolver", ['decision' => 'aprobar'])->assertOk()->assertJsonPath('reembolso.estado', 'procesado');
+        $this->assertStringStartsWith('SIMREF-', DB::table('reembolsos')->value('referencia_externa'));
+        $this->postJson("/api/admin/reembolsos/{$id}/procesar")->assertOk();   // ya devuelto: no devuelve otra vez
+
+        $filas = $this->bitacora()->where('categoria', 'reembolso')->orderBy('id')->get();
+        $this->assertSame(
+            ["Solicitó el reembolso de su compra #{$reserva}", "Aprobó el reembolso #{$id}", "Devolvió en la pasarela el reembolso #{$id}"],
+            $filas->pluck('descripcion')->all(),
+        );
+        $this->assertSame((string) $id, (string) $filas[0]->entidad_id);
+        $this->assertStringContainsString('Viaje', $filas[0]->datos_despues);
+    }
+
     public function test_registra_que_operador_edito_un_evento_y_como_estaba_antes(): void
     {
         [$evento, $recinto] = $this->eventoBorrador();

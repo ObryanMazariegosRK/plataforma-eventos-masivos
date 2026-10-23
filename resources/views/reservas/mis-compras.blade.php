@@ -67,6 +67,27 @@
         </div>
     </main>
 
+    {{-- Solicitar reembolso (mis-compras.js): política, monto de hoy y motivo opcional --}}
+    <dialog class="reembolso" id="dialogoReembolso" aria-labelledby="reembolsoTitulo">
+        <form method="dialog" class="reembolso__caja" id="formReembolso">
+            <button type="button" class="reembolso__cerrar" data-cerrar aria-label="Cerrar">✕</button>
+            <span class="label-seccion">Tu compra</span>
+            <h2 id="reembolsoTitulo" tabindex="-1">Solicitar reembolso</h2>
+            <p class="reembolso__evento" id="reembolsoEvento"></p>
+
+            <div class="reembolso__cuerpo" id="reembolsoCuerpo" aria-live="polite">
+                <p class="reembolso__cargando">Calculando tu reembolso…</p>
+            </div>
+
+            <p class="reembolso__error" id="reembolsoError" role="alert" hidden></p>
+
+            <div class="reembolso__acciones">
+                <button type="button" class="reembolso__secundario" data-cerrar>Volver</button>
+                <button type="submit" class="reembolso__principal" id="reembolsoEnviar" hidden>Solicitar reembolso</button>
+            </div>
+        </form>
+    </dialog>
+
     @include('partials.pie-pagina')
 
 </body>

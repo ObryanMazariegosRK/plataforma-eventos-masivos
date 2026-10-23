@@ -209,7 +209,7 @@ class CatalogoBitacora
             'POST api/eventos/{id}/cancelar' => [
                 'categoria' => C::EVENTO, 'accion' => 'evento.cancelado', 'entidad' => 'evento',
                 'campos' => [], 'antes' => $evento,
-                'describir' => fn (Request $r, $antes) => "Canceló el evento {$nombreEvento($antes, $r)} (reembolsos pendientes)",
+                'describir' => fn (Request $r, $antes) => "Canceló el evento {$nombreEvento($antes, $r)} (reembolso del 100 % a cada compra)",
             ],
 
             // ---------- Usuarios (panel) ----------
@@ -267,6 +267,20 @@ class CatalogoBitacora
                 'categoria' => C::REEMBOLSO, 'accion' => 'reembolso.solicitado', 'entidad' => 'reembolso',
                 'campos' => ['pago_id', 'motivo'],
                 'describir' => fn (Request $r) => "Solicitó el reembolso del pago #{$r->input('pago_id')}",
+            ],
+            'POST api/reservas/{id}/reembolso' => [
+                'categoria' => C::REEMBOLSO, 'accion' => 'reembolso.solicitado', 'entidad' => 'reembolso',
+                'campos' => ['motivo'], 'registrarFallos' => true,
+                'id' => fn (Request $r, ?array $respuesta) => $respuesta['data']['reembolso']['id'] ?? null,
+                'describir' => fn (Request $r, $antes, $id, bool $exito) => ($exito ? 'Solicitó' : 'Intentó solicitar')
+                    ." el reembolso de su compra #{$r->route('id')}",
+            ],
+            'POST api/admin/reembolsos/{id}/procesar' => [
+                'categoria' => C::REEMBOLSO, 'accion' => 'reembolso.devuelto', 'entidad' => 'reembolso',
+                'campos' => [], 'registrarFallos' => true, 'antes' => fn (Request $r) => $c->reembolso((int) $r->route('id')),
+                'describir' => fn (Request $r, $antes, $id, bool $exito) => $exito
+                    ? "Devolvió en la pasarela el reembolso #{$r->route('id')}"
+                    : "Falló la devolución del reembolso #{$r->route('id')} en la pasarela",
             ],
             'PATCH api/reembolsos/{id}/resolver' => [
                 'categoria' => C::REEMBOLSO, 'accion' => 'reembolso.resuelto', 'entidad' => 'reembolso',

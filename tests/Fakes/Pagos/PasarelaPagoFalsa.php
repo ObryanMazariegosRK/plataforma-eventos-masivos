@@ -6,6 +6,7 @@ use App\Domain\Abstractions\Pasarelas\IPasarelaPago;
 use App\Domain\Abstractions\Pasarelas\IPasarelaPagoResolver;
 use App\Domain\Abstractions\Pasarelas\OrdenPasarela;
 use App\Domain\Abstractions\Pasarelas\ResultadoCaptura;
+use App\Domain\Abstractions\Pasarelas\ResultadoReembolso;
 use DateTimeImmutable;
 
 /** Pasarela falsa que también es su propio resolver. La prueba decide si aprueba o rechaza. */
@@ -18,6 +19,9 @@ class PasarelaPagoFalsa implements IPasarelaPago, IPasarelaPagoResolver
 
     /** @var list<string> */
     public array $capturas = [];
+
+    /** @var array<string, array{cobro: string, monto: float}> devoluciones por clave de idempotencia */
+    public array $reembolsos = [];
 
     public function para(string $codigo): IPasarelaPago
     {
@@ -38,5 +42,15 @@ class PasarelaPagoFalsa implements IPasarelaPago, IPasarelaPagoResolver
         return $this->aprobar
             ? ResultadoCaptura::aprobado('CAP-'.$ordenId)
             : ResultadoCaptura::rechazado('Fondos insuficientes.');
+    }
+
+    public function reembolsar(string $referenciaCobro, float $monto, string $claveIdempotencia): ResultadoReembolso
+    {
+        if (! $this->aprobar) {
+            return ResultadoReembolso::rechazado('La pasarela no respondió.');
+        }
+        $this->reembolsos[$claveIdempotencia] ??= ['cobro' => $referenciaCobro, 'monto' => $monto];
+
+        return ResultadoReembolso::aprobado('REF-'.$claveIdempotencia);
     }
 }

@@ -11,6 +11,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 use App\Application\UseCases\Reembolsos\CancelarEventoConReembolsosUseCase;
+use App\Application\Abstractions\Reembolsos\IProcesarReembolsoUseCase;
+use App\Application\UseCases\Notificaciones\NotificarResolucionReembolsoUseCase;
+use App\Domain\Abstractions\Reembolsos\IReembolsoRepository;
+use App\Domain\Enums\Reembolsos\EstadoReembolso;
+use App\Domain\Exceptions\Reembolsos\ReembolsoNoProcesadoException;
 
 class ReembolsoController extends Controller
 {
@@ -60,7 +65,9 @@ class ReembolsoController extends Controller
     public function resolver(
         Request $request,
         int $id,
-        ResolverSolicitudReembolsoUseCase $resolverReembolso
+        ResolverSolicitudReembolsoUseCase $resolverReembolso,
+        IProcesarReembolsoUseCase $procesarReembolso,
+        NotificarResolucionReembolsoUseCase $notificar
     ): JsonResponse {
 
         // 1. Verificar permisos.
@@ -86,9 +93,30 @@ class ReembolsoController extends Controller
                 administradorId: (int) $request->user()->id
             );
 
-            // 4. Devolver el resultado.
+            // 4. Aprobado: devolver el dinero en la pasarela.
+            // Si la pasarela falla, el reembolso queda aprobado
+            // y el panel permite reintentar la devolución.
+            $aviso = null;
+
+            if ($reembolso->getEstado() === EstadoReembolso::APROBADO) {
+                try {
+                    $reembolso = $procesarReembolso->execute(
+                        $id,
+                        (int) $request->user()->id
+                    );
+                } catch (ReembolsoNoProcesadoException $e) {
+                    $aviso = $e->getMessage();
+                }
+            } else {
+                rescue(fn () => $notificar->execute($id));
+            }
+
+            // 5. Devolver el resultado.
             return response()->json([
-                'mensaje' => 'Solicitud de reembolso resuelta correctamente.',
+                'mensaje' => $aviso === null
+                    ? 'Solicitud de reembolso resuelta correctamente.'
+                    : 'El reembolso quedó aprobado, pero la devolución está pendiente: ' . $aviso,
+                'devolucion_pendiente' => $aviso !== null,
                 'reembolso' => [
                     'id' => $reembolso->getId(),
                     'pago_id' => $reembolso->getPagoId(),
@@ -108,7 +136,10 @@ class ReembolsoController extends Controller
     public function cancelarEvento(
         Request $request,
         int $id,
-        CancelarEventoConReembolsosUseCase $cancelarEvento
+        CancelarEventoConReembolsosUseCase $cancelarEvento,
+        ResolverSolicitudReembolsoUseCase $resolverReembolso,
+        IProcesarReembolsoUseCase $procesarReembolso,
+        IReembolsoRepository $reembolsos
     ): JsonResponse {
 
         // 1. Solo los administradores pueden cancelar eventos.
@@ -126,9 +157,32 @@ class ReembolsoController extends Controller
                 administradorId: (int) $request->user()->id
             );
 
-            // 3. Devolver el resumen de la operacion.
+            // 3. Con el evento cancelado, el cliente tiene derecho al 100 %:
+            // se aprueban y devuelven todas las solicitudes sin revisión.
+            $administradorId = (int) $request->user()->id;
+            $devueltos = 0;
+
+            foreach ($reembolsos->idsDeEvento($id, EstadoReembolso::SOLICITADO) as $reembolsoId) {
+                $resolverReembolso->execute($reembolsoId, 'aprobar', $administradorId);
+            }
+
+            foreach ($reembolsos->idsDeEvento($id, EstadoReembolso::APROBADO) as $reembolsoId) {
+                try {
+                    $procesarReembolso->execute($reembolsoId, $administradorId);
+                    $devueltos++;
+                } catch (ReembolsoNoProcesadoException $e) {
+                    report($e);
+                }
+            }
+
+            $resultado['reembolsos_devueltos'] = $devueltos;
+            $pendientes = count($reembolsos->idsDeEvento($id, EstadoReembolso::APROBADO));
+
+            // 4. Devolver el resumen de la operacion.
             return response()->json([
-                'mensaje' => 'Evento cancelado correctamente. Los reembolsos quedaron pendientes de procesamiento.',
+                'mensaje' => $pendientes > 0
+                    ? "Evento cancelado. {$devueltos} reembolsos devueltos; {$pendientes} quedaron aprobados con la devolución pendiente (reintenta desde Reembolsos)."
+                    : 'Evento cancelado correctamente. Se devolvió el 100 % de cada compra.',
                 'resultado' => $resultado
             ], 200);
 

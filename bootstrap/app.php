@@ -26,6 +26,8 @@ use App\Domain\Exceptions\Reservas\LimitePorPersonaException;
 use App\Domain\Exceptions\Inventario\LocalidadesSinPrecioException;
 use App\Domain\Exceptions\Inventario\RecintoSinLugaresException;
 use App\Domain\Exceptions\ReglaDeNegocioException;
+use App\Domain\Exceptions\Reembolsos\ReembolsoNoEncontradoException;
+use App\Domain\Exceptions\Reembolsos\ReembolsoNoProcesadoException;
 use App\Http\Middleware\RegistrarBitacora;
 use App\Http\Middleware\VerificarRol;
 use App\Http\Middleware\VerificarUsuarioActivo;
@@ -91,6 +93,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ArchivoBannerInvalidoException::class       => [422, 'banner_archivo_invalido'],
             // ---- Reservas ----
             LimitePorPersonaException::class            => [422, 'limite_por_persona'],
+            // ---- Reembolsos ----
+            ReembolsoNoEncontradoException::class       => [404, 'reembolso_no_encontrado'],
+            // la pasarela no hizo la devolución; el reembolso sigue aprobado y se puede reintentar
+            ReembolsoNoProcesadoException::class        => [409, 'reembolso_no_procesado'],
             // ---- Inventario ----
             EventoNoDisponibleException::class          => [404, 'evento_no_disponible'],
             LocalidadesSinPrecioException::class        => [422, 'localidades_sin_precio'],

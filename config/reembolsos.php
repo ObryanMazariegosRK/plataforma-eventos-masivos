@@ -34,4 +34,7 @@ return [
     // Se implementara en el flujo de cancelacion masiva.
     'reembolso_cancelacion_evento_porcentaje' => 100,
 
+    // Panel → Reembolsos: solicitudes por página
+    'admin_por_pagina' => 15,
+
 ];

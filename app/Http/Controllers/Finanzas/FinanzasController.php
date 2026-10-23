@@ -30,7 +30,7 @@ class FinanzasController extends Controller
         }
 
         return response()->json(['data' => $finanzas->execute(new ObtenerFinanzasDTO(
-            ahora: new \DateTimeImmutable,
+            ahora: now()->toDateTimeImmutable(),
             zonaHoraria: config('finanzas.zona_horaria'),
             desde: $datos['desde'] ?? null,
             hasta: $datos['hasta'] ?? null,

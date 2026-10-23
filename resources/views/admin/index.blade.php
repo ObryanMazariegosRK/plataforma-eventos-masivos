@@ -34,6 +34,7 @@
     <script defer src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
     <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-bitacora.js') }}?v={{ filemtime(public_path('js/admin-bitacora.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-reembolsos.js') }}?v={{ filemtime(public_path('js/admin-reembolsos.js')) }}"></script>
     <script defer src="{{ asset('js/asientos.js') }}?v={{ filemtime(public_path('js/asientos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-evento-formulario.js') }}?v={{ filemtime(public_path('js/admin-evento-formulario.js')) }}"></script>
     <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
@@ -90,6 +91,11 @@
 
     <symbol id="i-bell" viewBox="0 0 24 24">
         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 10h18c0-2-3-3-3-10zM10 22h4"/>
+    </symbol>
+
+    <symbol id="i-refund" viewBox="0 0 24 24">
+        <path d="M9 14 4 9l5-5"/>
+        <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
     </symbol>
 
     <symbol id="i-clock" viewBox="0 0 24 24">
@@ -223,6 +229,17 @@
                 </svg>
 
                 <span>Pagos</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
+                    data-section="reembolsos">
+
+                <svg class="nav-icon">
+                    <use href="#i-refund"/>
+                </svg>
+
+                <span>Reembolsos</span>
             </button>
 
             <button type="button"
@@ -966,6 +983,18 @@
             <div class="catalogo-grid" id="catalogo-grid"></div>
             <div class="catalogo-mas">
                 <button type="button" class="banner-boton" id="catalogo-ver-mas" hidden>Ver más eventos</button>
+            </div>
+        </section>
+
+        <!-- =================================================
+             REEMBOLSOS (admin-reembolsos.js): solo admin
+             ================================================= -->
+        <section id="reembolsos-panel" class="reembolsos-panel" hidden>
+            <div class="reembolsos-estados" id="reembolsos-estados" role="group" aria-label="Filtrar por estado"></div>
+            <p class="catalogo-resumen" id="reembolsos-resumen" role="status" aria-live="polite"></p>
+            <ol class="reembolsos-lista" id="reembolsos-lista"></ol>
+            <div class="catalogo-mas">
+                <button type="button" class="banner-boton" id="reembolsos-ver-mas" hidden>Ver más solicitudes</button>
             </div>
         </section>
 

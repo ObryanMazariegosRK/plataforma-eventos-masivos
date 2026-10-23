@@ -657,6 +657,90 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .so-notif-mark:hover:not(:disabled) { color: var(--t-texto); }
 .tema-soiree .so-notif-mark:disabled { color: var(--t-tenue); }
 
+/* ---------- Reembolsos (admin-reembolsos.js): filtro por estado y una tarjeta por solicitud ---------- */
+.tema-soiree .reembolsos-panel { display: grid; gap: 18px; }
+.tema-soiree .reembolsos-panel[hidden] { display: none; }
+
+.tema-soiree .reembolsos-estados { display: flex; flex-wrap: wrap; gap: 8px; }
+.tema-soiree .reembolsos-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border: 1px solid var(--t-hilo);
+    border-radius: 999px;
+    background: var(--t-panel);
+    color: var(--t-piedra);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .2s ease, background-color .2s ease, color .2s ease;
+}
+.tema-soiree .reembolsos-estado strong { min-width: 20px; color: var(--t-texto); font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; }
+.tema-soiree .reembolsos-estado:hover { border-color: var(--t-acento-borde); color: var(--t-texto); }
+.tema-soiree .reembolsos-estado[aria-pressed="true"] { border-color: var(--t-acento); background: var(--t-acento-suave); color: var(--t-texto); }
+.tema-soiree .reembolsos-estado--solicitado strong { color: var(--t-acento); }
+
+.tema-soiree .reembolsos-lista { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.tema-soiree .reembolso-item {
+    display: grid;
+    gap: 16px;
+    padding: 20px 22px;
+    border: 1px solid var(--t-hilo);
+    border-left: 3px solid var(--t-hilo);
+    border-radius: 16px;
+    background: var(--t-panel);
+    box-shadow: var(--t-sombra);
+}
+.tema-soiree .reembolso-item.es-solicitado { border-left-color: var(--t-acento); }
+.tema-soiree .reembolso-item.es-aprobado { border-left-color: var(--t-rojo); }
+.tema-soiree .reembolso-item.es-procesado { border-left-color: var(--t-verde); }
+
+.tema-soiree .reembolso-item__cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.tema-soiree .reembolso-item__numero { color: var(--t-tenue); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tema-soiree .reembolso-item__evento { margin: 4px 0 0; color: var(--t-texto); font-family: var(--t-titulo); font-size: 24px; font-weight: 500; line-height: 1.1; }
+.tema-soiree .reembolso-item__montos { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.tema-soiree .reembolso-item__montos strong { color: var(--t-texto); font-family: var(--t-titulo); font-size: 28px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.tema-soiree .reembolso-item__montos span { color: var(--t-piedra); font-size: 12.5px; }
+
+.tema-soiree .reembolso-item__datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; margin: 0; }
+.tema-soiree .reembolso-dato { min-width: 0; }
+.tema-soiree .reembolso-dato dt { margin-bottom: 3px; color: var(--t-tenue); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.tema-soiree .reembolso-dato dd { margin: 0; color: var(--t-texto); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.tema-soiree .reembolso-dato dd small { display: block; color: var(--t-piedra); font-size: 12.5px; }
+
+.tema-soiree .reembolso-item__pie { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid var(--t-hilo); }
+.tema-soiree .reembolso-chip { padding: 5px 12px; border-radius: 999px; background: var(--t-velo-2); color: var(--t-piedra); font-size: 12px; font-weight: 600; }
+.tema-soiree .reembolso-chip.es-solicitado { background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .reembolso-chip.es-aprobado { background: var(--t-rojo-fondo); color: var(--t-rojo); }
+.tema-soiree .reembolso-chip.es-procesado { background: var(--t-verde-fondo); color: var(--t-verde); }
+.tema-soiree .reembolso-item__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.tema-soiree .reembolso-boton {
+    padding: 10px 18px;
+    border: 1px solid var(--t-hilo);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--t-texto);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .2s ease, background-color .2s ease, color .2s ease;
+}
+.tema-soiree .reembolso-boton:hover:not(:disabled) { border-color: var(--t-acento); }
+.tema-soiree .reembolso-boton.es-principal { border-color: var(--t-boton); background: var(--t-boton); color: var(--t-boton-texto); }
+.tema-soiree .reembolso-boton.es-principal:hover:not(:disabled) { border-color: var(--t-boton-hover); background: var(--t-boton-hover); }
+.tema-soiree .reembolso-boton:disabled { opacity: .6; cursor: default; }
+
+@media (max-width: 640px) {
+    .tema-soiree .reembolso-item { padding: 18px 16px; }
+    .tema-soiree .reembolso-item__cabeza { flex-direction: column; gap: 10px; }
+    .tema-soiree .reembolso-item__montos { justify-items: start; text-align: left; }
+    .tema-soiree .reembolso-item__pie { flex-direction: column; align-items: stretch; }
+    .tema-soiree .reembolso-chip { align-self: flex-start; }
+    .tema-soiree .reembolso-boton { flex: 1; white-space: nowrap; }
+}
+
 /* ---------- Bitácora (admin-bitacora.js): línea de tiempo agrupada por día ---------- */
 .tema-soiree .bitacora-filtros { grid-template-columns: minmax(180px, 1.6fr) repeat(5, minmax(110px, 1fr)) auto; }
 

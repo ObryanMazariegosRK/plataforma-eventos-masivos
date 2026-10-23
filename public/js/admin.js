@@ -44,6 +44,10 @@
             'Notificaciones',
             'Reservas, pagos y boletos registrados en Soirée.'
         ],
+        reembolsos: [
+            'Reembolsos',
+            'Solicitudes de los clientes: apruébalas para devolver el dinero o recházalas.'
+        ],
         bitacora: [
             'Bitácora',
             'Quién hizo qué y cuándo: sesiones, compras y cambios en el panel.'
@@ -1090,9 +1094,8 @@
             const warning = el(
                 'p',
                 'Esta operación cancelará el evento, anulará los boletos ' +
-                'emitidos correspondientes y preparará solicitudes de ' +
-                'reembolso cuando existan pagos aprobados. ' +
-                'Los reembolsos no se pagan automáticamente.',
+                'emitidos y devolverá automáticamente el 100 % de cada ' +
+                'compra pagada por la pasarela. No se puede deshacer.',
                 'so-cancel-warning'
             );
 
@@ -1180,10 +1183,9 @@
                         (data.mensaje || 'Evento cancelado.') +
                         ' Boletos anulados: ' +
                         (resultado.boletos_anulados ?? 0) +
-                        '. Solicitudes de reembolso creadas: ' +
-                        (resultado.reembolsos_creados ?? 0) +
-                        '. Monto preparado: Q' +
-                        Number(resultado.monto_preparado ?? 0).toFixed(2)
+                        '. Monto a devolver: Q' +
+                        Number(resultado.monto_preparado ?? 0).toFixed(2) +
+                        '.'
                     );
                 } catch (error) {
                     message.textContent = error.message;
@@ -2188,16 +2190,18 @@
         const isBanner = section === 'banner';   // lo maneja admin-banner.js
         const isCatalogo = section === 'catalogo';   // lo maneja admin-catalogo-eventos.js
         const isBitacora = section === 'bitacora';   // lo maneja admin-bitacora.js
+        const isReembolsos = section === 'reembolsos';   // lo maneja admin-reembolsos.js
         const isConfig = section === 'configuracion';
         const isPending = pendingSections.has(section) && !isConfig;
 
-        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora);
+        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora && !isReembolsos);
         show('banner-panel', isBanner);
         show('catalogo-panel', isCatalogo);
         show('reservas-estados', section === 'reservas');
         // El Resumen ya no muestra "Reservas recientes": la misma tabla está en Reservas
         show('tabla-datos', !isOverview);
         show('bitacora-panel', isBitacora);
+        show('reembolsos-panel', isReembolsos);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
@@ -3247,7 +3251,8 @@
             section === 'reportes' ||
             section === 'banner' ||
             section === 'catalogo' ||
-            section === 'bitacora'
+            section === 'bitacora' ||
+            section === 'reembolsos'
         ) {
             clearFeedback();
             return;
