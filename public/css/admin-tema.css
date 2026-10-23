@@ -1263,3 +1263,5 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 @media (prefers-reduced-motion: reduce) {
     .tema-soiree .evento-modal[open], .tema-soiree .evento-modal[open]::backdrop { animation: none; }
 }
+/* Texto guardado antes del límite actual: hay que recortarlo para poder guardar */
+.tema-soiree .evento-frase__contador[data-excedido="true"] { color: var(--t-rojo); }

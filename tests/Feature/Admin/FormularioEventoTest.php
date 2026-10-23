@@ -129,6 +129,10 @@ class FormularioEventoTest extends TestCase
         $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => str_repeat('a', 71)]))
             ->assertStatus(422)->assertJsonValidationErrors('frase_destacada');
 
+        // La descripción: hasta 600 caracteres (la experiencia muestra un adelanto)
+        $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['descripcion' => str_repeat('b', 601)]))
+            ->assertStatus(422)->assertJsonValidationErrors('descripcion');
+
         $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => 'Tres décadas de jazz en una sola noche']))
             ->assertCreated();
         $this->assertSame('Tres décadas de jazz en una sola noche', DB::table('eventos')->value('frase_destacada'));

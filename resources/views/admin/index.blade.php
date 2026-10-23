@@ -612,12 +612,12 @@
                     name="descripcion"
                     id="evento-descripcion"
                     rows="4"
-                    maxlength="10000"
+                    maxlength="600"
                     placeholder="Describe el evento..."
                     aria-describedby="evento-descripcion-ayuda evento-descripcion-contador"></textarea>
                 <span class="evento-frase__pie">
-                    <small id="evento-descripcion-ayuda">El inicio de la descripción también aparece en la primera escena de la experiencia.</small>
-                    <small class="evento-frase__contador" id="evento-descripcion-contador" aria-live="polite">0 / 10,000</small>
+                    <small id="evento-descripcion-ayuda">Se ve completa en la página del evento; la primera escena de la experiencia muestra los primeros 170 caracteres.</small>
+                    <small class="evento-frase__contador" id="evento-descripcion-contador" aria-live="polite">0 / 600</small>
                 </span>
             </label>
 

@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!campo || !contador) return;
         contador.textContent = `${numero.format(campo.value.length)} / ${numero.format(campo.maxLength)}`;
         contador.dataset.lleno = String(campo.value.length >= campo.maxLength);
+        contador.dataset.excedido = String(campo.value.length > campo.maxLength);
     });
     contadores.forEach(([campo]) => campo?.addEventListener('input', contarFrase));
 

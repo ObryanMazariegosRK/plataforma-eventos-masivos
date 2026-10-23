@@ -36,10 +36,11 @@ class GuardarEventoRequest extends FormRequest
                 'max:255',
             ],
 
+            // Se ve completa en el detalle del evento; la experiencia muestra un adelanto
             'descripcion' => [
                 'nullable',
                 'string',
-                'max:10000',
+                'max:600',
             ],
 
             // Título de la primera escena de la experiencia (si falta, el nombre del evento)
@@ -100,7 +101,7 @@ class GuardarEventoRequest extends FormRequest
                 'El nombre no puede superar 255 caracteres.',
 
             'descripcion.max' =>
-                'La descripción es demasiado extensa.',
+                'La descripción puede tener hasta 600 caracteres.',
 
             'imagen_url.url' =>
                 'Debes ingresar una URL válida para la imagen.',
