@@ -174,7 +174,7 @@
                     <use href="#i-home"/>
                 </svg>
 
-                <span>Resumen</span>
+                <span>Dashboard</span>
             </button>
 
             <button type="button"
