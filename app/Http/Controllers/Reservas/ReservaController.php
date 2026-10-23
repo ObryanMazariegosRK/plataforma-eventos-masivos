@@ -1,0 +1,101 @@
+<?php
+namespace App\Http\Controllers\Reservas;
+
+use App\Application\Abstractions\Reservas\IConsultarMiCupoUseCase;
+use App\Application\Abstractions\Reservas\IConsultarReservaUseCase;
+use App\Application\Abstractions\Reservas\IListarMisComprasUseCase;
+use App\Application\Abstractions\Reservas\ICrearReservaUseCase;
+use App\Application\DTOs\Reservas\CrearReservaDTO;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Reservas\CrearReservaRequest;
+use Illuminate\Http\JsonResponse;
+use App\Application\UseCases\Reservas\CancelarReservaUseCase;
+use Illuminate\Http\Request;
+use DomainException;
+
+class ReservaController extends Controller
+{
+    public function store(CrearReservaRequest $request, ICrearReservaUseCase $crearReserva): JsonResponse
+    {
+        $dto = new CrearReservaDTO(
+            // el usuario sale del token, NO del cuerpo: así nadie puede reservar a nombre de otro
+            usuarioId: $request->user()->id,
+            eventoId: $request->integer('evento_id'),
+            total: 0.0,
+            ttlSegundos: config('reservas.ttl_segundos'),
+            inventarioIds: array_map(
+                'intval',
+                $request->validated('inventario_ids', [])
+            ),
+            cupos: array_map(fn (array $cupo) => [
+                'localidad_id' => (int) $cupo['localidad_id'],
+                'cantidad'     => (int) $cupo['cantidad'],
+            ], $request->validated('cupos', [])),
+            maxPorPersona: config('reservas.max_boletos_por_persona'),
+
+        );
+
+        $reserva = $crearReserva->execute($dto);
+
+        return response()->json([
+            'id'        => $reserva->getId(),
+            'estado'    => $reserva->getEstado()->value,
+            'expira_en' => $reserva->getExpiraEn()->format(DATE_ATOM),
+            'total'     => $reserva->getTotal(),
+        ], 201);
+    }
+
+    // Evento y lugares de una reserva propia (lo usa la página "¡Pago aprobado!")
+    public function show(Request $request, IConsultarReservaUseCase $consultar, int $id): JsonResponse
+    {
+        return response()->json($consultar->execute($id, (int) $request->user()->id));
+    }
+
+    // Cuántos boletos más puede apartar la persona en el evento (lo usa el plano de asientos)
+    public function miCupo(Request $request, IConsultarMiCupoUseCase $consultar, int $id): JsonResponse
+    {
+        return response()->json($consultar->execute(
+            (int) $request->user()->id,
+            $id,
+            config('reservas.max_boletos_por_persona'),
+            new \DateTimeImmutable(),
+        ));
+    }
+
+    // Página "Mis compras": reservas pagadas del usuario, próximas y pasadas
+    public function misCompras(Request $request, IListarMisComprasUseCase $listar): JsonResponse
+    {
+        return response()->json($listar->execute((int) $request->user()->id, new \DateTimeImmutable()));
+    }
+
+    public function destroy(
+        Request $request,
+        CancelarReservaUseCase $cancelarReserva,
+        int $id
+    ): JsonResponse {
+        try {
+            $reserva = $cancelarReserva->execute(
+                reservaId: $id,
+                usuarioId: (int) $request->user()->id
+            );
+
+            return response()->json([
+                'message' => 'Reserva cancelada correctamente.',
+                'id' => $reserva->getId(),
+                'estado' => $reserva->getEstado()->value,
+            ], 200);
+
+        } catch (DomainException $e) {
+            $estadoHttp = match ($e->getMessage()) {
+                'La reserva no existe.' => 404,
+                'No tienes permiso para cancelar esta reserva.' => 403,
+                default => 422,
+            };
+
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], $estadoHttp);
+        }
+    }
+
+}

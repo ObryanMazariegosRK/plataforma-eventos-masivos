@@ -1,0 +1,580 @@
+/* Mapa de asientos — selección (cliente) y ocupación en vivo (admin).
+   Mismo estilo que la landing y la autenticación.
+
+   Dos ámbitos, para poder usar el mapa dentro de otras páginas (p. ej. la experiencia del evento):
+   - .pagina-asientos (en <body>): reglas de PÁGINA de las vistas propias del mapa.
+   - .asientos-app (contenedor del plano + panel): variables y estilos del COMPONENTE. */
+
+.pagina-asientos,
+.asientos-app {
+    color-scheme: dark;
+    --tinta: #0d0c0b;
+    --tinta-2: #131210;
+    --tinta-3: #1b1916;
+    --marfil: #faf8f4;
+    --piedra: rgba(250, 248, 244, .72);
+    --tenue: rgba(250, 248, 244, .45);
+    --hilo: rgba(250, 248, 244, .14);
+    --hilo-fuerte: rgba(250, 248, 244, .3);
+    --champan: #c8b48c;
+    --apartado: #d9a35b;
+    --error: #e0a198;
+    --exito: #a9c9a4;
+    --radio: 12px;
+    --titulo: "Cormorant Garamond", "Times New Roman", serif;
+    --cuerpo: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+.asientos-app { color: var(--marfil); font-family: var(--cuerpo); font-weight: 300; }
+
+body.pagina-asientos {
+    margin: 0;
+    background: var(--tinta);
+    color: var(--marfil);
+    font-family: var(--cuerpo);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.pagina-asientos a,
+.asientos-app a { color: var(--champan); text-decoration: none; }
+.pagina-asientos a:hover,
+.asientos-app a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.mayus {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}
+
+/* ---- Cabecera (solo en las páginas propias del mapa) ---- */
+.pagina-asientos .cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px clamp(16px, 4vw, 48px);
+    border-bottom: 1px solid var(--hilo);
+}
+
+.pagina-asientos .marca {
+    font-family: var(--titulo);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--marfil);
+}
+
+.pagina-asientos .marca:hover { text-decoration: none; opacity: .85; }
+
+.pagina-asientos .cabecera__enlaces { display: flex; gap: 22px; align-items: center; font-size: 13px; }
+
+/* ---- Encabezado del evento (dentro del panel derecho) ---- */
+.evento {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--hilo);
+}
+
+.estadisticas .evento { grid-column: 1 / -1; margin-bottom: 0; }
+.evento--movil { display: none; }
+
+.evento__etiqueta { color: var(--champan); display: flex; align-items: center; gap: 12px; }
+.evento__etiqueta::before { content: ""; width: 28px; height: 1px; background: var(--champan); }
+
+.evento__nombre {
+    font-family: var(--titulo);
+    font-weight: 400;
+    font-size: 26px;
+    line-height: 1.08;
+    margin: 8px 0 4px;
+}
+
+.evento__datos { color: var(--piedra); font-size: 13px; line-height: 1.5; margin: 0; }
+
+/* ---- Distribución ---- */
+.contenido {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 16px clamp(16px, 4vw, 48px) 24px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    gap: 28px;
+    align-items: start;
+}
+
+.contenido--admin { grid-template-columns: minmax(0, 1fr) 300px; }
+
+.tarjeta {
+    /* sin fondo ni borde: todo sobre el mismo negro de la página */
+    background: transparent;
+    border: 0;
+}
+
+/* ---- Mapa ---- */
+.mapa {
+    padding: 20px clamp(14px, 2.5vw, 30px) 22px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* El plano: sin fondo, directamente sobre la tarjeta */
+.plano {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;   /* el plano se alinea a la izquierda de su espacio */
+    padding-left: 2%;
+    overflow: auto;
+}
+
+.plano__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    min-width: 520px;   /* en celular el plano se puede desplazar en lugar de quedar diminuto */
+    font-family: var(--cuerpo);
+}
+
+.plano__escenario {
+    fill: rgba(200, 180, 140, .12);
+    stroke: var(--champan);
+    stroke-width: 1;
+}
+
+.plano__sector {
+    fill: color-mix(in srgb, var(--color-zona) 4%, transparent);
+    stroke: color-mix(in srgb, var(--color-zona) 45%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 4 5;
+}
+
+.plano__general {
+    fill: color-mix(in srgb, var(--color-zona) 12%, transparent);
+    stroke: color-mix(in srgb, var(--color-zona) 70%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 6 4;
+    transition: fill .2s ease;
+}
+
+.plano__general[role="button"] { cursor: pointer; }
+.plano__general[role="button"]:hover,
+.plano__general[role="button"]:focus-visible { fill: color-mix(in srgb, var(--color-zona) 24%, transparent); outline: none; }
+
+.plano__rotulo {
+    fill: var(--color-zona, var(--champan));
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-anchor: middle;
+}
+
+.plano__rotulo--escenario { font-size: 12px; letter-spacing: .32em; }
+
+.plano__subrotulo {
+    fill: var(--piedra);
+    font-size: 11px;
+    text-anchor: middle;
+}
+
+.plano__fila {
+    fill: var(--tenue);
+    font-size: 10px;
+    font-weight: 500;
+    text-anchor: middle;
+}
+
+/* Butacas */
+.butaca__cuerpo {
+    fill: color-mix(in srgb, var(--color-zona) 20%, transparent);
+    stroke: var(--color-zona);
+    stroke-width: 1;
+    transition: fill .15s ease, transform .15s ease;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.butaca__respaldo { fill: var(--color-zona); opacity: .55; pointer-events: none; }
+.butaca__toque { fill: transparent; }
+
+.butaca__numero {
+    fill: var(--marfil);
+    font-size: 8.5px;
+    font-weight: 500;
+    text-anchor: middle;
+    pointer-events: none;
+}
+
+.butaca--interactiva { cursor: pointer; outline: none; }
+.butaca--interactiva:hover .butaca__cuerpo,
+.butaca--interactiva:focus-visible .butaca__cuerpo {
+    fill: color-mix(in srgb, var(--color-zona) 55%, transparent);
+    transform: scale(1.15);
+}
+.butaca--interactiva:focus-visible .butaca__cuerpo { stroke: var(--marfil); stroke-width: 1.5; }
+
+.butaca--elegida .butaca__cuerpo,
+.butaca--elegida:hover .butaca__cuerpo {
+    fill: var(--color-zona);
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 6px var(--color-zona));
+}
+.butaca--elegida .butaca__numero { fill: var(--tinta); }
+
+/* Ocupadas (cliente): apagadas, sin número */
+.butaca--ocupada .butaca__cuerpo { fill: rgba(250, 248, 244, .07); stroke: transparent; }
+.butaca--ocupada .butaca__respaldo { fill: rgba(250, 248, 244, .12); }
+.butaca--ocupada .butaca__numero { display: none; }
+
+/* Admin: apartada vs vendida */
+.butaca--bloqueado .butaca__cuerpo { fill: color-mix(in srgb, var(--apartado) 45%, transparent); stroke: var(--apartado); }
+.butaca--vendido .butaca__cuerpo { fill: var(--color-zona); }
+.butaca--vendido .butaca__numero { fill: var(--tinta); }
+
+/* Latido cuando una butaca cambia de estado en vivo */
+.butaca--cambio .butaca__cuerpo { animation: latido 1s ease; }
+@keyframes latido { 35% { transform: scale(1.5); } }
+
+/* Zonas generales: contador (cliente) o barra de ocupación (admin), debajo del plano */
+.generales { display: grid; gap: 10px; }
+
+.zona-general {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    border: 1px dashed color-mix(in srgb, var(--color-zona) 55%, transparent);
+    border-radius: var(--radio);
+    background: color-mix(in srgb, var(--color-zona) 5%, transparent);
+}
+
+.mapa--admin .zona-general { flex-direction: column; align-items: stretch; }
+
+.zona-general__titulo { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--piedra); }
+.zona-general__titulo strong { font-family: var(--titulo); font-size: 20px; font-weight: 500; color: var(--marfil); }
+
+.zona-general--resaltar { animation: resaltar 1.2s ease; }
+@keyframes resaltar { 30% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-zona) 45%, transparent); } }
+
+.contador { display: flex; align-items: center; gap: 4px; }
+
+.contador button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--hilo-fuerte);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--marfil);
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.contador button:hover:not(:disabled) { border-color: var(--marfil); }
+.contador button:disabled { opacity: .3; cursor: not-allowed; }
+
+.contador output { min-width: 40px; text-align: center; font-family: var(--titulo); font-size: 26px; }
+
+.barra { height: 8px; border-radius: 999px; background: rgba(250, 248, 244, .08); overflow: hidden; display: flex; }
+.barra span { display: block; height: 100%; transition: width .4s ease; }
+
+/* Leyenda */
+.leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 22px;
+    color: var(--piedra);
+    font-size: 12px;
+}
+
+.leyenda span { display: flex; align-items: center; gap: 8px; }
+
+.muestra {
+    width: 14px;
+    height: 12px;
+    border: 1px solid var(--champan);
+    border-radius: 4px;
+    background: rgba(200, 180, 140, .2);
+}
+
+.muestra--elegida, .muestra--vendida { background: var(--champan); }
+.muestra--ocupada { border-color: transparent; background: rgba(250, 248, 244, .1); }
+.muestra--apartada { border-color: var(--apartado); background: color-mix(in srgb, var(--apartado) 45%, transparent); }
+
+/* ---- Resumen / panel lateral ---- */
+.resumen {
+    position: sticky;
+    top: 20px;
+    padding: 22px 22px;
+}
+
+.resumen__titulo { font-family: var(--titulo); font-size: 22px; font-weight: 400; margin: 0 0 4px; }
+.resumen__ayuda { color: var(--piedra); font-size: 12px; line-height: 1.5; margin: 0 0 12px; }
+
+.lista {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    border-top: 1px solid var(--hilo);
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hilo-fuerte) transparent;
+}
+
+.lista li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--hilo);
+    font-size: 13px;
+}
+
+/* solo las butacas recién agregadas entran con animación (no en cada actualización en vivo) */
+.lista__nueva { animation: entrar .25s ease; }
+
+@keyframes entrar { from { opacity: 0; transform: translateX(6px); } }
+
+.lista__punto { width: 8px; height: 8px; border-radius: 50%; background: var(--color-zona); flex: none; }
+.lista__nombre { flex: 1; }
+.lista__nombre small { display: block; color: var(--tenue); font-size: 11px; margin-top: 1px; }
+.lista__precio { font-weight: 400; }
+
+.lista__quitar {
+    border: 0;
+    background: none;
+    color: var(--tenue);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.lista__quitar:hover { color: var(--marfil); }
+
+.lista__vacia { color: var(--tenue); font-size: 14px; padding: 18px 0; text-align: center; border-bottom: 1px solid var(--hilo); }
+
+.total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+}
+
+.total__monto { font-family: var(--titulo); font-size: 32px; font-weight: 500; }
+
+.boton-reservar {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    border: 1px solid var(--marfil);
+    border-radius: var(--radio);
+    background: var(--marfil);
+    color: var(--tinta);
+    font: 500 11px var(--cuerpo);
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color .25s ease, border-color .25s ease, opacity .25s ease;
+}
+
+.boton-reservar:hover:not(:disabled) { background: var(--champan); border-color: var(--champan); }
+.boton-reservar:disabled { opacity: .35; cursor: not-allowed; }
+
+.nota { margin: 10px 0 0; color: var(--tenue); font-size: 11px; line-height: 1.5; text-align: center; }
+
+/* Mensajes */
+.aviso {
+    display: none;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-left: 2px solid var(--error);
+    border-radius: 6px;
+    background: rgba(224, 161, 152, .08);
+    color: var(--error);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.aviso--visible { display: block; }
+.aviso--info { border-color: var(--champan); background: rgba(200, 180, 140, .08); color: var(--champan); }
+/* Ya tiene el máximo de boletos por persona para el evento */
+.asientos-app .limite { margin: 0 0 14px; padding: 12px 14px; border-left: 1px solid var(--champan); background: rgba(200, 180, 140, .06); color: var(--piedra); font-size: 13px; line-height: 1.55; }
+.asientos-app .limite[hidden] { display: none; }
+.asientos-app .limite span { display: block; color: var(--marfil); margin-bottom: 6px; }
+.asientos-app .limite a { color: var(--champan); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; text-decoration: none; border-bottom: 1px solid rgba(200, 180, 140, .4); }
+.asientos-app .limite a:hover { border-color: var(--champan); }
+
+.cargando { padding: 60px 0; text-align: center; color: var(--piedra); }
+
+/* ---- Admin: estadísticas ---- */
+.estadisticas {
+    padding: 22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 18px;
+    position: sticky;
+    top: 20px;
+}
+
+.estadisticas .vivo,
+.estadisticas .selector { grid-column: 1 / -1; }
+
+.vivo { display: flex; align-items: center; gap: 8px; color: var(--exito); }
+.vivo::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--exito);
+    animation: pulso 1.6s ease-in-out infinite;
+}
+@keyframes pulso { 50% { opacity: .3; } }
+
+.cifra { border-top: 1px solid var(--hilo); padding-top: 14px; }
+.cifra__valor { font-family: var(--titulo); font-size: 34px; line-height: 1; margin-top: 8px; }
+.cifra__detalle { color: var(--tenue); font-size: 11px; line-height: 1.4; margin-top: 6px; }
+
+.selector select {
+    width: 100%;
+    margin-top: 8px;
+    padding: 11px 14px;
+    border: 1px solid var(--hilo-fuerte);
+    border-radius: var(--radio);
+    background: var(--tinta-3);
+    color: var(--marfil);
+    font: inherit;
+    font-size: 14px;
+}
+
+/* ---- El selector al final de la experiencia del evento ----
+   Sube 30vh y se dibuja ENCIMA de la última foto, con un degradado de transparente a negro
+   (igual que la sección final de la landing): no queda una pantalla vacía entre ambos. */
+.seccion-asientos {
+    --solape: 30vh;
+    position: relative;
+    z-index: 1;
+    margin-top: calc(-1 * var(--solape));
+    padding-top: var(--solape);
+    background: linear-gradient(to bottom, rgba(13, 12, 11, 0) 0, #0d0c0b var(--solape));
+}
+
+.seccion-asientos > .asientos-app { background: #0d0c0b; }
+
+@media (min-width: 901px) {
+    .seccion-asientos .contenido {
+        height: 100svh;
+        padding-top: 88px;   /* deja libre la cabecera fija de la landing */
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+    }
+}
+
+/* ---- Computadora: todo cabe en la altura de la pantalla ---- */
+@media (min-width: 901px) {
+    body.pagina-asientos {
+        height: 100vh;
+        height: 100svh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .pagina-asientos .contenido {
+        flex: 1;
+        min-height: 0;   /* permite que el mapa se encoja y haga scroll por dentro */
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    .mapa { max-height: 100%; }
+
+    /* El panel del cliente ocupa toda la altura: el nombre, el total y el botón siempre
+       a la vista; solo la lista de butacas elegidas hace scroll si no cabe */
+    .resumen {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        max-height: 100%;
+    }
+
+    .resumen .lista { flex: 1; min-height: 0; overflow-y: auto; }
+
+
+    .estadisticas {
+        position: static;
+        align-self: start;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+}
+
+/* ---- Celular ---- */
+@media (max-width: 900px) {
+    .evento--movil { display: block; padding: 18px 16px 0; margin: 0; border: 0; }
+    .resumen--cliente .evento { display: none; }
+    .contenido, .contenido--admin { grid-template-columns: 1fr; }
+    .resumen, .estadisticas { position: static; }
+    .mapa { padding: 8px 4px 16px; }
+
+    /* El plano se ajusta al ancho de la pantalla (sin scroll horizontal) y queda centrado */
+    .plano { justify-content: center; padding-left: 0; overflow: visible; }
+    .plano__svg { min-width: 0; max-height: none; }
+
+    /* El resumen va debajo del plano, sin fondo, con la lista siempre visible */
+    .resumen--cliente { padding: 8px 16px calc(28px + env(safe-area-inset-bottom)); }
+}
+
+
+
+/* Lugares apartados sin pagar: continuar el pago o liberarlos */
+.asientos-app .pendientes { display: grid; gap: 10px; margin: 0 0 14px; }
+.asientos-app .pendientes[hidden] { display: none; }
+.asientos-app .pendiente {
+    display: grid; gap: 6px; padding: 14px 16px;
+    border: 1px solid rgba(217, 163, 91, .45); border-left-width: 2px;
+    background: rgba(217, 163, 91, .07); color: var(--piedra); font-size: 13px; line-height: 1.5;
+}
+.asientos-app .pendiente strong { color: var(--marfil); font-weight: 500; }
+.asientos-app .pendiente__detalle b { color: var(--apartado); font-weight: 500; font-variant-numeric: tabular-nums; }
+.asientos-app .pendiente__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.asientos-app .pendiente__acciones button {
+    padding: 9px 14px; font: 500 10.5px var(--cuerpo); letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+.asientos-app .pendiente__pagar { border: 1px solid var(--marfil); background: var(--marfil); color: var(--tinta); }
+.asientos-app .pendiente__pagar:hover:not(:disabled) { background: transparent; color: var(--marfil); }
+.asientos-app .pendiente__liberar { border: 1px solid var(--hilo-fuerte); background: transparent; color: var(--piedra); }
+.asientos-app .pendiente__liberar:hover:not(:disabled) { border-color: var(--marfil); color: var(--marfil); }
+.asientos-app .pendiente__acciones button:disabled { opacity: .5; cursor: wait; }
+
+/* Vista de ocupación (admin): regresar al catálogo de eventos del panel */
+.pagina-asientos .cabecera__inicio { display: flex; align-items: center; gap: 18px; }
+.pagina-asientos .cabecera__volver {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--piedra); font-size: 11px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
+    text-decoration: none; transition: color .3s ease;
+}
+.pagina-asientos .cabecera__flecha {
+    display: grid; place-items: center; width: 34px; height: 34px;
+    border: 1px solid var(--hilo-fuerte); border-radius: 50%;
+    transition: border-color .3s ease, background-color .3s ease, color .3s ease;
+}
+.pagina-asientos .cabecera__flecha svg { width: 16px; height: 16px; transition: transform .35s cubic-bezier(.2, .7, .15, 1); }
+.pagina-asientos .cabecera__volver:hover, .pagina-asientos .cabecera__volver:focus-visible { color: var(--marfil); outline: none; }
+.pagina-asientos .cabecera__volver:hover .cabecera__flecha, .pagina-asientos .cabecera__volver:focus-visible .cabecera__flecha {
+    border-color: var(--marfil); background: var(--marfil); color: var(--tinta);
+}
+.pagina-asientos .cabecera__volver:hover svg, .pagina-asientos .cabecera__volver:focus-visible svg { transform: translateX(-3px); }
+@media (max-width: 640px) {
+    .pagina-asientos .cabecera__inicio { gap: 12px; }
+}

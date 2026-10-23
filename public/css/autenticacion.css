@@ -1,0 +1,478 @@
+/* Vistas de autenticación y pagos — Soirée
+   Mismo estilo que la landing: negro cálido + marfil, champán solo en detalles,
+   títulos en Cormorant Garamond y textos en Inter. */
+
+:root {
+    color-scheme: dark;          /* la página ya es oscura: el navegador no debe recolorearla */
+    --tinta: #0d0c0b;            /* fondo de la página */
+    --tinta-2: #0f0e0d;          /* fondo del formulario (casi el mismo negro de la landing) */
+    --tinta-3: #181614;          /* campos y superficies */
+    --oscuridad-foto: .45;       /* capa negra sobre la foto del panel: 0 = foto original, 1 = negro (prueba .35–.6) */
+    --marfil: #faf8f4;           /* texto principal: blanco cálido */
+    --piedra: rgba(250, 248, 244, .78);   /* texto secundario */
+    --hilo: rgba(250, 248, 244, .16);     /* bordes finos */
+    --hilo-fuerte: rgba(250, 248, 244, .34);
+    --radio: 10px;               /* esquinas de campos y botones */
+    --champan: #c8b48c;          /* acento */
+    --error: #e0a198;
+    --exito: #a9c9a4;
+    --titulo: "Cormorant Garamond", "Times New Roman", serif;
+    --cuerpo: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--cuerpo);
+    font-weight: 300;
+    background: var(--tinta);
+    color: var(--marfil);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+/* Mayúsculas pequeñas y espaciadas: el detalle fino de todo el diseño */
+.campo label,
+.boton,
+.etiqueta {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}
+
+/* ---- Contenedor de dos columnas ---- */
+.auth {
+    width: 100%;
+    max-width: 980px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--tinta-2);
+    border: 1px solid var(--hilo);
+    border-radius: 18px;
+    overflow: hidden;   /* para que la foto respete las esquinas redondeadas */
+}
+
+/* ---- Columna de marca: solo la foto del teatro y el logo ---- */
+.auth__marca {
+    position: relative;
+    overflow: hidden;
+    padding: 32px 40px;
+    background: var(--tinta);
+    border-right: 1px solid var(--hilo);
+}
+
+.auth__foto {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 55%;
+}
+
+/* Oscurece la foto (parejo) y un poco más arriba, donde va el logo */
+.auth__sombra {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to bottom, rgba(13, 12, 11, .55) 0%, transparent 30%),
+        rgba(13, 12, 11, var(--oscuridad-foto));
+}
+
+.auth__logo {
+    position: relative;   /* encima de la foto y la sombra */
+    font-family: var(--titulo);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--marfil);
+    text-decoration: none;
+}
+
+.auth__logo:hover { text-decoration: none; opacity: .85; }
+
+/* ---- Columna del formulario ---- */
+.auth__form {
+    padding: 28px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth__form h1 {
+    font-family: var(--titulo);
+    font-weight: 400;
+    font-size: 34px;
+    line-height: 1.05;
+    margin: 0 0 4px;
+}
+
+.subtitulo {
+    margin: 0 0 16px;
+    color: var(--piedra);
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.subtitulo code {
+    font-size: 12px;
+    color: var(--champan);
+}
+
+/* ---- Campos ---- */
+.campo { margin-bottom: 12px; }
+
+.campo label {
+    display: block;
+    color: var(--piedra);
+    margin-bottom: 6px;
+}
+
+.campo .opcional {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 300;
+    opacity: .8;
+}
+
+.campo input,
+.campo select {
+    width: 100%;
+    padding: 10px 14px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--marfil);
+    background: var(--tinta-3);
+    border: 1px solid var(--hilo);
+    border-radius: var(--radio);
+    transition: border-color .2s ease, background-color .2s ease;
+}
+
+.campo input::placeholder { color: rgba(250, 248, 244, .34); }
+
+.campo input:focus,
+.campo select:focus {
+    outline: none;
+    border-color: var(--champan);
+    background: #1e1c19;
+}
+
+.campo input[readonly] { color: var(--piedra); border-style: dashed; }
+
+.campo select { appearance: none; cursor: pointer; }
+.campo select option { background: var(--tinta-3); color: var(--marfil); }
+
+/* El autocompletado de Chrome pinta los campos de amarillo/blanco: lo devolvemos al diseño oscuro */
+.campo input:-webkit-autofill {
+    -webkit-text-fill-color: var(--marfil);
+    -webkit-box-shadow: 0 0 0 100px var(--tinta-3) inset;
+    caret-color: var(--marfil);
+}
+
+.ayuda {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--piedra);
+    margin-top: 6px;
+}
+
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fila--ancha-angosta { grid-template-columns: 3fr 2fr; }   /* correo (largo) + teléfono (corto) */
+
+.password { position: relative; }
+.password input { padding-right: 84px; }
+.password button {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: none;
+    color: var(--champan);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 8px 10px;
+}
+
+.opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--piedra); }
+.check input { accent-color: var(--champan); width: 15px; height: 15px; }
+
+/* ---- Código de 6 casillas ---- */
+.codigo {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.codigo input {
+    width: 100%;
+    max-width: 50px;
+    aspect-ratio: 1 / 1.15;
+    text-align: center;
+    font-family: var(--titulo);
+    font-size: 28px;
+    color: var(--marfil);
+    background: var(--tinta-3);
+    border: 1px solid var(--hilo);
+    border-radius: var(--radio);
+}
+
+.codigo input:focus { outline: none; border-color: var(--champan); }
+
+/* ---- Botones y enlaces ---- */
+.boton {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    text-align: center;
+    text-decoration: none;
+    font-family: var(--cuerpo);
+    border: 1px solid var(--marfil);
+    border-radius: var(--radio);
+    background: var(--marfil);
+    color: var(--tinta);
+    cursor: pointer;
+    transition: background-color .25s ease, border-color .25s ease, color .25s ease;
+}
+
+.boton:hover { background: var(--champan); border-color: var(--champan); }
+.boton:disabled { opacity: .55; cursor: wait; }
+
+.boton--secundario {
+    background: transparent;
+    color: var(--marfil);
+    border-color: var(--hilo-fuerte);
+}
+
+.boton--secundario:hover { background: transparent; border-color: var(--marfil); color: var(--marfil); }
+
+.boton--google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: transparent;
+    color: var(--marfil);
+    border-color: var(--hilo-fuerte);
+}
+
+.boton--google:hover { background: rgba(242, 237, 228, .05); border-color: var(--marfil); }
+
+a, .enlace {
+    color: var(--champan);
+    font-weight: 400;
+    text-decoration: none;
+    text-underline-offset: 3px;
+}
+
+a:hover, .enlace:hover { text-decoration: underline; }
+a.boton:hover { text-decoration: none; }
+
+.enlace {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.enlace:disabled { color: var(--piedra); cursor: default; text-decoration: none; }
+
+.pie--legal { margin-top: 6px; font-size: 12px; color: var(--piedra); opacity: .85; }
+
+/* Regresar al catálogo (p. ej. desde "Mi perfil") */
+.volver {
+    align-self: flex-start;
+    display: inline-block;
+    margin-bottom: 22px;
+    color: var(--piedra);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color .3s ease;
+}
+.volver:hover { color: var(--marfil); }
+
+.pie {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--piedra);
+}
+
+.separador {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 12px 0;
+    color: var(--piedra);
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}
+
+.separador::before,
+.separador::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--hilo);
+}
+
+/* ---- Mensajes: discretos, con una línea de color a la izquierda ---- */
+.alerta {
+    display: none;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 22px;
+    border-left: 2px solid;
+    border-radius: 6px;
+    background: rgba(250, 248, 244, .04);
+}
+
+.alerta--visible { display: block; }
+.alerta--error { color: var(--error); border-color: var(--error); background: rgba(224, 161, 152, .07); }
+.alerta--exito { color: var(--exito); border-color: var(--exito); background: rgba(169, 201, 164, .07); }
+.alerta--aviso { color: var(--champan); border-color: var(--champan); background: rgba(200, 180, 140, .07); }
+
+/* ---- Perfil ---- */
+.perfil__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid var(--champan);
+    color: var(--champan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--titulo);
+    font-size: 26px;
+    margin-bottom: 20px;
+}
+
+.datos { list-style: none; padding: 0; margin: 0 0 28px; border-top: 1px solid var(--hilo); }
+.datos li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--hilo);
+    font-size: 14px;
+}
+.datos li span:first-child { color: var(--piedra); }
+.datos li span:last-child { font-weight: 400; text-align: right; word-break: break-all; }
+/* Lugares comprados: una zona por renglón ("Platea · A5, A6") */
+.datos .datos__lugares { display: grid; gap: 4px; word-break: normal; }
+
+.etiqueta {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: var(--champan);
+    border: 1px solid rgba(200, 180, 140, .45);
+    border-radius: 999px;
+}
+
+.etiqueta--ok { color: var(--exito); border-color: rgba(169, 201, 164, .45); }
+
+.token {
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    background: var(--tinta-3);
+    border: 1px solid var(--hilo);
+    padding: 12px;
+    border-radius: 8px;
+    word-break: break-all;
+    color: var(--piedra);
+    margin-bottom: 28px;
+}
+
+/* Secciones plegables (cambiar contraseña) */
+.seccion {
+    border: 1px solid var(--hilo);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    border-radius: var(--radio);
+}
+
+.seccion summary {
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--marfil);
+}
+
+.seccion summary::marker { color: var(--champan); }
+.seccion[open] summary { margin-bottom: 20px; }
+
+.acciones {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.acciones .enlace { font-size: 13px; }
+
+/* ---- Celular ---- */
+@media (max-width: 800px) {
+    body { padding: 0; align-items: stretch; }
+
+    .auth {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;   /* franja de foto arriba, formulario con el resto */
+        border: 0;
+        border-radius: 0;
+        min-height: 100vh;
+    }
+
+    /* La foto se vuelve una franja corta arriba, solo con el logo */
+    .auth__marca {
+        min-height: 140px;
+        padding: 20px 22px;
+        border-right: 0;
+        border-bottom: 1px solid var(--hilo);
+    }
+
+    .auth__form { padding: 30px 22px calc(36px + env(safe-area-inset-bottom)); justify-content: flex-start; }
+    .auth__form h1 { font-size: 32px; }
+    .fila { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* Acceso del personal (/admin/login y su recuperación): rótulo sobre el título */
+.etiqueta-acceso {
+    margin: 0 0 10px;
+    color: var(--champan);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}

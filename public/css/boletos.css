@@ -1,0 +1,187 @@
+/* Boletos de una compra — usa los tokens y la cabecera de catalogo.css.
+   Cada boleto: parte principal oscura | perforación | talón marfil con el QR. */
+
+.boletos { padding: 48px 0 110px; }
+
+.boletos__volver { display: inline-block; margin-bottom: 30px; color: var(--piedra); font-size: 11px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; text-decoration: none; transition: color .3s ease; }
+.boletos__volver:hover { color: var(--marfil); }
+
+.boletos__encabezado { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding-bottom: 22px; margin-bottom: 40px; border-bottom: 1px solid var(--hilo); }
+.boletos__encabezado h1 { margin: 14px 0 8px; font-size: clamp(36px, 4.6vw, 56px); line-height: 1; }
+.boletos__datos { margin: 0; color: var(--piedra); font-size: 14px; }
+.boletos__imprimir {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    border: 1px solid var(--hilo);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--marfil);
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color .3s ease, background-color .3s ease;
+}
+.boletos__imprimir:hover { border-color: var(--champan); background: var(--champan-suave); }
+.boletos__imprimir[hidden] { display: none; }
+
+.boletos__aviso { color: var(--piedra); font-family: var(--titulo); font-size: 22px; font-style: italic; }
+.boletos__aviso[hidden] { display: none; }
+.boletos__consejo { margin: 36px auto 0; max-width: 520px; color: var(--tenue); font-size: 13px; line-height: 1.7; text-align: center; }
+
+.boletos__lista { display: grid; gap: 28px; }
+
+/* ---------- El boleto ---------- */
+.boleto {
+    --color-zona: var(--champan);
+    --muesca: 22px;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 236px;
+    max-width: 860px;
+    margin-inline: auto;
+    width: 100%;
+    filter: drop-shadow(0 22px 40px rgba(0, 0, 0, .45));
+    animation: aparecer .8s var(--curva) both;
+}
+@keyframes aparecer { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.boleto__cuerpo {
+    position: relative;
+    padding: 28px 32px 26px 36px;
+    border: 1px solid var(--hilo);
+    border-right: 0;
+    border-radius: 16px 0 0 16px;
+    background:
+        radial-gradient(120% 120% at 0% 0%, rgba(200, 180, 140, .08), transparent 55%),
+        #151311;
+    overflow: hidden;
+}
+/* Línea del color de la zona (como en el plano de asientos) */
+.boleto__cuerpo::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--color-zona); }
+
+.boleto__arriba { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+.boleto__marca { font-family: var(--titulo); font-size: 20px; font-weight: 500; }
+.boleto__numero { color: var(--tenue); font-size: 10.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+.boleto__evento { margin: 0 0 8px; font-size: clamp(28px, 3.4vw, 38px); line-height: 1.02; }
+.boleto__fecha { margin: 0 0 24px; color: var(--piedra); font-size: 13.5px; }
+.boleto__fecha strong { color: var(--champan); font-weight: 500; }
+
+.boleto__lugar { display: flex; flex-wrap: wrap; gap: 14px 34px; padding-top: 18px; border-top: 1px solid var(--hilo); }
+.boleto__dato small { display: block; margin-bottom: 4px; color: var(--tenue); font-size: 10px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+.boleto__dato span { font-family: var(--titulo); font-size: 26px; line-height: 1; }
+.boleto__recinto { margin: 18px 0 0; color: var(--tenue); font-size: 12px; }
+
+/* ---------- Talón con el QR ---------- */
+.boleto__talon {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 10px;
+    padding: 22px 18px;
+    border-radius: 0 16px 16px 0;
+    background: #f2ede4;
+    color: #1a1714;
+    text-align: center;
+}
+/* Perforación: línea punteada y dos muescas (círculos del color del fondo) en sus extremos */
+.boleto__talon::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: calc(var(--muesca) / 2 + 6px);
+    bottom: calc(var(--muesca) / 2 + 6px);
+    border-left: 2px dashed rgba(26, 23, 20, .22);
+}
+.boleto__muesca {
+    position: absolute;
+    z-index: 2;
+    left: calc(var(--muesca) / -2);
+    width: var(--muesca);
+    height: var(--muesca);
+    border-radius: 50%;
+    background: var(--tinta);
+}
+.boleto__muesca--a { top: calc(var(--muesca) / -2); }
+.boleto__muesca--b { bottom: calc(var(--muesca) / -2); }
+
+.boleto__qr { position: relative; width: 168px; height: 168px; display: grid; place-items: center; }
+.boleto__qr img { width: 100%; height: 100%; display: block; }
+.boleto__qr .cargando { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(26, 23, 20, .12); border-top-color: #8a7550; animation: girar .9s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.boleto__codigo { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .08em; color: #4a443c; }
+.boleto__estado { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #6b5a33; }
+
+/* El boleto cuyo QR se acaba de escanear (/b → #boleto-{id}) */
+.boleto--resaltado { scroll-margin: 120px; }
+.boleto--resaltado::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border: 1px solid var(--champan);
+    border-radius: 22px;
+    pointer-events: none;
+    animation: boleto-resalta 2.4s ease-out 2;
+}
+@keyframes boleto-resalta { 0% { opacity: 0; } 20% { opacity: 1; box-shadow: 0 0 0 6px rgba(200, 180, 140, .18); } 100% { opacity: .55; box-shadow: none; } }
+
+/* Boleto que ya no sirve (función pasada, usado o anulado): QR en gris con una leyenda fina */
+.boleto--inactivo .boleto__qr img,
+.boleto__qr-adorno { width: 100%; height: 100%; display: block; color: #1a1714; opacity: .2; filter: grayscale(1); }
+.boleto--inactivo .boleto__cuerpo { opacity: .65; }
+.boleto--inactivo .boleto__estado { color: #7c766d; }
+.boleto__sello {
+    position: absolute;
+    padding: 8px 16px;
+    border: 1px solid rgba(26, 23, 20, .28);
+    border-radius: 999px;
+    background: rgba(250, 247, 241, .94);
+    box-shadow: 0 6px 18px rgba(26, 23, 20, .1);
+    color: #4a443c;
+    font-family: "Cormorant Garamond", "Times New Roman", serif;
+    font-size: 17px;
+    font-style: italic;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+.boleto__error { margin: 0; color: #9b2c22; font-size: 12px; line-height: 1.5; }
+
+/* ---------- Celular: el talón va debajo ---------- */
+@media (max-width: 680px) {
+    .boletos { padding: 32px 0 80px; }
+    .boletos__encabezado { flex-direction: column; align-items: flex-start; }
+    .boleto { grid-template-columns: 1fr; }
+    .boleto__cuerpo { padding: 24px 22px 22px 26px; border-right: 1px solid var(--hilo); border-bottom: 0; border-radius: 16px 16px 0 0; }
+    .boleto__talon { border-radius: 0 0 16px 16px; padding: 26px 18px 24px; }
+    .boleto__talon::before { left: calc(var(--muesca) / 2 + 6px); right: calc(var(--muesca) / 2 + 6px); top: 0; bottom: auto; border-left: 0; border-top: 2px dashed rgba(26, 23, 20, .22); }
+    /* las muescas pasan a los costados, en la perforación de arriba del talón */
+    .boleto__muesca { top: calc(var(--muesca) / -2); bottom: auto; }
+    .boleto__muesca--a { left: calc(var(--muesca) / -2); }
+    .boleto__muesca--b { left: auto; right: calc(var(--muesca) / -2); }
+    .boleto__qr { width: 190px; height: 190px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .boleto { animation: none; }
+}
+
+/* ---------- Impresión / PDF: blanco y negro, un boleto que no se corta ---------- */
+@media print {
+    @page { margin: 14mm; }
+    body { background: #fff !important; color: #111 !important; }
+    .navbar, .boletos__volver, .boletos__imprimir, .boletos__consejo, .pie-pagina { display: none !important; }
+    .boletos { padding: 0; }
+    .boletos__encabezado { border-color: #ccc; margin-bottom: 18px; }
+    .boletos__encabezado h1, .boletos__datos, .label-seccion { color: #111 !important; }
+    .boletos__lista { gap: 14px; }
+    .boleto { filter: none; break-inside: avoid; animation: none; grid-template-columns: minmax(0, 1fr) 236px; }
+    .boleto__muesca { background: #fff; border: 1px solid #bbb; }
+    .boleto__cuerpo { background: #fff; color: #111; border: 1px solid #bbb; border-right: 0; opacity: 1 !important; }
+    .boleto__talon { border: 1px solid #bbb; border-left: 0; }
+    .boleto__evento, .boleto__dato span, .boleto__marca { color: #111; }
+    .boleto__fecha, .boleto__recinto, .boleto__dato small, .boleto__numero { color: #555 !important; }
+    .boleto__fecha strong { color: #111; }
+}

@@ -18,6 +18,14 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // Login con Google (Socialite). Los valores salen de Google Cloud Console.
+    'google' => [
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Vacía = la del propio servidor (APP_URL); en producción las variables vacías llegan como ""
+        'redirect'      => env('GOOGLE_REDIRECT_URI') ?: rtrim((string) env('APP_URL', 'http://localhost:8090'), '/').'/auth/google/callback',
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],
