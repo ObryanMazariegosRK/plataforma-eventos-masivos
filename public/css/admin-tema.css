@@ -1712,3 +1712,60 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 @media (max-width: 560px) {
     .tema-soiree .so-payment-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Confirmación para cancelar un evento (admin.js → .so-cancel-dialog de Luis) ---------- */
+/* admin.css le pone colores claros fijos: en oscuro el aviso no se leía. Mismo lenguaje que .evento-modal. */
+.tema-soiree .so-cancel-dialog {
+    width: min(460px, calc(100% - 32px)); padding: 32px 30px 26px;
+    border: 1px solid var(--t-hilo); border-radius: 22px;
+    background: var(--t-panel); color: var(--t-texto); box-shadow: var(--t-sombra-dialogo);
+}
+.tema-soiree .so-cancel-dialog::backdrop { background: rgba(13, 12, 11, .6); backdrop-filter: blur(3px); }
+.tema-soiree .so-cancel-dialog[open] { animation: evento-modal-entra .32s cubic-bezier(.2, .7, .15, 1); }
+.tema-soiree .so-cancel-dialog[open]::backdrop { animation: evento-modal-velo .32s ease; }
+.tema-soiree .so-cancel-dialog h2 {
+    display: flex; align-items: center; gap: 14px;
+    margin: 0 0 6px; font: 500 30px/1.1 var(--t-titulo); color: var(--t-texto);
+}
+.tema-soiree .so-cancel-dialog h2::before {
+    content: "!"; flex: none; display: grid; place-items: center; width: 40px; height: 40px;
+    border: 1px solid color-mix(in srgb, var(--t-rojo) 45%, transparent); border-radius: 50%;
+    background: var(--t-rojo-fondo); color: var(--t-rojo); font: 600 19px var(--t-cuerpo);
+}
+.tema-soiree .so-cancel-event-name { margin: 0 0 20px 54px; color: var(--t-piedra); font-size: 14px; font-weight: 500; }
+.tema-soiree .so-cancel-warning {
+    margin: 0; padding: 14px 16px;
+    border: 1px solid color-mix(in srgb, var(--t-rojo) 28%, transparent); border-left: 3px solid var(--t-rojo);
+    border-radius: 0 12px 12px 0;
+    background: var(--t-rojo-fondo); color: var(--t-texto); font-size: 13.5px; line-height: 1.6;
+}
+.tema-soiree .so-cancel-label { gap: 8px; margin-top: 22px; color: var(--t-piedra); font-size: 13px; font-weight: 500; }
+.tema-soiree .so-cancel-label input {
+    padding: 12px 14px; border: 1px solid var(--t-hilo-2); border-radius: 12px;
+    background: var(--t-campo); color: var(--t-texto);
+    font: 600 14px var(--t-cuerpo); letter-spacing: .14em;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.tema-soiree .so-cancel-label input::placeholder { color: var(--t-tenue); opacity: .6; }
+.tema-soiree .so-cancel-label input:focus { outline: none; border-color: var(--t-rojo); background: var(--t-campo-foco); box-shadow: 0 0 0 3px var(--t-rojo-fondo); }
+.tema-soiree .so-cancel-message { margin: 12px 0 0; color: var(--t-rojo); font-size: 13px; }
+.tema-soiree .so-cancel-actions { flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.tema-soiree .so-cancel-actions > button {
+    min-width: 130px; padding: 11px 20px; border-radius: 999px;
+    font: 500 13.5px var(--t-cuerpo); cursor: pointer;
+    transition: background-color .2s ease, border-color .2s ease, opacity .2s ease;
+}
+.tema-soiree .so-cancel-actions .evento-action { border: 1px solid var(--t-hilo-2); background: transparent; color: var(--t-texto); }
+.tema-soiree .so-cancel-actions .evento-action:hover:not(:disabled) { border-color: var(--t-acento); background: transparent; }
+.tema-soiree .so-cancel-actions .so-cancel-confirm { border: 1px solid var(--t-rojo); background: var(--t-rojo); color: var(--t-panel); font-weight: 600; }
+.tema-soiree .so-cancel-actions .so-cancel-confirm:not(:disabled):hover { background: color-mix(in srgb, var(--t-rojo) 85%, var(--t-texto)); }
+/* Bloqueado hasta escribir CANCELAR: contorno en rojo, sin parecer un botón roto */
+.tema-soiree .so-cancel-actions .so-cancel-confirm:disabled { opacity: 1; border-color: color-mix(in srgb, var(--t-rojo) 35%, transparent); background: transparent; color: var(--t-tenue); cursor: not-allowed; }
+.tema-soiree .so-cancel-actions > button:focus-visible { outline: 2px solid var(--t-acento); outline-offset: 2px; }
+@media (max-width: 480px) {
+    .tema-soiree .so-cancel-event-name { margin-left: 0; }
+    .tema-soiree .so-cancel-actions > button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tema-soiree .so-cancel-dialog[open], .tema-soiree .so-cancel-dialog[open]::backdrop { animation: none; }
+}
