@@ -22,7 +22,8 @@ return [
     'google' => [
         'client_id'     => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect'      => env('GOOGLE_REDIRECT_URI', 'http://localhost:8090/auth/google/callback'),
+        // Vacía = la del propio servidor (APP_URL); en producción las variables vacías llegan como ""
+        'redirect'      => env('GOOGLE_REDIRECT_URI') ?: rtrim((string) env('APP_URL', 'http://localhost:8090'), '/').'/auth/google/callback',
     ],
 
     'resend' => [

@@ -1,0 +1,21 @@
+# Lo que NO se copia al construir imágenes (en desarrollo el código se monta como carpeta, así
+# que esto solo importa para la imagen de producción: docker/production/Dockerfile)
+.git
+.env
+.env.*
+!.env.example
+!.env.production.example
+node_modules
+vendor
+public/storage
+public/hot
+public/_captura_temporal.html
+# storage/ entero: la imagen crea su estructura vacía y en el servidor vive en un volumen
+storage
+bootstrap/cache/*.php
+tests
+.phpunit.cache
+.phpunit.result.cache
+.idea
+.vscode
+http

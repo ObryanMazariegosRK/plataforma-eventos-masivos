@@ -10,7 +10,8 @@ return [
      */
     'vapid' => [
         // Quién envía (lo pide el servicio de push): el correo de contacto de la marca
-        'subject' => env('VAPID_SUBJECT', 'mailto:'.env('MARCA_CONTACTO', 'privacidad@soiree.test')),
+        // ?: y no un valor por defecto: en producción una variable vacía llega como "" y no como ausente
+        'subject' => env('VAPID_SUBJECT') ?: 'mailto:'.(env('MARCA_CONTACTO') ?: 'privacidad@soiree.test'),
         'public_key' => env('VAPID_PUBLIC_KEY'),
         'private_key' => env('VAPID_PRIVATE_KEY'),
         'pem_file' => env('VAPID_PEM_FILE'),

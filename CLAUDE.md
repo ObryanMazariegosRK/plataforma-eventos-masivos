@@ -30,6 +30,10 @@ Services: app http://localhost:8090, Adminer http://localhost:8082, Mailpit http
 
 Tests use SQLite in-memory, `QUEUE_CONNECTION=sync` and array cache/session (see `phpunit.xml`), so they do not need the MySQL/Redis containers — but MySQL-specific migration features must stay SQLite-compatible for tests to pass.
 
+## Production (Coolify)
+
+`docker-compose.prod.yml` + `docker/production/` (Dockerfile with targets `app` and `web`, `entrypoint.sh`, `nginx.conf`, `php.ini`, `www.conf` with 12 PHP-FPM workers), modeled on the Amerishop (tienda-ropa) deployment that runs on the same Azure VM / Coolify. The development `docker-compose.yml` is untouched. Code goes inside the image (`.dockerignore` keeps out `.env`, `vendor`, `storage`, tests); volumes `storage`, `mysql-data`, `redis-data`. Services: `web` (only one with a domain: `https://soiree.20.7.59.197.sslip.io`), `app` (on start: config/route/view cache, `migrate --force`, `db:seed --force` — idempotent seeders —, `bitacora:instalar` — idempotent —), `queue`, `scheduler` (`schedule:work`), `mysql` 8.4, `redis` (appendonly). Variables are set in Coolify, never committed: list in `.env.production.example`; step-by-step guide in `docs/DESPLIEGUE.md` (Gmail app password, VAPID via `webpush:vapid --show`, admin via `usuario:crear-admin` in Coolify's terminal). Empty variables arrive as `""`, so configs that need a fallback use `env('X') ?: …` (`services.google.redirect` falls back to `APP_URL/auth/google/callback`, `webpush.vapid.subject` to `mailto:MARCA_CONTACTO`).
+
 ## Architecture
 
 Clean architecture, sliced per module. Each layer has one folder per module (`Admin, Auth, Boletos, Catalogo, ColaVirtual, Inventario, Notificaciones, Pagos, Pasarelas, Recintos, Reembolsos, Reservas, Transacciones`), scaffolded by `scripts/create-modules.sh` (empty dirs hold `.gitkeep`):
