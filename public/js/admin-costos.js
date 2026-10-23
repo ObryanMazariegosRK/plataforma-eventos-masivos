@@ -1,11 +1,12 @@
 'use strict';
 
-// Formulario de evento → "Costos del evento": líneas de concepto, categoría y monto.
-// admin.js lo usa así:
+// Formulario de evento → "Costos del evento": un campo por concepto (recinto*, artistas*,
+// producción, publicidad, personal, otros). admin.js lo usa así:
 //   AdminCostos.preparar(eventoId | null)  al abrir el formulario (null = evento nuevo)
 //   AdminCostos.leer()                     al guardar un evento nuevo (van en payload.costos)
 //   AdminCostos.guardar(eventoId)          después de guardar un evento existente
 //                                          (PUT /api/admin/eventos/{id}/costos, solo si cambió algo)
+// Cada cambio avisa con el evento "admin:costos-cambio" ({ total }) para sugerir los precios.
 
 window.AdminCostos = (() => {
     const quetzales = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
@@ -14,76 +15,29 @@ window.AdminCostos = (() => {
     let cargados = true;     // al editar: false si no se pudieron leer (así no se borran por error)
     let original = '[]';     // para saber si hubo cambios
 
-    function categorias() {
-        try {
-            return JSON.parse($('evento-costos-panel')?.dataset.categorias || '[]');
-        } catch {
-            return [];
-        }
-    }
+    const campos = () => [...($('evento-costos-campos')?.querySelectorAll('input[data-categoria]') || [])];
 
-    function crear(etiqueta, atributos = {}) {
-        const nodo = document.createElement(etiqueta);
-        Object.assign(nodo, atributos);
-        return nodo;
-    }
-
-    function linea(costo = {}) {
-        const fila = crear('div', { className: 'evento-costos__linea' });
-
-        const concepto = crear('input', {
-            type: 'text', maxLength: 150, required: true, placeholder: 'Concepto (ej. Alquiler del teatro)',
-            value: costo.concepto || '', className: 'evento-costos__concepto',
-        });
-        concepto.setAttribute('aria-label', 'Concepto del costo');
-
-        const categoria = crear('select', { className: 'evento-costos__categoria' });
-        categoria.setAttribute('aria-label', 'Categoría del costo');
-        categorias().forEach((c) => categoria.add(new Option(c.etiqueta, c.valor)));
-        categoria.value = costo.categoria || 'otros';
-
-        const monto = crear('input', {
-            type: 'number', min: '0.01', step: '0.01', max: '9999999999.99', required: true, inputMode: 'decimal',
-            placeholder: 'Q0.00', value: costo.monto ?? '', className: 'evento-costos__monto',
-        });
-        monto.setAttribute('aria-label', 'Monto en quetzales');
-
-        const quitar = crear('button', { type: 'button', className: 'evento-costos__quitar', textContent: '✕' });
-        quitar.setAttribute('aria-label', 'Quitar este costo');
-        quitar.addEventListener('click', () => {
-            fila.remove();
-            actualizar();
-        });
-
-        fila.append(concepto, categoria, monto, quitar);
-        return fila;
-    }
-
-    function lineas() {
-        return [...($('evento-costos-lista')?.querySelectorAll('.evento-costos__linea') || [])];
-    }
-
+    // Solo los conceptos con monto (el recinto y los artistas los exige el formulario)
     function leer() {
-        return lineas()
-            .map((fila) => ({
-                concepto: fila.querySelector('.evento-costos__concepto').value.trim(),
-                categoria: fila.querySelector('.evento-costos__categoria').value,
-                monto: fila.querySelector('.evento-costos__monto').value.trim(),
+        return campos()
+            .map((input) => ({
+                categoria: input.dataset.categoria,
+                concepto: input.dataset.concepto,
+                monto: input.value.trim(),
             }))
-            .filter((c) => c.concepto || c.monto);
+            .filter((c) => Number(c.monto) > 0)
+            .map((c) => ({ ...c, monto: Number(c.monto).toFixed(2) }));
+    }
+
+    function total() {
+        return leer().reduce((suma, c) => suma + Number(c.monto), 0);
     }
 
     function actualizar() {
-        const lista = $('evento-costos-lista');
-        if (!lista) return;
-
-        const total = leer().reduce((suma, c) => suma + (Number(c.monto) || 0), 0);
-        $('evento-costos-total').textContent = 'Total ' + quetzales.format(total);
-
-        lista.querySelector('.evento-costos__vacio')?.remove();
-        if (!lineas().length) {
-            lista.append(crear('p', { className: 'evento-costos__vacio', textContent: 'Aún no hay costos registrados.' }));
-        }
+        if (!$('evento-costos-total')) return;
+        const suma = total();
+        $('evento-costos-total').textContent = 'Total ' + quetzales.format(suma);
+        document.dispatchEvent(new CustomEvent('admin:costos-cambio', { detail: { total: suma } }));
     }
 
     function mensaje(texto) {
@@ -93,8 +47,16 @@ window.AdminCostos = (() => {
         nodo.textContent = texto || '';
     }
 
+    // Pone los montos en los campos (varios costos de una misma categoría se suman)
     function pintar(costos) {
-        $('evento-costos-lista').replaceChildren(...costos.map(linea));
+        const porCategoria = {};
+        costos.forEach((c) => {
+            porCategoria[c.categoria] = (porCategoria[c.categoria] || 0) + Number(c.monto);
+        });
+        campos().forEach((input) => {
+            const monto = porCategoria[input.dataset.categoria];
+            input.value = monto ? monto.toFixed(2) : '';
+        });
         original = JSON.stringify(leer());
         actualizar();
     }
@@ -117,7 +79,7 @@ window.AdminCostos = (() => {
     }
 
     async function preparar(eventoId) {
-        if (!$('evento-costos-lista')) return;
+        if (!$('evento-costos-campos')) return;
         mensaje('');
         pintar([]);
         cargados = eventoId === null;
@@ -126,7 +88,7 @@ window.AdminCostos = (() => {
 
         try {
             const { data } = await pedir(`/eventos/${eventoId}/costos`);
-            pintar(data.costos.map((c) => ({ ...c, monto: Number(c.monto).toFixed(2) })));
+            pintar(data.costos);
             cargados = true;
         } catch (error) {
             mensaje(`${error.message} Los costos no se modificarán al guardar.`);
@@ -145,15 +107,10 @@ window.AdminCostos = (() => {
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        $('evento-costos-agregar')?.addEventListener('click', () => {
-            const nueva = linea();
-            $('evento-costos-lista').append(nueva);
-            actualizar();
-            nueva.querySelector('input').focus();
-        });
-        $('evento-costos-lista')?.addEventListener('input', actualizar);
-        actualizar();
+        $('evento-costos-campos')?.addEventListener('input', actualizar);
+        // Al abrir el formulario (admin.js): costos del evento o vacíos si es nuevo
+        document.addEventListener('admin:formulario-evento', (evento) => preparar(evento.detail?.eventoId ?? null));
     });
 
-    return { preparar, leer, guardar };
+    return { preparar, leer, guardar, total, pintar };
 })();

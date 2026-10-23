@@ -2366,6 +2366,9 @@
                     input.max = '99999999.99';
                     input.value = localidad.precio ?? '';
                     input.dataset.localidadId = localidad.id;
+                    input.dataset.capacidad = localidad.capacidad;
+                    input.dataset.tipo = localidad.tipo || '';
+                    input.dataset.nombre = localidad.nombre;
                     input.className = 'evento-localidad-precio';
 
                     // La API determina si las tarifas son editables.
@@ -2472,6 +2475,9 @@
                 input.placeholder = '0.00';
                 input.required = true;
                 input.dataset.localidadId = localidad.id;
+                input.dataset.capacidad = localidad.capacidad;
+                input.dataset.tipo = localidad.tipo || '';
+                input.dataset.nombre = localidad.nombre;
                 input.className = 'evento-localidad-precio';
 
                 etiqueta.append(input);
@@ -2512,9 +2518,6 @@
             : 'Guardar borrador';
 
         show('evento-form-panel', true);
-
-        // Costos de producción del evento (admin-costos.js)
-        window.AdminCostos?.preparar(evento ? evento.id : null);
 
         if (evento) {
             form.elements.namedItem('nombre').value =
@@ -2563,6 +2566,11 @@
 
         const fechaCampo = form.elements.namedItem('fecha_evento');
         if (fechaCampo) fechaCampo.readOnly = editingPublished;
+
+        // Aviso para fotos, costos, plano y borrador (admin-evento-formulario.js, admin-costos.js)
+        document.dispatchEvent(new CustomEvent('admin:formulario-evento', {
+            detail: { eventoId: evento ? evento.id : null, publicado: editingPublished }
+        }));
 
         $('evento-form-panel').scrollIntoView({
             behavior: 'smooth',
@@ -2707,7 +2715,8 @@
     function safeEventImage(value) {
         if (typeof value !== 'string' || !value.trim()) return null;
         try {
-            const parsed = new URL(value);
+            // Acepta también las fotos subidas al propio sitio (/storage/eventos/...)
+            const parsed = new URL(value, window.location.origin);
             return ['https:', 'http:'].includes(parsed.protocol)
                 ? parsed.href
                 : null;
@@ -3163,6 +3172,11 @@
                 if (isEditing) {
                     await window.AdminCostos?.guardar(editingEventId);
                 }
+
+                // El borrador del formulario ya no hace falta (admin-evento-formulario.js)
+                document.dispatchEvent(new CustomEvent('admin:evento-guardado', {
+                    detail: { creado: !isEditing }
+                }));
 
                 closeEventForm();
                 page = 1;

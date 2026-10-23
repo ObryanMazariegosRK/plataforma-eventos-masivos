@@ -116,6 +116,7 @@ class BitacoraTest extends TestCase
 
         $this->putJson("/api/admin/eventos/{$evento}", [
             'nombre' => 'Gala de ópera 2027', 'recinto_id' => $recinto, 'fecha_evento' => now()->addDays(20)->format('Y-m-d H:i:s'),
+            'imagen_url' => '/storage/eventos/a.webp', 'imagen_url_2' => '/storage/eventos/b.webp', 'imagen_url_3' => 'https://example.com/c.jpg',
         ])->assertOk();
 
         $fila = $this->bitacora()->where('accion', 'evento.editado')->first();

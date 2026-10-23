@@ -1,5 +1,12 @@
 @php
+    // Cada escena del recorrido usa una foto del evento (1 → primera escena, 2 → segunda, 3 → tercera);
+    // si al evento le falta alguna, queda la foto del teatro de siempre
     $paradas = config('landing.paradas');
+    foreach (($evento['imagenes'] ?? []) as $i => $imagen) {
+        if ($imagen && isset($paradas[$i])) {
+            $paradas[$i]['imagen'] = $imagen;
+        }
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="es">

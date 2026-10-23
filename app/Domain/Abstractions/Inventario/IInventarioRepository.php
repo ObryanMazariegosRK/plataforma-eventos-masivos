@@ -44,4 +44,10 @@ interface IInventarioRepository
      *   resumen:     { total, disponibles, bloqueados, vendidos }
      */
     public function disponibilidad(int $eventoId): ?array;
+
+    /**
+     * Plano de un recinto activo con el mismo formato que disponibilidad() (todos los lugares
+     * libres y sin precio), para verlo antes de crear un evento. null si no existe.
+     */
+    public function planoRecinto(int $recintoId): ?array;
 }

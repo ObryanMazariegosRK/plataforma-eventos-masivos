@@ -69,10 +69,25 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('recintoId')
                     ->name('eventos.recintos.localidades');
 
+                // FOTOS DEL EVENTO (se suben al elegirlas en el formulario)
+
+                Route::post('/eventos/imagenes', [
+                    \App\Http\Controllers\Admin\AdminImagenEventoController::class,
+                    'store'
+                ])->name('eventos.imagenes');
+
                 Route::post('/eventos', [
                     AdminEventoController::class,
                     'store'
                 ])->name('eventos.store');
+
+                // Plano del recinto (para elegirlo al crear un evento)
+                Route::get('/eventos/recintos/{recintoId}/plano', [
+                    \App\Http\Controllers\Inventario\PlanoRecintoController::class,
+                    'show'
+                ])
+                    ->whereNumber('recintoId')
+                    ->name('eventos.recintos.plano');
 
                 // PRECIOS POR LOCALIDAD
 

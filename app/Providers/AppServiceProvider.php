@@ -197,6 +197,18 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Admin\BuscarEventosAdminUseCase::class,
         );
 
+        // ---- Inventario: plano de un recinto (formulario de evento) ----
+        $this->app->bind(
+            \App\Application\Abstractions\Inventario\IConsultarPlanoRecintoUseCase::class,
+            \App\Application\UseCases\Inventario\ConsultarPlanoRecintoUseCase::class,
+        );
+
+        // ---- Admin: fotos de los eventos ----
+        $this->app->bind(
+            \App\Application\Abstractions\Admin\ISubirImagenEventoUseCase::class,
+            \App\Application\UseCases\Admin\SubirImagenEventoUseCase::class,
+        );
+
         // ---- Admin: reportes en Excel y PDF ----
         $this->app->bind(
             \App\Domain\Abstractions\Admin\IReporteAdminRepository::class,

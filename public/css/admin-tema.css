@@ -1072,39 +1072,6 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
     .tema-soiree .finanzas__presets { flex-wrap: wrap; border-radius: 16px; }
 }
 
-/* ---------- Formulario de evento → Costos de producción (admin-costos.js) ---------- */
-.tema-soiree .evento-costos {
-    display: grid; gap: 12px; margin: 22px 0; padding: 22px;
-    border: 1px solid var(--t-hilo); border-radius: 16px; background: var(--t-panel-2);
-}
-.tema-soiree .evento-costos__cabecera { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 20px; }
-.tema-soiree .evento-costos h3 { margin: 4px 0; color: var(--t-texto); font: 500 22px var(--t-titulo); }
-.tema-soiree .evento-costos p { margin: 0; color: var(--t-piedra); font-size: 13px; }
-.tema-soiree .evento-costos__total { color: var(--t-texto); font-size: 16px; font-variant-numeric: tabular-nums; }
-.tema-soiree .evento-costos__lista { display: grid; gap: 8px; }
-.tema-soiree .evento-costos__linea { display: grid; grid-template-columns: minmax(0, 2fr) minmax(130px, 1fr) minmax(110px, .8fr) 40px; gap: 8px; }
-.tema-soiree .evento-costos__linea :is(input, select) {
-    width: 100%; min-width: 0; height: 42px; padding: 0 12px;
-    border: 1px solid var(--t-hilo-2); border-radius: 10px; background: var(--t-campo); color: var(--t-texto); font: inherit; font-size: 14px;
-}
-.tema-soiree .evento-costos__monto { text-align: right; font-variant-numeric: tabular-nums; }
-.tema-soiree .evento-costos__quitar {
-    height: 42px; border: 1px solid var(--t-hilo-2); border-radius: 10px; background: transparent; color: var(--t-piedra); cursor: pointer;
-}
-.tema-soiree .evento-costos__quitar:hover { border-color: var(--t-rojo); color: var(--t-rojo); }
-.tema-soiree .evento-costos__vacio { color: var(--t-tenue) !important; font-style: italic; }
-.tema-soiree .evento-costos__agregar {
-    width: fit-content; padding: 9px 16px;
-    border: 1px dashed var(--t-acento-borde); border-radius: 999px; background: transparent; color: var(--t-acento); font: inherit; font-size: 13px; cursor: pointer;
-}
-.tema-soiree .evento-costos__agregar:hover { border-style: solid; background: var(--t-acento-suave); }
-@media (max-width: 640px) {
-    .tema-soiree .evento-costos { padding: 16px; }
-    .tema-soiree .evento-costos__linea { grid-template-columns: minmax(0, 1fr) 40px; }
-    .tema-soiree .evento-costos__linea :is(select, .evento-costos__monto) { grid-column: 1; }
-    .tema-soiree .evento-costos__quitar { grid-column: 2; grid-row: 1; }
-}
-
 /* ---------- Estados en tira: "Estados de las reservas" (Reservas) y "de los eventos" (Catálogo) ---------- */
 .tema-soiree .estados-tira[hidden] { display: none; }
 .tema-soiree .estados-tira { margin-bottom: 18px; }
@@ -1121,3 +1088,116 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 
 /* Barra superior sin buscador: el tema y el usuario quedan a la derecha */
 .tema-soiree .utility-bar { justify-content: flex-end; }
+
+/* ---------- Formulario de evento: localidades y precios (admin.js), en claro y oscuro ---------- */
+.tema-soiree .evento-localidades-panel {
+    border-color: var(--t-hilo); background: var(--t-panel-2);
+}
+.tema-soiree .evento-localidades-heading h3 { color: var(--t-texto); font-family: var(--t-titulo); font-weight: 500; }
+.tema-soiree .evento-localidades-heading p { color: var(--t-piedra); }
+.tema-soiree .evento-localidades-eyebrow { color: var(--t-acento); }
+.tema-soiree .evento-localidades-currency { border-color: var(--t-acento-borde); background: transparent; color: var(--t-acento); }
+.tema-soiree .evento-localidades-lista .muted { color: var(--t-tenue); }
+.tema-soiree .evento-localidades-lista .evento-precio-fila,
+.tema-soiree .evento-precio-fila { border-color: var(--t-hilo) !important; background: var(--t-panel) !important; }
+.tema-soiree .evento-localidades-lista .evento-precio-fila strong { color: var(--t-texto); }
+.tema-soiree .evento-localidades-lista .evento-precio-fila small { color: var(--t-tenue); }
+.tema-soiree .evento-localidades-lista .evento-precio-fila label { color: var(--t-piedra); }
+.tema-soiree .evento-localidad-precio { border-color: var(--t-hilo-2); background: var(--t-campo); color: var(--t-texto); }
+.tema-soiree .evento-localidad-precio:disabled { background: var(--t-velo-2); color: var(--t-tenue); }
+
+/* Precios sugeridos (admin-evento-formulario.js) */
+.tema-soiree .precios-sugerencia { display: grid; gap: 10px; margin: 6px 0 16px; padding: 14px 16px; border: 1px dashed var(--t-acento-borde); border-radius: 14px; background: var(--t-acento-suave); }
+.tema-soiree .precios-sugerencia[hidden] { display: none; }
+.tema-soiree .precios-sugerencia__controles { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 26px; }
+.tema-soiree .precios-sugerencia__controles label { display: grid; gap: 4px; min-width: 170px; margin: 0; color: var(--t-piedra); font-size: 12.5px; }
+.tema-soiree .precios-sugerencia__controles output { color: var(--t-texto); font-weight: 600; }
+.tema-soiree .precios-sugerencia__controles input[type="range"] { accent-color: var(--t-acento); }
+.tema-soiree .precios-sugerencia__usar {
+    margin-left: auto; padding: 8px 16px; border: 1px solid var(--t-boton); border-radius: 999px;
+    background: var(--t-boton); color: var(--t-boton-texto); font: 500 12.5px var(--t-cuerpo); cursor: pointer;
+}
+.tema-soiree .precios-sugerencia__usar[hidden] { display: none; }
+.tema-soiree .precios-sugerencia__proyeccion { margin: 0; color: var(--t-texto); font-size: 13px; line-height: 1.5; }
+.tema-soiree .precios-sugerencia__proyeccion[data-tono="mal"] { color: var(--t-rojo); }
+.tema-soiree .precio-sugerido { grid-column: 1 / -1; color: var(--t-acento); font-size: 12px; }
+.tema-soiree .precio-sugerido[hidden] { display: none; }
+.tema-soiree .precio-sugerido button { padding: 0; border: 0; background: none; color: var(--t-acento); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* Costos: un campo por concepto */
+.tema-soiree .evento-costos {
+    display: grid; gap: 14px; margin: 22px 0; padding: 22px;
+    border: 1px solid var(--t-hilo); border-radius: 16px; background: var(--t-panel-2);
+}
+.tema-soiree .evento-costos__cabecera { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 20px; }
+.tema-soiree .evento-costos h3 { margin: 4px 0; color: var(--t-texto); font: 500 22px var(--t-titulo); }
+.tema-soiree .evento-costos p { margin: 0; color: var(--t-piedra); font-size: 13px; }
+.tema-soiree .evento-costos__total { color: var(--t-texto); font-size: 16px; font-variant-numeric: tabular-nums; }
+.tema-soiree .evento-costos__campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
+.tema-soiree .evento-costos__campo { display: grid; gap: 6px; margin: 0; color: var(--t-piedra); font-size: 13px; }
+.tema-soiree .evento-costos__campo b { color: var(--t-rojo); }
+.tema-soiree .evento-costos__monto { position: relative; display: block; }
+.tema-soiree .evento-costos__monto i { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: var(--t-tenue); font-style: normal; }
+.tema-soiree .evento-costos__monto input {
+    width: 100%; height: 42px; padding: 0 12px 0 28px; border: 1px solid var(--t-hilo-2); border-radius: 10px;
+    background: var(--t-campo); color: var(--t-texto); font: inherit; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums;
+}
+
+/* Fotos: tres casillas para subir */
+.tema-soiree .evento-fotos { margin: 4px 0 0; padding: 0; border: 0; }
+.tema-soiree .evento-fotos legend { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 10px; color: var(--t-texto); font-weight: 500; }
+.tema-soiree .evento-fotos legend span { color: var(--t-tenue); font-size: 12px; font-weight: 400; }
+.tema-soiree .evento-fotos__lista { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.tema-soiree .evento-foto { display: grid; gap: 6px; min-width: 0; }
+.tema-soiree .evento-foto small { color: var(--t-tenue); font-size: 12px; }
+.tema-soiree .evento-foto__zona {
+    position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; overflow: hidden; margin: 0;
+    border: 1.5px dashed var(--t-hilo-2); border-radius: 14px; background: var(--t-campo); cursor: pointer;
+    transition: border-color .2s ease, background .2s ease;
+}
+.tema-soiree .evento-foto__zona:hover, .tema-soiree .evento-foto__zona.arrastrando { border-color: var(--t-acento); background: var(--t-acento-suave); }
+.tema-soiree .evento-foto__zona:focus-within { outline: 2px solid var(--t-acento); outline-offset: 2px; }
+.tema-soiree .evento-foto__archivo { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.tema-soiree .evento-foto__vista { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tema-soiree .evento-foto__vacia { display: grid; gap: 4px; padding: 12px; text-align: center; color: var(--t-piedra); font-size: 12.5px; }
+.tema-soiree .evento-foto__vacia strong { color: var(--t-texto); font-size: 13.5px; font-weight: 500; }
+.tema-soiree .evento-foto.tiene-foto .evento-foto__vacia {
+    position: absolute; inset: auto 0 0; padding: 26px 12px 10px; text-align: left;
+    background: linear-gradient(transparent, rgba(13, 12, 11, .78)); color: #f2ede4;
+}
+.tema-soiree .evento-foto.tiene-foto .evento-foto__vacia strong { color: #fff; }
+.tema-soiree .evento-foto.tiene-foto .evento-foto__vacia > span { display: none; }
+.tema-soiree .evento-foto.tiene-foto .evento-foto__vacia strong::after { content: " · toca para cambiarla"; font-weight: 400; opacity: .8; }
+.tema-soiree .evento-foto__estado { position: absolute; top: 8px; left: 8px; right: 8px; color: var(--t-rojo); font-size: 12px; font-weight: 500; text-align: center; }
+.tema-soiree .evento-foto__estado:empty { display: none; }
+.tema-soiree .evento-foto.subiendo .evento-foto__estado { color: var(--t-texto); }
+.tema-soiree .evento-foto.subiendo .evento-foto__zona { opacity: .7; }
+
+/* Plano del recinto (asientos.js, modo admin) */
+.tema-soiree .evento-ver-plano {
+    width: fit-content; margin-top: 6px; padding: 6px 12px; border: 1px solid var(--t-acento-borde); border-radius: 999px;
+    background: transparent; color: var(--t-acento); font: 500 12.5px var(--t-cuerpo); cursor: pointer;
+}
+.tema-soiree .evento-ver-plano:disabled { opacity: .45; cursor: not-allowed; }
+.tema-soiree .evento-plano { padding: 14px; border-radius: 16px; background: #0d0c0b; }
+.tema-soiree .evento-plano[hidden] { display: none; }
+.tema-soiree .evento-plano .mapa { padding: 6px 4px 4px; }
+.tema-soiree .evento-plano .plano { justify-content: center; padding-left: 0; }
+/* Todo el recinto a la vista: el dibujo se ajusta al ancho y a una altura cómoda */
+.tema-soiree .evento-plano .plano__svg { width: 100%; max-width: 760px; max-height: 420px; min-width: 0; margin: 0 auto; }
+.tema-soiree .evento-plano__estado { margin: 0; padding: 30px; color: rgba(250, 248, 244, .7); text-align: center; }
+
+/* Aviso de borrador recuperado */
+.tema-soiree .evento-borrador {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+    margin-bottom: 16px; padding: 10px 14px; border: 1px solid var(--t-acento-borde); border-radius: 12px;
+    background: var(--t-acento-suave); color: var(--t-texto); font-size: 13px;
+}
+.tema-soiree .evento-borrador button { padding: 0; border: 0; background: none; color: var(--t-acento); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 760px) {
+    .tema-soiree .evento-fotos__lista, .tema-soiree .evento-costos__campos { grid-template-columns: minmax(0, 1fr); }
+    .tema-soiree .precios-sugerencia__usar { margin-left: 0; }
+}
+/* En la vista previa del recinto no hay ventas: la leyenda (apartado / vendido) sobra */
+.tema-soiree .evento-plano .leyenda { display: none; }

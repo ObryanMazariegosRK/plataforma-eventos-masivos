@@ -20,6 +20,8 @@
     <!-- Administración: una sola hoja de estilos consolidada -->
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ filemtime(public_path('css/admin.css')) }}">
     <!-- Tema Soiree claro/oscuro (estilo de la tienda): solo apariencia, va encima de admin.css -->
+    <!-- Plano de asientos (formulario de evento → "Ver plano del recinto") -->
+    <link rel="stylesheet" href="{{ asset('css/asientos.css') }}?v={{ filemtime(public_path('css/asientos.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/admin-tema.css') }}?v={{ filemtime(public_path('css/admin-tema.css')) }}">
     <!-- Aplica el tema guardado antes de dibujar la página (sin destello al recargar) -->
     <script>
@@ -32,6 +34,8 @@
     <script defer src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
     <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-bitacora.js') }}?v={{ filemtime(public_path('js/admin-bitacora.js')) }}"></script>
+    <script defer src="{{ asset('js/asientos.js') }}?v={{ filemtime(public_path('js/asientos.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-evento-formulario.js') }}?v={{ filemtime(public_path('js/admin-evento-formulario.js')) }}"></script>
     <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-finanzas.js') }}?v={{ filemtime(public_path('js/admin-finanzas.js')) }}"></script>
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
@@ -597,6 +601,10 @@
                     </option>
 
                 </select>
+                {{-- Plano del recinto elegido (admin-evento-formulario.js) --}}
+                <button type="button" class="evento-ver-plano" id="evento-ver-plano" aria-expanded="false" aria-controls="evento-plano" disabled>
+                    Ver plano del recinto
+                </button>
             </label>
 
             <label>
@@ -618,73 +626,69 @@
                     placeholder="Describe el evento..."></textarea>
             </label>
 
-            <!-- URL pública de fotografía del evento -->
-            <label class="evento-full" for="evento-imagen-url">
-                URL de imagen del evento
-
-                <input
-                    type="url"
-                    name="imagen_url"
-                    id="evento-imagen-url"
-                    maxlength="2048"
-                    placeholder="https://ejemplo.com/concierto.jpg"
-                    inputmode="url"
-                    autocomplete="off">
-
-                <small class="evento-image-help">
-                    Enlace HTTPS de una imagen pública. Es opcional.
-                </small>
-            </label>
-
-
-            <!-- Fotografías adicionales de la galería -->
-            <label class="evento-full" for="evento-imagen-url-2">
-                URL de imagen 2 — Galería
-
-                <input
-                    type="url"
-                    name="imagen_url_2"
-                    id="evento-imagen-url-2"
-                    maxlength="2048"
-                    placeholder="https://ejemplo.com/imagen-2.jpg"
-                    inputmode="url"
-                    autocomplete="off">
-
-                <small class="evento-image-help">
-                    Segunda fotografía del evento. Enlace HTTPS opcional.
-                </small>
-            </label>
-
-            <label class="evento-full" for="evento-imagen-url-3">
-                URL de imagen 3 — Galería
-
-                <input
-                    type="url"
-                    name="imagen_url_3"
-                    id="evento-imagen-url-3"
-                    maxlength="2048"
-                    placeholder="https://ejemplo.com/imagen-3.jpg"
-                    inputmode="url"
-                    autocomplete="off">
-
-                <small class="evento-image-help">
-                    Tercera fotografía del evento. Enlace HTTPS opcional.
-                </small>
-            </label>
-
-            <!-- Vista previa: visible cuando la imagen carga -->
-            <div id="evento-image-preview"
-                 class="evento-full evento-image-preview"
-                 hidden>
-                <img id="evento-image-preview-img"
-                     alt="Vista previa de la imagen del evento"
-                     referrerpolicy="no-referrer">
+            {{-- Plano del recinto, desplegable (no ocupa espacio hasta que se pide) --}}
+            <div class="evento-full evento-plano asientos-app" id="evento-plano" hidden>
+                <div class="evento-plano__mapa mapa mapa--admin" id="evento-plano-mapa" aria-live="polite"></div>
             </div>
+
+            {{-- FOTOS (admin-evento-formulario.js): se suben al elegirlas; las tres son obligatorias.
+                 1 = portada del catálogo y primera escena de la experiencia; 2 y 3 = las otras escenas. --}}
+            <fieldset class="evento-full evento-fotos" id="evento-fotos">
+                <legend>Fotos del evento <span>Las tres son obligatorias · JPG, PNG o WebP de hasta {{ config('catalogo.imagen_evento_max_mb') }} MB</span></legend>
+                <div class="evento-fotos__lista">
+                    @foreach ([['imagen_url', 'Portada', 'Se ve en el catálogo y en la primera escena del evento'], ['imagen_url_2', 'Segunda escena', 'Aparece al bajar por la experiencia del evento'], ['imagen_url_3', 'Tercera escena', 'La última antes de elegir asientos']] as $i => [$campo, $titulo, $ayuda])
+                        <div class="evento-foto" data-campo="{{ $campo }}">
+                            <input type="hidden" name="{{ $campo }}">
+                            <label class="evento-foto__zona">
+                                <input type="file" accept="image/jpeg,image/png,image/webp" class="evento-foto__archivo">
+                                <img class="evento-foto__vista" alt="" hidden>
+                                <span class="evento-foto__vacia">
+                                    <strong>{{ $i + 1 }} · {{ $titulo }}</strong>
+                                    <span>Toca o arrastra una foto aquí</span>
+                                </span>
+                                <span class="evento-foto__estado" role="status"></span>
+                            </label>
+                            <small>{{ $ayuda }}</small>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="evento-form-feedback" id="evento-fotos-mensaje" role="alert" hidden></p>
+            </fieldset>
 
         </div>
 
+        {{-- COSTOS DE PRODUCCIÓN (admin-costos.js): un campo por concepto. El recinto y los artistas
+             son obligatorios; con el total se sugieren los precios de abajo. Los registran admin y
+             operador; la ganancia solo la ve el administrador. --}}
+        <section id="evento-costos-panel" class="evento-costos" aria-labelledby="evento-costos-titulo">
+            <div class="evento-costos__cabecera">
+                <div>
+                    <span class="evento-localidades-eyebrow">SOIRÉE · COSTOS DE PRODUCCIÓN</span>
+                    <h3 id="evento-costos-titulo">Costos del evento</h3>
+                    <p>Llénalos primero: con ellos te sugerimos el precio de cada localidad.</p>
+                </div>
+                <strong class="evento-costos__total" id="evento-costos-total">Total Q0.00</strong>
+            </div>
+            <div class="evento-costos__campos" id="evento-costos-campos">
+                @foreach ([['recinto', 'Alquiler del recinto', true], ['artistas', 'Artistas', true], ['produccion', 'Producción (sonido, luces)', false], ['publicidad', 'Publicidad', false], ['personal', 'Personal (seguridad, taquilla)', false], ['otros', 'Otros gastos', false]] as [$categoria, $concepto, $obligatorio])
+                    <label class="evento-costos__campo">
+                        <span>{{ $concepto }}@if ($obligatorio) <b aria-hidden="true">*</b>@endif</span>
+                        <span class="evento-costos__monto">
+                            <i aria-hidden="true">Q</i>
+                            <input type="number" inputmode="decimal" step="0.01" placeholder="0.00"
+                                   min="{{ $obligatorio ? '0.01' : '0' }}" max="9999999999.99"
+                                   data-categoria="{{ $categoria }}" data-concepto="{{ $concepto }}"
+                                   @if ($obligatorio) required @endif>
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+            <p class="evento-form-feedback" id="evento-costos-mensaje" role="status" hidden></p>
+        </section>
+
         <!-- PRECIOS SEGÚN EL RECINTO -->
         <section id="evento-localidades-panel"
+                 data-comision="{{ config('finanzas.comision_pasarela') }}"
                  class="evento-localidades-panel"
                  aria-labelledby="evento-localidades-title">
 
@@ -718,25 +722,6 @@
                class="evento-form-feedback"
                role="status"
                hidden></p>
-        </section>
-
-        {{-- COSTOS DE PRODUCCIÓN (admin-costos.js): los registran admin y operador; con ellos
-             se calcula la ganancia, que solo ve el administrador --}}
-        <section id="evento-costos-panel"
-                 class="evento-costos"
-                 aria-labelledby="evento-costos-titulo"
-                 data-categorias='@json(array_map(fn ($c) => ['valor' => $c->value, 'etiqueta' => $c->etiqueta()], \App\Domain\Enums\Finanzas\CategoriaCosto::cases()))'>
-            <div class="evento-costos__cabecera">
-                <div>
-                    <span class="evento-localidades-eyebrow">SOIRÉE · COSTOS DE PRODUCCIÓN</span>
-                    <h3 id="evento-costos-titulo">Costos del evento</h3>
-                    <p>Alquiler, artistas, producción, publicidad… Puedes agregarlos ahora o más adelante.</p>
-                </div>
-                <strong class="evento-costos__total" id="evento-costos-total">Total Q0.00</strong>
-            </div>
-            <div class="evento-costos__lista" id="evento-costos-lista" aria-live="polite"></div>
-            <button type="button" class="evento-costos__agregar" id="evento-costos-agregar">+ Agregar costo</button>
-            <p class="evento-form-feedback" id="evento-costos-mensaje" role="status" hidden></p>
         </section>
 
         <div
@@ -1460,46 +1445,5 @@
 
 </div>
 
-<!-- Vista previa independiente del envío del formulario -->
-<script>
-(() => {
-    'use strict';
-
-    const input = document.getElementById('evento-imagen-url');
-    const preview = document.getElementById('evento-image-preview');
-    const image = document.getElementById('evento-image-preview-img');
-    const form = document.getElementById('evento-form');
-    if (!input || !preview || !image) return;
-
-    function updatePreview() {
-        const value = input.value.trim();
-        preview.hidden = true;
-        image.removeAttribute('src');
-        if (!value) return;
-        try {
-            const url = new URL(value);
-            if (url.protocol !== 'https:') return;
-            image.src = url.href;
-        } catch (_) {
-            // Mostrar únicamente URLs HTTPS válidas.
-        }
-    }
-
-    input.addEventListener('input', updatePreview);
-    input.addEventListener('change', updatePreview);
-    image.addEventListener('load', () => {
-        preview.hidden = false;
-    });
-    image.addEventListener('error', () => {
-        preview.hidden = true;
-    });
-    if (form) {
-        form.addEventListener('reset', () => {
-            preview.hidden = true;
-            image.removeAttribute('src');
-        });
-    }
-})();
-</script>
 </body>
 </html>

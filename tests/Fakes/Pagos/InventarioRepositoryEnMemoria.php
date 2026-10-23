@@ -44,4 +44,5 @@ class InventarioRepositoryEnMemoria extends RepositorioEnMemoria implements IInv
     }
 
     public function disponibilidad(int $eventoId): ?array { return null; }
+    public function planoRecinto(int $recintoId): ?array { return null; }
 }

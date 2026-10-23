@@ -9,6 +9,9 @@ return [
     // Panel → "Catálogo de eventos": tarjetas por tanda
     'admin_eventos_por_pagina' => (int) env('CATALOGO_ADMIN_EVENTOS_POR_PAGINA', 12),
 
+    // Fotos de cada evento (se suben desde el formulario del panel)
+    'imagen_evento_max_mb' => (int) env('IMAGEN_EVENTO_MAX_MB', 8),
+
     'banner' => [
         'max_mb'            => (int) env('BANNER_MAX_MB', 15),            // peso máximo de la imagen o el video
         'max_segundos_video' => (int) env('BANNER_MAX_SEGUNDOS_VIDEO', 30), // duración máxima (se revisa en el navegador)

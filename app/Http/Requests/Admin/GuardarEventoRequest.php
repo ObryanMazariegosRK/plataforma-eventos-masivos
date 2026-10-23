@@ -42,29 +42,14 @@ class GuardarEventoRequest extends FormRequest
                 'max:10000',
             ],
 
-            'imagen_url' => [
-                'nullable',
-                'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
-            ],
+            // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
+            'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
-            'imagen_url_2' => [
-                'nullable',
-                'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
-            ],
+            // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
+            'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
-            'imagen_url_3' => [
-                'nullable',
-                'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
-            ],
+            // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
+            'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
             'recinto_id' => [
                 'required',
@@ -95,6 +80,12 @@ class GuardarEventoRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'imagen_url.required' =>
+                'Sube la foto principal del evento (portada y primera escena).',
+            'imagen_url_2.required' =>
+                'Sube la segunda foto del evento.',
+            'imagen_url_3.required' =>
+                'Sube la tercera foto del evento.',
             'nombre.required' =>
                 'Debes ingresar el nombre del evento.',
 

@@ -102,7 +102,10 @@ class AdminEventoController extends Controller
         ]);
 
         // Costos de producción (opcionales): se validan antes de crear nada
-        $costos = $request->validate(CostoEventoController::reglas())['costos'] ?? [];
+        $costos = $request->validate(
+            ['costos' => ['required', 'array', 'min:1']] + CostoEventoController::reglas(),
+            ['costos.required' => 'Registra los costos del evento: al menos el alquiler del recinto y los artistas.'],
+        )['costos'];
 
         $datos = array_merge(
             $request->validated(),
@@ -115,14 +118,12 @@ class AdminEventoController extends Controller
                 (int) $request->user()->id
             );
 
-            if ($costos) {
-                $guardarCostos->execute(new GuardarCostosEventoDTO(
-                    eventoId: (int) $evento->id,
-                    usuarioId: (int) $request->user()->id,
-                    costos: $costos,
-                    maximo: config('finanzas.max_costos_por_evento'),
-                ));
-            }
+            $guardarCostos->execute(new GuardarCostosEventoDTO(
+                eventoId: (int) $evento->id,
+                usuarioId: (int) $request->user()->id,
+                costos: $costos,
+                maximo: config('finanzas.max_costos_por_evento'),
+            ));
 
             return $evento;
         });
@@ -190,18 +191,9 @@ class AdminEventoController extends Controller
             'descripcion' => [
                 'nullable', 'string', 'max:10000',
             ],
-            'imagen_url' => [
-                'nullable', 'string', 'url',
-                'starts_with:https://', 'max:2048',
-            ],
-            'imagen_url_2' => [
-                'nullable', 'string', 'url',
-                'starts_with:https://', 'max:2048',
-            ],
-            'imagen_url_3' => [
-                'nullable', 'string', 'url',
-                'starts_with:https://', 'max:2048',
-            ],
+            'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
+            'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
+            'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
         ]);
 
         $evento = DB::transaction(function () use ($request, $id, $datos) {
@@ -251,9 +243,7 @@ class AdminEventoController extends Controller
                 'present',
                 'nullable',
                 'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
+                new \App\Rules\ImagenDeEvento,
             ],
         ], [
             'imagen_url.present' =>

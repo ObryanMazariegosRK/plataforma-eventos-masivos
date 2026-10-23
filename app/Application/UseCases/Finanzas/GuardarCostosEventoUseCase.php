@@ -37,6 +37,15 @@ class GuardarCostosEventoUseCase implements IGuardarCostosEventoUseCase
             monto: round((float) ($costo['monto'] ?? 0), 2),
         ), array_values($dto->costos));
 
+        if ($dto->exigirBasicos) {
+            $categorias = array_map(fn (CostoEvento $c) => $c->getCategoria(), $entidades);
+            foreach ([CategoriaCosto::RECINTO, CategoriaCosto::ARTISTAS] as $obligatoria) {
+                if (! in_array($obligatoria, $categorias, true)) {
+                    throw new DomainException('Registra el alquiler del recinto y los honorarios de los artistas (mayores que Q0).');
+                }
+            }
+        }
+
         $this->costos->reemplazar($dto->eventoId, $entidades, $dto->usuarioId);
 
         return $this->listar->execute($dto->eventoId);

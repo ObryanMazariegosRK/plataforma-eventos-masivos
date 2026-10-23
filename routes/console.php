@@ -167,3 +167,30 @@ Artisan::command('bitacora:instalar', function () {
     $this->info("La app ya escribe en la bitácora ({$registros} registros).");
     return 0;
 })->purpose('Crea la base de la bitácora, su usuario de solo lectura/escritura y sus tablas');
+
+// Borra las fotos de eventos que se subieron desde el formulario pero nunca se guardaron en un
+// evento (formularios abandonados o fotos reemplazadas). Solo toca archivos de más de un día.
+// Uso: php artisan eventos:limpiar-imagenes
+Artisan::command('eventos:limpiar-imagenes', function () {
+    $disco = \Illuminate\Support\Facades\Storage::disk('public');
+    $carpeta = \App\Application\UseCases\Admin\SubirImagenEventoUseCase::CARPETA;
+    $enUso = \Illuminate\Support\Facades\DB::table('eventos')
+        ->get(['imagen_url', 'imagen_url_2', 'imagen_url_3'])
+        ->flatMap(fn ($e) => [$e->imagen_url, $e->imagen_url_2, $e->imagen_url_3])
+        ->filter()
+        ->map(fn ($url) => ltrim((string) parse_url($url, PHP_URL_PATH), '/'))
+        ->map(fn ($ruta) => preg_replace('#^storage/#', '', $ruta))
+        ->flip();
+    $limite = now()->subDay()->getTimestamp();
+
+    $borrados = 0;
+    foreach ($disco->allFiles($carpeta) as $archivo) {
+        if (! isset($enUso[$archivo]) && $disco->lastModified($archivo) < $limite) {
+            $disco->delete($archivo);
+            $borrados++;
+        }
+    }
+    $this->info("Fotos sin usar borradas: {$borrados}.");
+})->purpose('Borra las fotos de eventos subidas que ningún evento usa');
+
+Schedule::command('eventos:limpiar-imagenes')->dailyAt('03:30');

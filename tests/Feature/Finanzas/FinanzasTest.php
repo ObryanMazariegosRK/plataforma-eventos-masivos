@@ -67,6 +67,7 @@ class FinanzasTest extends TestCase
 
         $id = $this->postJson('/api/admin/eventos', [
             'nombre' => 'Gala de ópera', 'recinto_id' => $recinto, 'fecha_evento' => now()->addMonth()->format('Y-m-d H:i:s'),
+            'imagen_url' => '/storage/eventos/a.webp', 'imagen_url_2' => '/storage/eventos/b.webp', 'imagen_url_3' => '/storage/eventos/c.webp',
             'precios' => [['localidad_id' => $localidad, 'precio' => 150]],
             'costos' => [
                 ['categoria' => 'recinto', 'concepto' => 'Alquiler del teatro', 'monto' => 8000],
@@ -89,6 +90,7 @@ class FinanzasTest extends TestCase
 
         $this->postJson('/api/admin/eventos', [
             'nombre' => 'Gala de ópera', 'recinto_id' => $recinto, 'fecha_evento' => now()->addMonth()->format('Y-m-d H:i:s'),
+            'imagen_url' => '/storage/eventos/a.webp', 'imagen_url_2' => '/storage/eventos/b.webp', 'imagen_url_3' => '/storage/eventos/c.webp',
             'precios' => [['localidad_id' => $localidad, 'precio' => 150]],
             'costos' => [['categoria' => 'recinto', 'concepto' => 'Alquiler', 'monto' => 0]],
         ])->assertStatus(422)->assertJsonValidationErrors('costos.0.monto');
@@ -102,13 +104,20 @@ class FinanzasTest extends TestCase
         Sanctum::actingAs($this->usuario(RolUsuario::ORGANIZADOR));
 
         $this->putJson("/api/admin/eventos/{$evento}/costos", ['costos' => [
-            ['categoria' => 'publicidad', 'concepto' => 'Redes sociales', 'monto' => 300],
-        ]])->assertOk()->assertJsonPath('data.total', 300);
+            ['categoria' => 'recinto', 'concepto' => 'Alquiler del recinto', 'monto' => 2000],
+            ['categoria' => 'artistas', 'concepto' => 'Artistas', 'monto' => 1000],
+            ['categoria' => 'publicidad', 'concepto' => 'Publicidad', 'monto' => 300],
+        ]])->assertOk()->assertJsonPath('data.total', 3300);
 
-        $this->assertSame(1, DB::table('costos_evento')->whereNull('deleted_at')->count());
+        $this->assertSame(3, DB::table('costos_evento')->whereNull('deleted_at')->count());
         $this->assertSame(1, DB::table('costos_evento')->whereNotNull('deleted_at')->count());   // el anterior no se pierde
 
-        $this->putJson("/api/admin/eventos/{$evento}/costos", ['costos' => []])->assertOk()->assertJsonPath('data.total', 0);
+        // El recinto y los artistas son obligatorios
+        $this->putJson("/api/admin/eventos/{$evento}/costos", ['costos' => [
+            ['categoria' => 'publicidad', 'concepto' => 'Publicidad', 'monto' => 300],
+        ]])->assertStatus(422);
+        $this->putJson("/api/admin/eventos/{$evento}/costos", ['costos' => []])->assertStatus(422);
+        $this->assertSame(3, DB::table('costos_evento')->whereNull('deleted_at')->count());
         $this->putJson('/api/admin/eventos/999/costos', ['costos' => []])->assertNotFound()->assertJsonPath('error', 'evento_no_encontrado');
     }
 
