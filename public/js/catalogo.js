@@ -1103,15 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             crearEnlace('Mi perfil', '/perfil')
         );
 
-        // Administradores y agentes operativos (organizador) pueden regresar a su panel.
-        if (rol === 'admin' || rol === 'organizador') {
-            menu.appendChild(
-                crearEnlace(
-                    'Panel administrativo',
-                    '/admin'
-                )
-            );
-        }
+        // Sin enlace al panel: el personal entra solo por su acceso (/admin/login)
 
         // Historial de compras (reservas pagadas, con espacio para ver los boletos)
         const compras = crearEnlace('Mis compras', '/mis-compras');
