@@ -10,7 +10,8 @@ use DateTimeZone;
 
 // Ventas y ganancias para el Resumen del administrador, en el período elegido. Soirée produce
 // sus eventos:
-//   ingresos netos = pagos aprobados − reembolsos − comisión de la pasarela
+//   ingresos netos = pagos aprobados − reembolsos − comisión de la pasarela (sobre todo lo cobrado:
+//                    la pasarela no devuelve su comisión al reembolsar, la absorbe Soirée)
 //   ganancia       = ingresos netos − costos de producción del evento
 // La ganancia solo es definitiva cuando el evento ya ocurrió (o se canceló): esos forman el
 // historial del período. Los próximos muestran su punto de equilibrio (boletos que faltan para
@@ -38,24 +39,41 @@ class ObtenerFinanzasUseCase implements IObtenerFinanzasUseCase
         $desdeAnterior = $desde->modify("-{$dias} days");
         $pagos = $this->finanzas->pagosAprobadosEntre($this->enUtc($desdeAnterior), $this->enUtc($hasta->modify('+1 day')));
 
-        $grupos = $this->grupos($desde, $hasta, $agrupacion);
-        $anterior = ['monto' => 0.0, 'boletos' => 0];
-        foreach ($pagos as $pago) {
-            $dia = (new DateTimeImmutable($pago['pagado_en'], $this->utc))->setTimezone($this->zona);
-            if ($dia < $desde) {
-                $anterior['monto'] += $pago['monto'];
-                $anterior['boletos'] += $pago['boletos'];
+        $devoluciones = $this->finanzas->devolucionesEntre($this->enUtc($desdeAnterior), $this->enUtc($hasta->modify('+1 day')));
 
-                continue;
+        // Cada movimiento suma en el grupo del día en que ocurrió (o en el período anterior):
+        // la venta cuando se cobró; el reembolso y los boletos anulados cuando se devolvieron
+        $grupos = $this->grupos($desde, $hasta, $agrupacion);
+        $anterior = ['monto' => 0.0, 'reembolsos' => 0.0, 'boletos' => 0, 'devueltos' => 0];
+        $sumar = function (string $fechaUtc, string $campo, float|int $valor) use (&$grupos, &$anterior, $desde, $agrupacion) {
+            $dia = (new DateTimeImmutable($fechaUtc, $this->utc))->setTimezone($this->zona);
+            if ($dia < $desde) {
+                $anterior[$campo] += $valor;
+            } elseif (isset($grupos[$clave = $this->claveGrupo($dia, $agrupacion)])) {
+                $grupos[$clave][$campo] += $valor;
             }
-            $clave = $this->claveGrupo($dia, $agrupacion);
-            if (isset($grupos[$clave])) {
-                $grupos[$clave]['monto'] += $pago['monto'];
-                $grupos[$clave]['boletos'] += $pago['boletos'];
-            }
+        };
+        foreach ($pagos as $pago) {
+            $sumar($pago['pagado_en'], 'monto', $pago['monto']);
+            $sumar($pago['pagado_en'], 'boletos', $pago['boletos']);
         }
-        $ventas = array_map(fn ($g) => ['monto' => round($g['monto'], 2)] + $g, array_values($grupos));
+        foreach ($devoluciones['reembolsos'] as $reembolso) {
+            $sumar($reembolso['fecha'], 'reembolsos', $reembolso['monto']);
+        }
+        foreach ($devoluciones['boletos'] as $boleto) {
+            $sumar($boleto['fecha'], 'devueltos', 1);
+        }
+
+        // monto = cobrado; neto = cobrado − reembolsado (lo que dibuja la gráfica)
+        $ventas = array_map(fn ($g) => [
+            'monto' => round($g['monto'], 2),
+            'reembolsos' => round($g['reembolsos'], 2),
+            'neto' => round($g['monto'] - $g['reembolsos'], 2),
+        ] + $g, array_values($grupos));
         $monto = round(array_sum(array_column($ventas, 'monto')), 2);
+        $reembolsado = round(array_sum(array_column($ventas, 'reembolsos')), 2);
+        $neto = round($monto - $reembolsado, 2);
+        $netoAnterior = round($anterior['monto'] - $anterior['reembolsos'], 2);
 
         $eventos = array_map(fn (array $e) => $this->resultado($e, $dto), $this->finanzas->resultadosPorEvento());
 
@@ -71,7 +89,8 @@ class ObtenerFinanzasUseCase implements IObtenerFinanzasUseCase
         $proximos = array_values(array_filter($eventos, fn ($e) => ! $e['cerrado']));
 
         $ganancia = round(array_sum(array_column($historial, 'ganancia')), 2);
-        $ingresosHistorial = array_sum(array_column($historial, 'ingresos_brutos'));
+        // Lo que de verdad se quedó: cobrado menos reembolsado
+        $ingresosHistorial = array_sum(array_map(fn ($e) => $e['ingresos_brutos'] - $e['reembolsos'], $historial));
 
         return [
             'periodo' => [
@@ -82,12 +101,17 @@ class ObtenerFinanzasUseCase implements IObtenerFinanzasUseCase
             ],
             'ventas' => $ventas,
             'totales' => [
-                'ventas' => $monto,
-                'boletos' => array_sum(array_column($ventas, 'boletos')),
-                'ventas_anteriores' => round($anterior['monto'], 2),
-                'boletos_anteriores' => $anterior['boletos'],
+                // Ventas netas: lo cobrado menos lo reembolsado en el período
+                'ventas' => $neto,
+                'ventas_brutas' => $monto,
+                'reembolsos' => $reembolsado,
+                'boletos' => array_sum(array_column($ventas, 'boletos')) - array_sum(array_column($ventas, 'devueltos')),
+                'boletos_vendidos' => array_sum(array_column($ventas, 'boletos')),
+                'boletos_devueltos' => array_sum(array_column($ventas, 'devueltos')),
+                'ventas_anteriores' => $netoAnterior,
+                'boletos_anteriores' => $anterior['boletos'] - $anterior['devueltos'],
                 // null = no hubo ventas antes con qué comparar
-                'variacion' => $anterior['monto'] > 0 ? round(($monto - $anterior['monto']) / $anterior['monto'], 4) : null,
+                'variacion' => $netoAnterior > 0 ? round(($neto - $netoAnterior) / $netoAnterior, 4) : null,
                 'ganancia' => $ganancia,
                 'margen' => $ingresosHistorial > 0 ? round($ganancia / $ingresosHistorial, 4) : null,
                 'eventos_cerrados' => count($historial),
@@ -105,7 +129,7 @@ class ObtenerFinanzasUseCase implements IObtenerFinanzasUseCase
         $grupos = [];
         for ($dia = $desde; $dia <= $hasta; $dia = $dia->modify('+1 day')) {
             $clave = $this->claveGrupo($dia, $agrupacion);
-            $grupos[$clave] ??= ['inicio' => $dia->format('Y-m-d'), 'fin' => $dia->format('Y-m-d'), 'monto' => 0.0, 'boletos' => 0];
+            $grupos[$clave] ??= ['inicio' => $dia->format('Y-m-d'), 'fin' => $dia->format('Y-m-d'), 'monto' => 0.0, 'reembolsos' => 0.0, 'boletos' => 0, 'devueltos' => 0];
             $grupos[$clave]['fin'] = $dia->format('Y-m-d');
         }
 
@@ -163,7 +187,8 @@ class ObtenerFinanzasUseCase implements IObtenerFinanzasUseCase
             // Sin costos registrados la "ganancia" es solo ingresos: el panel lo advierte
             'tiene_costos' => $e['costos'] > 0,
             'ganancia' => $ganancia,
-            'margen' => $e['ingresos_brutos'] > 0 ? round($ganancia / $e['ingresos_brutos'], 4) : null,
+            // Sobre lo que se quedó (cobrado − reembolsado); la comisión no se recupera al reembolsar
+            'margen' => $e['ingresos_brutos'] - $e['reembolsos'] > 0 ? round($ganancia / ($e['ingresos_brutos'] - $e['reembolsos']), 4) : null,
             'vendidos' => $e['vendidos'],
             'lugares' => $e['lugares'],
             'equilibrio_boletos' => $equilibrio,

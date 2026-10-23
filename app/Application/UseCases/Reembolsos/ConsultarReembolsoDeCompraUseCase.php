@@ -43,6 +43,7 @@ class ConsultarReembolsoDeCompraUseCase implements IConsultarReembolsoDeCompraUs
                     $compra['monto_pagado'],
                     new DateTimeImmutable($compra['fecha_evento']),
                     $ahora,
+                    $compra['evento_reprogramado'],
                 );
                 $calculo['porcentaje_reembolso'] = 100 - $calculo['porcentaje_penalizacion'];
             } catch (DomainException) {

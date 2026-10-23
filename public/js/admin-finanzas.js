@@ -114,11 +114,19 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'Ningún evento realizado en el período';
         if (t.eventos_sin_costos) notaGanancia += ` · ${t.eventos_sin_costos} sin costos registrados`;
 
+        // Ventas y boletos ya descuentan lo reembolsado en el período
         $('finanzas-cifras').replaceChildren(
-            cifra('Ventas', q.format(t.ventas), variacion, tono),
-            cifra('Boletos vendidos', entero.format(t.boletos), t.boletos_anteriores ? `${entero.format(t.boletos_anteriores)} en el período anterior` : null),
+            cifra('Ventas netas', q.format(t.ventas), variacion, tono),
+            cifra('Reembolsos', t.reembolsos > 0 ? `−${q.format(t.reembolsos)}` : q.format(0),
+                t.reembolsos > 0
+                    ? `${pct.format(t.reembolsos / Math.max(t.ventas_brutas, 1))} de ${q.format(t.ventas_brutas)} cobrados · ${t.boletos_devueltos} boletos devueltos`
+                    : 'Sin reembolsos en el período',
+                t.reembolsos > 0 ? 'mal' : null),
+            cifra('Boletos vendidos', entero.format(t.boletos),
+                t.boletos_devueltos ? `${entero.format(t.boletos_vendidos)} vendidos − ${entero.format(t.boletos_devueltos)} devueltos`
+                    : (t.boletos_anteriores ? `${entero.format(t.boletos_anteriores)} en el período anterior` : null)),
             cifra('Ganancia', conSigno(t.ganancia), notaGanancia, t.ganancia < 0 ? 'mal' : null),
-            cifra('Margen', t.margen === null ? '—' : pct.format(t.margen), 'ganancia ÷ ingresos de esos eventos', t.margen !== null && t.margen < 0 ? 'mal' : null),
+            cifra('Margen', t.margen === null ? '—' : pct.format(t.margen), 'ganancia ÷ (cobrado − reembolsado) de esos eventos', t.margen !== null && t.margen < 0 ? 'mal' : null),
         );
 
         $('finanzas-periodo').textContent = `Del ${diaCorto.format(diaDe(p.desde))} al ${diaCorto.format(diaDe(p.hasta))} · hora de Guatemala · comisión de pasarela ${pct.format(datos.comision_pasarela)}`;
@@ -149,7 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const m = { arriba: 22, derecha: 8, abajo: 28, izquierda: 62 };
         const areaAncho = ancho - m.izquierda - m.derecha;
         const areaAlto = alto - m.arriba - m.abajo;
-        const valores = items.map((i) => i.valor);
+        // item.abajo (opcional, positivo): una segunda barra bajo el eje en la misma franja (p. ej. reembolsos)
+        const valores = items.flatMap((i) => [i.valor, -(i.abajo || 0)]);
         const { paso, arriba, abajo } = escala(Math.min(0, ...valores), Math.max(0, ...valores));
         const total = (arriba - abajo) || paso;
         const y = (valor) => m.arriba + ((arriba - valor) / total) * areaAlto;
@@ -191,20 +200,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const grupo = svg('g', { class: 'columna', tabindex: '0', role: 'img', 'aria-label': item.descripcion });
             const base = y(0);
-            const punta = y(item.valor);
-            if (Math.abs(base - punta) >= 0.5) {
+            const barra = (valor, clase) => {
+                const punta = y(valor);
+                if (Math.abs(base - punta) < 0.5) return;
                 const x = centro - grosor / 2;
                 const alturaBarra = Math.abs(base - punta);
                 const r = Math.min(4, alturaBarra / 2, grosor / 2);
                 // Esquinas redondeadas solo en el extremo del dato; la base queda recta sobre el eje
-                const d = item.valor >= 0
+                const d = valor >= 0
                     ? `M${x},${base} V${punta + r} Q${x},${punta} ${x + r},${punta} H${x + grosor - r} Q${x + grosor},${punta} ${x + grosor},${punta + r} V${base} Z`
                     : `M${x},${base} V${punta - r} Q${x},${punta} ${x + r},${punta} H${x + grosor - r} Q${x + grosor},${punta} ${x + grosor},${punta - r} V${base} Z`;
-                grupo.append(svg('path', { class: `columna__barra ${item.clase || ''}`, d }));
-            }
+                grupo.append(svg('path', { class: `columna__barra ${clase || ''}`, d }));
+            };
+            barra(item.valor, item.clase);
+            if (item.abajo) barra(-item.abajo, item.claseAbajo);
+            const punta = y(item.valor);
             // Zona sensible: toda la franja, no solo la barra
             grupo.append(svg('rect', { class: 'columna__zona', x: m.izquierda + banda * i, y: m.arriba, width: banda, height: areaAlto }));
-            const enfocar = () => mostrar(item, centro, Math.min(base, punta));
+            const enfocar = () => mostrar(item, centro, Math.min(base, punta, y(-(item.abajo || 0))));
             grupo.addEventListener('pointerenter', enfocar);
             grupo.addEventListener('focus', enfocar);
             grupo.addEventListener('pointerleave', ocultar);
@@ -219,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         contenedor.replaceChildren(lienzo, tooltip);
-        if (!items.length || items.every((i) => i.valor === 0)) {
+        if (!items.length || items.every((i) => i.valor === 0 && !i.abajo)) {
             contenedor.append(crear('p', 'grafica-vacia', vacio));
         }
     }
@@ -234,25 +247,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function pintarVentas() {
         const { agrupacion } = datos.periodo;
-        $('ventas-nota').textContent = `Monto cobrado (pagos aprobados) por ${{ dia: 'día', semana: 'semana', mes: 'mes' }[agrupacion]}.`;
+        const hayReembolsos = datos.ventas.some((g) => g.reembolsos > 0);
+        $('ventas-nota').textContent = `Cobrado (pagos aprobados) por ${{ dia: 'día', semana: 'semana', mes: 'mes' }[agrupacion]}`
+            + (hayReembolsos ? '; bajo la línea, lo reembolsado ese día.' : '.');
 
-        const items = datos.ventas.map((g) => ({
-            valor: g.monto,
-            etiquetaX: etiquetaGrupo(g, agrupacion),
-            descripcion: `${etiquetaGrupo(g, agrupacion, true)}: ${q.format(g.monto)}, ${g.boletos} boletos`,
-            tooltip: [q.format(g.monto), `${g.boletos} ${g.boletos === 1 ? 'boleto' : 'boletos'}`, etiquetaGrupo(g, agrupacion, true)],
-            clase: 'columna__barra--ventas',
-        }));
+        const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+        const items = datos.ventas.map((g) => {
+            const lineas = [`${plural(g.boletos, 'boleto', 'boletos')} vendidos`];
+            if (g.reembolsos > 0) {
+                lineas.unshift(`Cobrado ${q.format(g.monto)}`, `Reembolsado −${q.format(g.reembolsos)}`);
+                lineas.push(`${plural(g.devueltos, 'boleto devuelto', 'boletos devueltos')}`);
+            }
+            return {
+                valor: g.monto,
+                abajo: g.reembolsos,
+                etiquetaX: etiquetaGrupo(g, agrupacion),
+                descripcion: `${etiquetaGrupo(g, agrupacion, true)}: cobrado ${q.format(g.monto)}, reembolsado ${q.format(g.reembolsos)}, ${g.boletos} boletos`,
+                tooltip: [g.reembolsos > 0 ? `Neto ${conSigno(g.neto)}` : q.format(g.monto), ...lineas, etiquetaGrupo(g, agrupacion, true)],
+                clase: 'columna__barra--ventas',
+                claseAbajo: 'columna__barra--perdida',
+            };
+        });
         const mayor = items.reduce((mejor, item, i) => (item.valor > items[mejor].valor ? i : mejor), 0);
         columnas($('grafica-ventas'), items, { vacio: 'Sin ventas en este período.', extremos: [mayor] });
 
         const tabla = crear('table', 'finanzas__datos');
         const cabecera = tabla.createTHead().insertRow();
-        [{ dia: 'Día', semana: 'Semana', mes: 'Mes' }[agrupacion], 'Ventas', 'Boletos'].forEach((t) => cabecera.append(crear('th', '', t)));
+        [{ dia: 'Día', semana: 'Semana', mes: 'Mes' }[agrupacion], 'Cobrado', 'Reembolsado', 'Neto', 'Boletos'].forEach((t) => cabecera.append(crear('th', '', t)));
         const cuerpo = tabla.createTBody();
         [...datos.ventas].reverse().forEach((g) => {
             const fila = cuerpo.insertRow();
-            fila.append(crear('td', '', etiquetaGrupo(g, agrupacion, true)), crear('td', '', q.format(g.monto)), crear('td', '', String(g.boletos)));
+            fila.append(
+                crear('td', '', etiquetaGrupo(g, agrupacion, true)),
+                crear('td', '', q.format(g.monto)),
+                crear('td', '', g.reembolsos > 0 ? `−${q.format(g.reembolsos)}` : '—'),
+                crear('td', '', q.format(g.neto)),
+                crear('td', '', g.devueltos ? `${g.boletos} (−${g.devueltos})` : String(g.boletos))
+            );
         });
         $('ventas-tabla').replaceChildren(tabla);
     }

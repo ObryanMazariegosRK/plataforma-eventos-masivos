@@ -10,7 +10,9 @@ class CalcularReembolsoUseCase
     public function execute(
         float $montoPagado,
         DateTimeImmutable $fechaEvento,
-        ?DateTimeImmutable $ahora = null
+        ?DateTimeImmutable $ahora = null,
+        // La función se aplazó: se devuelve el 100 % sin importar los plazos
+        bool $eventoReprogramado = false
     ): array {
 
         if (!is_finite($montoPagado) || $montoPagado <= 0) {
@@ -37,6 +39,17 @@ class CalcularReembolsoUseCase
         }
 
         $horasRestantes = $segundosRestantes / 3600;
+
+        if ($eventoReprogramado) {
+            return [
+                'monto_pagado' => round($montoPagado, 2),
+                'penalizacion' => 0.0,
+                'monto_reembolso' => round($montoPagado, 2),
+                'porcentaje_penalizacion' => 0.0,
+                'horas_restantes' => round($horasRestantes, 2),
+                'por_reprogramacion' => true,
+            ];
+        }
 
         $tramos = config('reembolsos.tramos', []);
 
@@ -94,6 +107,7 @@ class CalcularReembolsoUseCase
                     'monto_reembolso' => $reembolso,
                     'porcentaje_penalizacion' => $porcentaje,
                     'horas_restantes' => round($horasRestantes, 2),
+                    'por_reprogramacion' => false,
                 ];
             }
         }

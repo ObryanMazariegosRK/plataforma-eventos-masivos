@@ -235,6 +235,8 @@ class AdminEventoController extends Controller
             // Mismo minuto = sin cambio (el formulario no muestra segundos)
             if ($nuevaFecha !== null && $evento->fecha_evento->format('Y-m-d H:i') !== substr($nuevaFecha, 0, 16)) {
                 $evento->fecha_evento = $nuevaFecha;
+                // Desde ahora, quien compró puede pedir el 100 % (ver CalcularReembolsoUseCase)
+                $evento->reprogramado_en = now();
                 $fechaCambio = true;
             }
 

@@ -58,6 +58,8 @@ class ObtenerResumenAdminUseCase
                 'pagos_aprobados' => (clone $pagos)->where('estado', 'aprobado')->count(),
                 // Solo lo cobrado: los pagos pendientes o rechazados no son ingresos
                 'monto_pagos_aprobados' => round((float) (clone $pagos)->where('estado', 'aprobado')->sum('monto'), 2),
+                // Devuelto o por devolver: se resta para mostrar lo que de verdad entró
+                'monto_reembolsado' => round((float) DB::table('reembolsos')->whereIn('estado', ['aprobado', 'procesado'])->whereNull('deleted_at')->sum('monto'), 2),
             ],
             // Todos los estados posibles en orden lógico (los que no tienen registros salen en 0)
             'reservas_por_estado' => $this->porEstado('reservas', self::ESTADOS_RESERVA),

@@ -108,7 +108,7 @@ class ReembolsoRepository implements IReembolsoRepository
                 'pagos.id as pago_id', 'pagos.monto', 'pagos.estado as pago_estado', 'pagos.referencia_externa',
                 'pasarelas.codigo as pasarela', 'reservas.id as reserva_id', 'reservas.estado as reserva_estado',
                 'reservas.usuario_id', 'eventos.id as evento_id', 'eventos.nombre as evento',
-                'eventos.estado as evento_estado', 'eventos.fecha_evento',
+                'eventos.estado as evento_estado', 'eventos.fecha_evento', 'eventos.reprogramado_en',
             ])
             ->first();
 
@@ -126,6 +126,7 @@ class ReembolsoRepository implements IReembolsoRepository
             'evento_estado'    => $fila->evento_estado,
             'fecha_evento'     => (string) $fila->fecha_evento,
             'boletos_no_disponibles' => (int) $fila->boletos_no_disponibles,
+            'evento_reprogramado' => $fila->reprogramado_en !== null,
         ];
     }
 

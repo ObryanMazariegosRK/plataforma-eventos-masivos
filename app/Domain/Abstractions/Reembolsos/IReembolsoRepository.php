@@ -21,7 +21,7 @@ interface IReembolsoRepository
      * @return array{pago_id: int, monto_pagado: float, pago_estado: string, referencia_cobro: ?string,
      *               pasarela: ?string, reserva_id: int, reserva_estado: string, usuario_id: int,
      *               evento_id: int, evento: string, evento_estado: string, fecha_evento: string,
-     *               boletos_no_disponibles: int}|null
+     *               boletos_no_disponibles: int, evento_reprogramado: bool}|null
      */
     public function contextoDePago(int $pagoId): ?array;
 

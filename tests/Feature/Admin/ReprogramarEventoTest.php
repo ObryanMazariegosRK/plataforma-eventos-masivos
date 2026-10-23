@@ -104,6 +104,7 @@ class ReprogramarEventoTest extends TestCase
         $this->patchJson("/api/admin/eventos/{$evento}/contenido", $contenido(['fecha_evento' => '2026-11-05T20:00']))
             ->assertOk()->assertJsonPath('fecha_cambiada', false);
         $this->assertSame(0, DB::table('notificaciones')->count());
+        $this->assertNull(DB::table('eventos')->value('reprogramado_en'));
 
         $this->patchJson("/api/admin/eventos/{$evento}/contenido", $contenido(['fecha_evento' => '2026-11-12T21:30']))
             ->assertOk()
@@ -111,6 +112,7 @@ class ReprogramarEventoTest extends TestCase
             ->assertJsonPath('compradores_avisados', 2);
 
         $this->assertSame('2026-11-13 03:30:00', (string) DB::table('eventos')->value('fecha_evento'));
+        $this->assertNotNull(DB::table('eventos')->value('reprogramado_en'));   // habilita el reembolso del 100 %
         $mensaje = DB::table('notificaciones')->value('mensaje');
         $this->assertStringContainsString('Antes: jueves 5 de noviembre de 2026, 8:00 p. m.', $mensaje);
         $this->assertStringContainsString('Ahora: jueves 12 de noviembre de 2026, 9:30 p. m.', $mensaje);

@@ -139,7 +139,7 @@ class FinanzasTest extends TestCase
         $eventos = collect([...$datos['historial'], ...$datos['proximos']])->keyBy('id');
 
         $this->assertEquals(
-            ['ingresos_brutos' => 1000, 'reembolsos' => 100, 'comision' => 35, 'ingresos_netos' => 865, 'costos' => 500, 'ganancia' => 365, 'margen' => 0.365, 'resultado' => 'ganancia'],
+            ['ingresos_brutos' => 1000, 'reembolsos' => 100, 'comision' => 35, 'ingresos_netos' => 865, 'costos' => 500, 'ganancia' => 365, 'margen' => 0.4056, 'resultado' => 'ganancia'],
             array_intersect_key($eventos[$pasado], array_flip(['ingresos_brutos', 'reembolsos', 'comision', 'ingresos_netos', 'costos', 'ganancia', 'margen', 'resultado'])),
         );
         $this->assertSame([11, true, 'en_venta'], [$eventos[$proximo]['equilibrio_boletos'], $eventos[$proximo]['equilibrio_alcanzable'], $eventos[$proximo]['resultado']]);
@@ -150,7 +150,8 @@ class FinanzasTest extends TestCase
         // Historial = eventos que ya ocurrieron dentro del período; los próximos van aparte
         $this->assertSame([$pasado], array_column($datos['historial'], 'id'));
         $this->assertSame([$proximo, $sinCostos], array_column($datos['proximos'], 'id'));
-        $this->assertEquals([365, 0.365, 1], [$datos['totales']['ganancia'], $datos['totales']['margen'], $datos['totales']['eventos_cerrados']]);
+        // Margen sobre lo que se quedó: Q365 ÷ (Q1,000 cobrados − Q100 reembolsados)
+        $this->assertEquals([365, 0.4056, 1], [$datos['totales']['ganancia'], $datos['totales']['margen'], $datos['totales']['eventos_cerrados']]);
 
         // Fuera del período elegido, el evento realizado ya no cuenta para la ganancia
         $datos = $this->getJson('/api/admin/finanzas?desde=2026-10-10&hasta=2026-10-22')->assertOk()->json('data');
@@ -173,6 +174,31 @@ class FinanzasTest extends TestCase
 
         $this->getJson('/api/admin/finanzas?desde=2025-01-01&hasta=2026-10-22')->assertStatus(422);
         $this->getJson('/api/admin/finanzas?desde=2026-10-22&hasta=2026-10-01')->assertStatus(422);
+    }
+
+    public function test_los_reembolsos_restan_ventas_y_boletos_el_dia_en_que_se_devuelven(): void
+    {
+        Carbon::setTestNow('2026-10-22 18:00:00');
+        $evento = $this->eventoConVentas('Concierto', '2026-12-05 02:00:00', 20, 0, 100, []);
+        $reserva = DB::table('reservas')->insertGetId(['usuario_id' => Usuario::first()->id, 'evento_id' => $evento, 'estado' => 'confirmada', 'total' => 300, 'expira_en' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $pago = DB::table('pagos')->insertGetId(['reserva_id' => $reserva, 'monto' => 300, 'estado' => 'aprobado', 'intento' => 1, 'created_at' => '2026-10-20 15:00:00', 'updated_at' => '2026-10-20 15:00:00']);
+        // 3 boletos vendidos el 20; el 22 se reembolsan Q240 (80 %) y se anulan los 3 boletos
+        $inventario = DB::table('inventario')->where('evento_id', $evento)->limit(3)->pluck('id');
+        foreach ($inventario as $i => $lugar) {
+            DB::table('boletos')->insert(['reserva_id' => $reserva, 'inventario_id' => $lugar, 'usuario_id' => Usuario::first()->id, 'codigo_qr' => str_repeat((string) $i, 64), 'estado' => 'anulado', 'created_at' => '2026-10-20 15:01:00', 'updated_at' => '2026-10-22 16:00:00']);
+        }
+        DB::table('reembolsos')->insert(['pago_id' => $pago, 'monto' => 240, 'estado' => 'procesado', 'created_at' => '2026-10-21 10:00:00', 'updated_at' => '2026-10-22 16:00:00']);
+        // Uno rechazado no cuenta
+        DB::table('reembolsos')->insert(['pago_id' => $pago, 'monto' => 60, 'estado' => 'rechazado', 'created_at' => now(), 'updated_at' => now()]);
+
+        Sanctum::actingAs($this->usuario(RolUsuario::ADMIN));
+        $datos = $this->getJson('/api/admin/finanzas')->assertOk()->json('data');
+        $dias = collect($datos['ventas'])->keyBy('inicio');
+
+        $this->assertEquals(['monto' => 300, 'reembolsos' => 0, 'neto' => 300, 'boletos' => 3, 'devueltos' => 0], array_intersect_key($dias['2026-10-20'], array_flip(['monto', 'reembolsos', 'neto', 'boletos', 'devueltos'])));
+        $this->assertEquals(['monto' => 0, 'reembolsos' => 240, 'neto' => -240, 'boletos' => 0, 'devueltos' => 3], array_intersect_key($dias['2026-10-22'], array_flip(['monto', 'reembolsos', 'neto', 'boletos', 'devueltos'])));
+        $t = $datos['totales'];
+        $this->assertEquals([60, 300, 240, 0, 3, 3], [$t['ventas'], $t['ventas_brutas'], $t['reembolsos'], $t['boletos'], $t['boletos_vendidos'], $t['boletos_devueltos']]);
     }
 
     public function test_agrupa_las_ventas_por_dia_de_guatemala_y_compara_con_el_periodo_anterior(): void

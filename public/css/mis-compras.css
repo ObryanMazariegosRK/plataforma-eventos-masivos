@@ -238,6 +238,7 @@
 .reembolso__motivo textarea:focus { outline: none; border-color: var(--champan); }
 .reembolso__contador { position: absolute; right: 12px; bottom: 9px; color: var(--tenue); font-size: 10.5px; letter-spacing: .04em; }
 .reembolso__nota { margin: 16px 0 0; color: var(--tenue); font-size: 12.5px; line-height: 1.55; }
+.reembolso__nota--destacada { margin-top: 18px; padding: 12px 14px; border-left: 2px solid var(--champan); background: var(--champan-suave); color: var(--marfil); }
 .reembolso__error { margin: 16px 0 0; color: #f0b4a4; font-size: 13px; }
 .reembolso__error[hidden] { display: none; }
 

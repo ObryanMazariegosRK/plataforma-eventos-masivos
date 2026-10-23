@@ -164,10 +164,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         texto.addEventListener('input', () => { contador.textContent = `${texto.value.length} / 255`; });
         campo.append(crear('span', '', 'Motivo'), texto, contador);
 
+        // Si la función se aplazó, el 100 % no depende de los plazos
+        const segunPolitica = calculo.por_reprogramacion
+            ? [crear('p', 'reembolso__nota reembolso__nota--destacada', 'La función cambió de fecha: te devolvemos el 100 % aunque falte poco para la nueva fecha.')]
+            : [crear('p', 'reembolso__subtitulo', 'Según cuánto falta para la función'), tablaPolitica(vista.politica, calculo.horas_restantes)];
+
         cuerpo.append(
             monto,
-            crear('p', 'reembolso__subtitulo', 'Según cuánto falta para la función'),
-            tablaPolitica(vista.politica, calculo.horas_restantes),
+            ...segunPolitica,
             campo,
             crear('p', 'reembolso__nota', 'Revisaremos tu solicitud y te avisaremos por correo. Al aprobarla, tus boletos se anulan y el dinero vuelve a tu medio de pago.')
         );

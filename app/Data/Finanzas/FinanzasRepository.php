@@ -10,24 +10,53 @@ class FinanzasRepository implements IFinanzasRepository
 {
     public function pagosAprobadosEntre(string $desde, string $hasta): array
     {
-        $boletos = DB::table('inventario')->whereNull('deleted_at')->whereNotNull('reserva_id')
+        // Boletos de la compra: los emitidos (aunque luego se anulen, la venta ocurrió) o, si
+        // aún no se emiten, sus lugares. Un reembolso se resta aparte, cuando ocurre.
+        $emitidos = DB::table('boletos')->whereNull('deleted_at')
+            ->selectRaw('reserva_id, COUNT(*) as boletos')->groupBy('reserva_id');
+        $lugares = DB::table('inventario')->whereNull('deleted_at')->whereNotNull('reserva_id')
             ->selectRaw('reserva_id, COUNT(*) as boletos')->groupBy('reserva_id');
 
         // El pago se marca aprobado al cobrarse: su updated_at es el momento de la venta
         return DB::table('pagos as p')
-            ->leftJoinSub($boletos, 'b', 'b.reserva_id', '=', 'p.reserva_id')
+            ->leftJoinSub($emitidos, 'b', 'b.reserva_id', '=', 'p.reserva_id')
+            ->leftJoinSub($lugares, 'l', 'l.reserva_id', '=', 'p.reserva_id')
             ->where('p.estado', 'aprobado')
             ->whereNull('p.deleted_at')
             ->where('p.updated_at', '>=', $desde)
             ->where('p.updated_at', '<', $hasta)
             ->orderBy('p.updated_at')
-            ->get(['p.updated_at as pagado_en', 'p.monto', 'b.boletos'])
+            ->get(['p.updated_at as pagado_en', 'p.monto', 'b.boletos', 'l.boletos as lugares'])
             ->map(fn ($fila) => [
                 'pagado_en' => (string) $fila->pagado_en,
                 'monto' => (float) $fila->monto,
-                'boletos' => (int) $fila->boletos,
+                'boletos' => (int) ($fila->boletos ?: $fila->lugares),
             ])
             ->all();
+    }
+
+    public function devolucionesEntre(string $desde, string $hasta): array
+    {
+        // Al aprobarse (o devolverse) el reembolso: su updated_at es el momento de la devolución
+        $reembolsos = DB::table('reembolsos')
+            ->whereIn('estado', ['aprobado', 'procesado'])
+            ->whereNull('deleted_at')
+            ->where('updated_at', '>=', $desde)
+            ->where('updated_at', '<', $hasta)
+            ->get(['updated_at as fecha', 'monto'])
+            ->map(fn ($f) => ['fecha' => (string) $f->fecha, 'monto' => (float) $f->monto])
+            ->all();
+
+        $boletos = DB::table('boletos')
+            ->where('estado', 'anulado')
+            ->whereNull('deleted_at')
+            ->where('updated_at', '>=', $desde)
+            ->where('updated_at', '<', $hasta)
+            ->pluck('updated_at')
+            ->map(fn ($fecha) => ['fecha' => (string) $fecha])
+            ->all();
+
+        return ['reembolsos' => $reembolsos, 'boletos' => $boletos];
     }
 
     public function resultadosPorEvento(): array

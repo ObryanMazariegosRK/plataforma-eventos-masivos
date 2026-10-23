@@ -87,7 +87,8 @@ class NotificarCambioEventoUseCase
                 . "\n\nAntes: " . $texto($anterior)
                 . "\nAhora: " . $texto($nueva)
                 . "\n\nTus boletos siguen siendo válidos para la nueva fecha: no necesitas hacer nada. "
-                . 'Si la nueva fecha no te funciona, puedes solicitar un reembolso desde Mis compras.',
+                . 'Si la nueva fecha no te funciona, puedes pedir el reembolso del 100 % '
+                . 'desde Mis compras, en cualquier momento antes de que empiece la función.',
             claveBase: 'evento_fecha:' . $eventoId
                 . ':' . $nueva->format('YmdHis')
         );

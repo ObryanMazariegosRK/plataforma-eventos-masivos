@@ -461,11 +461,14 @@
                 'blue'
             ),
             metric(
-                'Monto de pagos',
+                'Ingresos netos',
                 currency.format(
-                    Number(totals.monto_pagos_aprobados || 0)
+                    Number(totals.monto_pagos_aprobados || 0) -
+                    Number(totals.monto_reembolsado || 0)
                 ),
-                'Solo pagos aprobados',
+                Number(totals.monto_reembolsado || 0) > 0
+                    ? 'Pagos aprobados − ' + currency.format(Number(totals.monto_reembolsado)) + ' reembolsados'
+                    : 'Solo pagos aprobados',
                 '◈',
                 'orange'
             )

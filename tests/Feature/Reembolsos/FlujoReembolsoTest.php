@@ -97,6 +97,27 @@ class FlujoReembolsoTest extends TestCase
         $this->postJson("/api/reservas/{$compra['reserva']}/reembolso")->assertNotFound();
     }
 
+    public function test_si_la_funcion_se_aplazo_se_devuelve_el_100_por_ciento_sin_importar_los_plazos(): void
+    {
+        $cliente = $this->usuario('cliente@test.com');
+        // Faltan 10 horas: por la tabla normal ya no habría reembolso
+        $compra = $this->compra($cliente, now()->addHours(10));
+        DB::table('eventos')->where('id', $compra['evento'])->update(['reprogramado_en' => now()->subDay()]);
+        Sanctum::actingAs($cliente);
+
+        $vista = $this->getJson("/api/reservas/{$compra['reserva']}/reembolso")->assertOk()->json('data');
+        $this->assertTrue($vista['puede_solicitar']);
+        $this->assertTrue($vista['calculo']['por_reprogramacion']);
+        $this->assertEquals([100, 500], [$vista['calculo']['porcentaje_reembolso'], $vista['calculo']['monto_reembolso']]);
+
+        $this->postJson("/api/reservas/{$compra['reserva']}/reembolso")->assertCreated()->assertJsonPath('data.reembolso.monto', 500);
+
+        // Ya empezada la función, tampoco
+        DB::table('reembolsos')->delete();
+        DB::table('eventos')->where('id', $compra['evento'])->update(['fecha_evento' => now()->subHour()]);
+        $this->assertFalse($this->getJson("/api/reservas/{$compra['reserva']}/reembolso")->json('data.puede_solicitar'));
+    }
+
     public function test_aprobar_anula_los_boletos_libera_los_lugares_y_devuelve_el_dinero(): void
     {
         $cliente = $this->usuario('cliente@test.com');
