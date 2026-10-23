@@ -2503,6 +2503,9 @@
 
         show('evento-form-panel', true);
 
+        // Costos de producción del evento (admin-costos.js)
+        window.AdminCostos?.preparar(evento ? evento.id : null);
+
         if (evento) {
             form.elements.namedItem('nombre').value =
                 evento.nombre || '';
@@ -3105,6 +3108,10 @@
                 }
 
                 payload.precios = precios;
+
+                // Costos de producción (admin-costos.js): se crean junto con el evento
+                const costos = window.AdminCostos?.leer() || [];
+                if (costos.length) payload.costos = costos;
             }
 
             const path = isPublishedEdit
@@ -3141,6 +3148,11 @@
                 });
 
                 const result = await response.json();
+
+                // Al editar, los costos se guardan aparte (admin-costos.js; solo si cambiaron)
+                if (isEditing) {
+                    await window.AdminCostos?.guardar(editingEventId);
+                }
 
                 closeEventForm();
                 page = 1;

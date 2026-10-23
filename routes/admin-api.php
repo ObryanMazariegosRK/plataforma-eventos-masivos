@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\AdminUsuarioController;
 use App\Http\Controllers\Admin\AdminNotificacionController;
 use App\Http\Controllers\Admin\AdminReporteDocumentoController;
 use App\Http\Controllers\Bitacora\BitacoraController;
+use App\Http\Controllers\Finanzas\CostoEventoController;
+use App\Http\Controllers\Finanzas\FinanzasController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -87,6 +89,22 @@ Route::middleware(['auth:sanctum'])
                 ])
                     ->whereNumber('id')
                     ->name('eventos.precios.guardar');
+
+                // COSTOS DE PRODUCCIÓN (los registra también el operador; las ganancias no las ve)
+
+                Route::get('/eventos/{id}/costos', [
+                    CostoEventoController::class,
+                    'index'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.costos');
+
+                Route::put('/eventos/{id}/costos', [
+                    CostoEventoController::class,
+                    'guardar'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.costos.guardar');
 
                 // CONSULTAR EVENTO
 
@@ -273,6 +291,13 @@ Route::middleware(['auth:sanctum'])
                     AdminReporteDocumentoController::class,
                     'pdf'
                 ])->name('reportes.pdf');
+
+                // FINANZAS: ventas y ganancias por evento
+
+                Route::get('/finanzas', [
+                    FinanzasController::class,
+                    'index'
+                ])->name('finanzas');
 
                 // BITÁCORA (solo lectura): quién hizo qué y cuándo
 

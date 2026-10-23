@@ -46,6 +46,11 @@ class ContextoBitacora implements IContextoBitacora
             ->select('estado', 'monto', 'pago_id'));
     }
 
+    public function costosDeEvento(int $eventoId): float
+    {
+        return (float) DB::table('costos_evento')->where('evento_id', $eventoId)->whereNull('deleted_at')->sum('monto');
+    }
+
     private function fila($consulta): ?array
     {
         $fila = $consulta->first();

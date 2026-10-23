@@ -32,6 +32,8 @@
     <script defer src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
     <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-bitacora.js') }}?v={{ filemtime(public_path('js/admin-bitacora.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-finanzas.js') }}?v={{ filemtime(public_path('js/admin-finanzas.js')) }}"></script>
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
     <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
@@ -436,6 +438,43 @@
                      aria-label="Indicadores de la plataforma">
                 </div>
 
+                {{-- VENTAS Y GANANCIAS (admin-finanzas.js; GET /api/admin/finanzas, solo administrador) --}}
+                <section id="finanzas-panel" class="finanzas" aria-labelledby="finanzas-titulo">
+                    <header class="finanzas__cabecera">
+                        <div>
+                            <span class="finanzas__eyebrow">Finanzas</span>
+                            <h2 id="finanzas-titulo">Ventas y ganancias</h2>
+                            <p id="finanzas-periodo" class="finanzas__nota">Consultando…</p>
+                        </div>
+                    </header>
+
+                    <div class="finanzas__cifras" id="finanzas-cifras" aria-live="polite"></div>
+
+                    <div class="finanzas__graficas">
+                        <article class="finanzas__tarjeta" aria-labelledby="ventas-titulo">
+                            <h3 id="ventas-titulo">Ventas por día</h3>
+                            <p class="finanzas__nota">Monto cobrado (pagos aprobados) en cada día.</p>
+                            <div class="grafica-ventas" id="grafica-ventas"></div>
+                            <details class="finanzas__tabla">
+                                <summary>Ver los datos en tabla</summary>
+                                <div id="ventas-tabla"></div>
+                            </details>
+                        </article>
+
+                        <article class="finanzas__tarjeta" aria-labelledby="rentabilidad-titulo">
+                            <div class="finanzas__titulo-leyenda">
+                                <h3 id="rentabilidad-titulo">Rentabilidad por evento</h3>
+                                <ul class="leyenda" aria-label="Leyenda">
+                                    <li><span class="leyenda__muestra leyenda__muestra--ingresos"></span>Ingresos netos</li>
+                                    <li><span class="leyenda__muestra leyenda__muestra--costos"></span>Costos</li>
+                                </ul>
+                            </div>
+                            <p class="finanzas__nota" id="rentabilidad-nota">Ingresos netos = pagos aprobados − reembolsos − comisión de la pasarela.</p>
+                            <ol class="rentabilidad" id="rentabilidad-lista"></ol>
+                        </article>
+                    </div>
+                </section>
+
                 <!-- GRÁFICAS Y ACCIONES RÁPIDAS -->
                 <div class="insights-grid">
 
@@ -790,6 +829,25 @@
                class="evento-form-feedback"
                role="status"
                hidden></p>
+        </section>
+
+        {{-- COSTOS DE PRODUCCIÓN (admin-costos.js): los registran admin y operador; con ellos
+             se calcula la ganancia, que solo ve el administrador --}}
+        <section id="evento-costos-panel"
+                 class="evento-costos"
+                 aria-labelledby="evento-costos-titulo"
+                 data-categorias='@json(array_map(fn ($c) => ['valor' => $c->value, 'etiqueta' => $c->etiqueta()], \App\Domain\Enums\Finanzas\CategoriaCosto::cases()))'>
+            <div class="evento-costos__cabecera">
+                <div>
+                    <span class="evento-localidades-eyebrow">SOIRÉE · COSTOS DE PRODUCCIÓN</span>
+                    <h3 id="evento-costos-titulo">Costos del evento</h3>
+                    <p>Alquiler, artistas, producción, publicidad… Puedes agregarlos ahora o más adelante.</p>
+                </div>
+                <strong class="evento-costos__total" id="evento-costos-total">Total Q0.00</strong>
+            </div>
+            <div class="evento-costos__lista" id="evento-costos-lista" aria-live="polite"></div>
+            <button type="button" class="evento-costos__agregar" id="evento-costos-agregar">+ Agregar costo</button>
+            <p class="evento-form-feedback" id="evento-costos-mensaje" role="status" hidden></p>
         </section>
 
         <div

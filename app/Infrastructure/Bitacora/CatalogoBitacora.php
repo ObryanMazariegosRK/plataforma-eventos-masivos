@@ -163,8 +163,18 @@ class CatalogoBitacora
             // ---------- Eventos ----------
             'POST api/admin/eventos' => [
                 'categoria' => C::EVENTO, 'accion' => 'evento.creado', 'entidad' => 'evento',
-                'campos' => ['nombre', 'recinto_id', 'fecha_evento', 'estado'],
-                'describir' => fn (Request $r) => "Creó el evento «{$r->input('nombre')}»",
+                'campos' => ['nombre', 'recinto_id', 'fecha_evento', 'estado', 'costos'],
+                'describir' => fn (Request $r) => "Creó el evento «{$r->input('nombre')}»"
+                    . (($n = count((array) $r->input('costos', []))) ? ' con ' . ($n === 1 ? '1 costo' : "{$n} costos") . ' de producción' : ''),
+            ],
+            'PUT api/admin/eventos/{id}/costos' => [
+                'categoria' => C::EVENTO, 'accion' => 'evento.costos_guardados', 'entidad' => 'evento',
+                'campos' => ['costos'],
+                'antes' => fn (Request $r) => ($e = $c->evento((int) $r->route('id')))
+                    ? ['nombre' => $e['nombre'], 'costos_total' => $c->costosDeEvento((int) $r->route('id'))] : null,
+                'describir' => fn (Request $r, $antes) => "Actualizó los costos de producción de {$nombreEvento($antes, $r)}: Q"
+                    . number_format(array_sum(array_map(fn ($costo) => (float) ($costo['monto'] ?? 0), (array) $r->input('costos', []))), 2)
+                    . ($antes ? ' (antes Q' . number_format((float) $antes['costos_total'], 2) . ')' : ''),
             ],
             'PUT api/admin/eventos/{id}' => [
                 'categoria' => C::EVENTO, 'accion' => 'evento.editado', 'entidad' => 'evento',

@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Application\Abstractions\Finanzas\IGuardarCostosEventoUseCase;
+use App\Application\DTOs\Finanzas\GuardarCostosEventoDTO;
 use App\Application\UseCases\Admin\Eventos\CrearEventoUseCase;
 use App\Application\UseCases\Admin\Eventos\EditarEventoUseCase;
 use App\Application\UseCases\Admin\Eventos\PublicarEventoUseCase;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Finanzas\CostoEventoController;
 use App\Http\Requests\Admin\GuardarEventoRequest;
 use App\Models\Recintos\Evento;
 use Illuminate\Http\JsonResponse;
@@ -81,7 +84,8 @@ class AdminEventoController extends Controller
      */
     public function store(
         GuardarEventoRequest $request,
-        CrearEventoUseCase $crearEvento
+        CrearEventoUseCase $crearEvento,
+        IGuardarCostosEventoUseCase $guardarCostos
     ): JsonResponse {
         $precios = $request->validate([
             'precios' => ['required', 'array', 'min:1'],
@@ -97,15 +101,31 @@ class AdminEventoController extends Controller
             ],
         ]);
 
+        // Costos de producción (opcionales): se validan antes de crear nada
+        $costos = $request->validate(CostoEventoController::reglas())['costos'] ?? [];
+
         $datos = array_merge(
             $request->validated(),
             $precios
         );
 
-        $evento = $crearEvento->ejecutar(
-            $datos,
-            (int) $request->user()->id
-        );
+        $evento = DB::transaction(function () use ($crearEvento, $guardarCostos, $datos, $costos, $request) {
+            $evento = $crearEvento->ejecutar(
+                $datos,
+                (int) $request->user()->id
+            );
+
+            if ($costos) {
+                $guardarCostos->execute(new GuardarCostosEventoDTO(
+                    eventoId: (int) $evento->id,
+                    usuarioId: (int) $request->user()->id,
+                    costos: $costos,
+                    maximo: config('finanzas.max_costos_por_evento'),
+                ));
+            }
+
+            return $evento;
+        });
 
         return response()->json([
             'message' =>

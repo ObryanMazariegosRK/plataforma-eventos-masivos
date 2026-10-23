@@ -207,6 +207,28 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\UseCases\Admin\GenerarReporteAdminUseCase::class,
         );
 
+        // ---- Finanzas: costos de producción y ganancias por evento ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Finanzas\ICostoEventoRepository::class,
+            \App\Data\Finanzas\CostoEventoRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Finanzas\IFinanzasRepository::class,
+            \App\Data\Finanzas\FinanzasRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Finanzas\IListarCostosEventoUseCase::class,
+            \App\Application\UseCases\Finanzas\ListarCostosEventoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Finanzas\IGuardarCostosEventoUseCase::class,
+            \App\Application\UseCases\Finanzas\GuardarCostosEventoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Finanzas\IObtenerFinanzasUseCase::class,
+            \App\Application\UseCases\Finanzas\ObtenerFinanzasUseCase::class,
+        );
+
         // ---- Bitácora (base aparte; la llena el middleware RegistrarBitacora) ----
         $this->app->bind(
             \App\Domain\Abstractions\Bitacora\IBitacoraRepository::class,

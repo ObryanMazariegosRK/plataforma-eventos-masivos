@@ -15,4 +15,7 @@ interface IContextoBitacora
     public function pago(int $id): ?array;
 
     public function reembolso(int $id): ?array;
+
+    // Suma de los costos de producción vigentes del evento
+    public function costosDeEvento(int $eventoId): float;
 }

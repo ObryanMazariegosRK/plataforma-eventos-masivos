@@ -19,6 +19,7 @@ use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
 use App\Domain\Exceptions\Admin\ReporteDemasiadoGrandeException;
 use App\Domain\Exceptions\Bitacora\BitacoraNoDisponibleException;
+use App\Domain\Exceptions\Finanzas\EventoSinCostosEditablesException;
 use App\Domain\Exceptions\Catalogo\ArchivoBannerInvalidoException;
 use App\Domain\Exceptions\Inventario\EventoNoDisponibleException;
 use App\Domain\Exceptions\Reservas\LimitePorPersonaException;
@@ -85,6 +86,7 @@ return Application::configure(basePath: dirname(__DIR__))
             PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
             BitacoraNoDisponibleException::class        => [503, 'bitacora_no_disponible'],
             ReporteDemasiadoGrandeException::class      => [422, 'reporte_demasiado_grande'],
+            EventoSinCostosEditablesException::class    => [404, 'evento_no_encontrado'],
             // ---- Catálogo ----
             ArchivoBannerInvalidoException::class       => [422, 'banner_archivo_invalido'],
             // ---- Reservas ----
