@@ -319,7 +319,7 @@ em { font-style: italic; color: var(--champan); }
 .evento-estado.agotado { color: var(--tenue); text-decoration: line-through; }
 .evento-informacion h3 { margin: 0 0 12px; font-size: 28px; line-height: 1.08; }
 .evento-meta { font-size: 13px; line-height: 1.6; color: var(--piedra); margin: 0 0 2px; }
-.evento-descripcion { margin: 14px 0 0; line-height: 1.7; color: var(--piedra); font-size: 13px; }
+.evento-descripcion { margin: 14px 0 0; line-height: 1.7; color: var(--piedra); font-size: 13px; white-space: pre-line; }
 .evento-descripcion[hidden] { display: none; }
 .btn-descripcion { align-self: flex-start; margin-top: 16px; padding: 4px 0; border: 0; background: transparent; color: var(--tenue); font-size: 10px; transition: color .3s ease; }
 .btn-descripcion:hover { color: var(--marfil); }
@@ -487,3 +487,6 @@ em { font-style: italic; color: var(--champan); }
     .pie-pagina__final { flex-direction: column; }
     .legal { padding-top: 32px; }
 }
+
+/* Una palabra muy larga (o un texto pegado sin espacios) se parte en vez de salirse de la tarjeta */
+.tarjeta-evento :is(h2, h3, p, span, .evento-descripcion) { overflow-wrap: anywhere; }
