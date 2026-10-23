@@ -1,0 +1,164 @@
+# =============================================================================
+# PRODUCCIÓN (Coolify). El de desarrollo es docker-compose.yml y no se toca.
+#
+# Las variables ${...} se llenan en el panel de Coolify (pestaña "Environment Variables");
+# las que dicen ":?" son obligatorias y el despliegue se detiene si faltan.
+# Lista explicada: .env.production.example · Guía paso a paso: docs/DESPLIEGUE.md
+#
+# Diferencias con desarrollo: el código va dentro de la imagen, no hay Adminer ni Mailpit
+# (el correo sale por Gmail) y ni MySQL ni Redis tienen puertos abiertos hacia internet.
+# =============================================================================
+
+x-laravel-env: &laravel-env
+  APP_NAME: ${APP_NAME:-Soirée}
+  APP_ENV: production
+  APP_KEY: ${APP_KEY:?Falta APP_KEY}
+  APP_DEBUG: "false"
+  APP_URL: ${APP_URL:?Falta APP_URL}
+  APP_LOCALE: es
+  APP_FALLBACK_LOCALE: es
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: ${LOG_LEVEL:-warning}
+  # Base principal
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ${DB_DATABASE:-eventos}
+  DB_USERNAME: ${DB_USERNAME:-eventos}
+  DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+  # root solo lo usa bitacora:instalar (crea la base de la bitácora y su usuario limitado)
+  DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
+  # Bitácora: usuario que solo puede leer y agregar registros
+  BITACORA_HABILITADA: "true"
+  BITACORA_DB_DATABASE: ${BITACORA_DB_DATABASE:-eventos_bitacora}
+  BITACORA_DB_USERNAME: ${BITACORA_DB_USERNAME:-eventos_bitacora}
+  BITACORA_DB_PASSWORD: ${BITACORA_DB_PASSWORD:?Falta BITACORA_DB_PASSWORD}
+  # Redis: cola de trabajos (correos, push, boletos), caché (órdenes de la pasarela) y sesiones
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  QUEUE_CONNECTION: redis
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  SESSION_SECURE_COOKIE: "true"
+  FILESYSTEM_DISK: local
+  # Sesión: máximo 12 h desde que se inicia (además termina al cerrar el navegador)
+  AUTH_TOKEN_HORAS: ${AUTH_TOKEN_HORAS:-12}
+  # Correo por Gmail (contraseña de aplicación de 16 letras, sin espacios)
+  MAIL_MAILER: smtp
+  MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_SCHEME: ${MAIL_SCHEME:-}
+  MAIL_USERNAME: ${MAIL_USERNAME:?Falta MAIL_USERNAME}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:?Falta MAIL_PASSWORD}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:?Falta MAIL_FROM_ADDRESS}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Soirée}
+  # Marca y contacto (pie de página, privacidad, correos)
+  MARCA_NOMBRE: ${MARCA_NOMBRE:-Soirée}
+  MARCA_CONTACTO: ${MARCA_CONTACTO:?Falta MARCA_CONTACTO}
+  # Iniciar sesión con Google (opcional: sin estas variables el botón falla con un aviso)
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+  # Notificaciones push (llaves VAPID propias de este servidor)
+  VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+  VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?Falta VAPID_PUBLIC_KEY}
+  VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?Falta VAPID_PRIVATE_KEY}
+  # Dirección que llevan los QR de los boletos (vacío = la del servidor)
+  BOLETOS_URL_PUBLICA: ${BOLETOS_URL_PUBLICA:-}
+
+services:
+  # PHP con Laravel. Al arrancar: cachea la configuración, migra, carga recintos/pasarela e instala la bitácora
+  app:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: app
+    restart: unless-stopped
+    environment:
+      <<: *laravel-env
+      CONTAINER_ROLE: app
+    volumes:
+      - storage:/var/www/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Cola de trabajos: envía correos y push, emite boletos y avisa al personal
+  queue:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: app
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--timeout=90", "--max-time=3600"]
+    environment:
+      <<: *laravel-env
+      CONTAINER_ROLE: queue
+    volumes:
+      - storage:/var/www/storage
+    depends_on:
+      - app
+
+  # Tareas cada minuto: libera reservas vencidas, recordatorios, limpieza (routes/console.php)
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: app
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    environment:
+      <<: *laravel-env
+      CONTAINER_ROLE: scheduler
+    volumes:
+      - storage:/var/www/storage
+    depends_on:
+      - app
+
+  # Único servicio que recibe visitas: Coolify le pone el dominio y el https
+  web:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: web
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - storage:/var/www/storage:ro
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-eventos}
+      MYSQL_USER: ${DB_USERNAME:-eventos}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
+      TZ: UTC
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # appendonly: lo que hay en la cola y las órdenes de la pasarela sobreviven a un reinicio
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  storage:      # fotos de eventos, banner del catálogo y logs
+  mysql-data:   # la base de datos (incluida la bitácora)
+  redis-data:   # cola de trabajos y caché
