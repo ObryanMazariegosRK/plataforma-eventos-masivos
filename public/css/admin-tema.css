@@ -1201,3 +1201,10 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 }
 /* En la vista previa del recinto no hay ventas: la leyenda (apartado / vendido) sobra */
 .tema-soiree .evento-plano .leyenda { display: none; }
+
+/* Formulario de evento → frase destacada con contador */
+.tema-soiree .evento-frase__opcional { color: var(--t-tenue); font-weight: 400; }
+.tema-soiree .evento-frase__pie { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.tema-soiree .evento-frase__pie small { color: var(--t-tenue); font-size: 12px; font-weight: 400; }
+.tema-soiree .evento-frase__contador { flex: none; font-variant-numeric: tabular-nums; }
+.tema-soiree .evento-frase__contador[data-lleno="true"] { color: var(--t-acento); font-weight: 600; }

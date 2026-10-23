@@ -191,6 +191,7 @@ class AdminEventoController extends Controller
             'descripcion' => [
                 'nullable', 'string', 'max:10000',
             ],
+            'frase_destacada' => ['nullable', 'string', 'max:90'],
             'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
             'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
             'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
@@ -211,6 +212,7 @@ class AdminEventoController extends Controller
 
             $evento->nombre = $datos['nombre'];
             $evento->descripcion = $datos['descripcion'] ?? null;
+            $evento->frase_destacada = $datos['frase_destacada'] ?? null;
             $evento->imagen_url = $datos['imagen_url'] ?? null;
             $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;
             $evento->imagen_url_3 = $datos['imagen_url_3'] ?? null;

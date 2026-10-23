@@ -421,3 +421,46 @@ em { font-style: italic; }
 @media (prefers-reduced-motion: reduce) {
     .entrada__linea { animation: none; }
 }
+
+/* ---- Experiencia del evento: regresar a la cartelera ---- */
+.cabecera__inicio { display: flex; align-items: center; gap: 18px; }
+.cabecera__volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--piedra);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color .3s ease;
+}
+.cabecera__flecha {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--hilo);
+    border-radius: 50%;
+    transition: border-color .3s ease, background-color .3s ease, color .3s ease;
+}
+.cabecera__flecha svg { width: 16px; height: 16px; transition: transform .35s cubic-bezier(.2, .7, .15, 1); }
+.cabecera__volver:hover, .cabecera__volver:focus-visible { color: var(--marfil); }
+.cabecera__volver:hover .cabecera__flecha, .cabecera__volver:focus-visible .cabecera__flecha {
+    border-color: var(--marfil);
+    background: var(--marfil);
+    color: var(--tinta);
+}
+.cabecera__volver:hover svg, .cabecera__volver:focus-visible svg { transform: translateX(-3px); }
+.cabecera__volver:focus-visible { outline: none; }
+.cabecera__separador { width: 1px; height: 22px; background: var(--hilo); }
+
+@media (max-width: 640px) {
+    .cabecera__inicio { gap: 12px; }
+    .cabecera__volver-texto, .cabecera__separador { display: none; }
+    .cabecera__flecha { width: 32px; height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .cabecera__flecha svg { transition: none; }
+}

@@ -121,6 +121,46 @@ class FormularioEventoTest extends TestCase
         $this->assertGreaterThan(strpos($html, 'eventos/dos.webp'), strpos($html, 'eventos/tres.webp'));
     }
 
+    public function test_la_frase_destacada_se_guarda_con_un_maximo_de_90_caracteres(): void
+    {
+        [$recinto, $platea, $general] = $this->teatro();
+        Sanctum::actingAs($this->operador());
+
+        $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => str_repeat('a', 91)]))
+            ->assertStatus(422)->assertJsonValidationErrors('frase_destacada');
+
+        $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => 'Tres décadas de jazz en una sola noche']))
+            ->assertCreated();
+        $this->assertSame('Tres décadas de jazz en una sola noche', DB::table('eventos')->value('frase_destacada'));
+    }
+
+    public function test_la_primera_escena_presenta_al_evento_y_hay_regreso_a_la_cartelera(): void
+    {
+        [$recinto, , $general] = $this->teatro();
+        $crear = function (array $datos) use ($recinto, $general) {
+            $id = DB::table('eventos')->insertGetId($datos + [
+                'recinto_id' => $recinto, 'estado' => 'publicado', 'fecha_evento' => now()->addMonth(),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('inventario')->insert(['evento_id' => $id, 'localidad_id' => $general, 'estado' => 'disponible', 'created_at' => now(), 'updated_at' => now()]);
+
+            return $id;
+        };
+
+        $conFrase = $crear(['nombre' => 'Noche de jazz', 'frase_destacada' => 'Tres décadas de jazz en una sola noche', 'descripcion' => 'El cuarteto vuelve a Guatemala con su gira de aniversario.']);
+        $html = $this->get("/eventos/{$conFrase}/experiencia")->assertOk()->getContent();
+        $this->assertStringContainsString('Tres décadas de jazz en una sola noche', $html);
+        $this->assertStringContainsString('El cuarteto vuelve a Guatemala con su gira de aniversario.', $html);
+        $this->assertStringNotContainsString('Esta noche, la función es tuya.', $html);
+        // Las escenas 2 y 3 siguen explicando la compra
+        $this->assertStringContainsString('Elige tu asiento.', $html);
+        $this->assertStringContainsString('Volver a la cartelera', $html);
+
+        $sinFrase = $crear(['nombre' => 'Gala de ópera']);
+        $html = $this->get("/eventos/{$sinFrase}/experiencia")->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<h2 class="parada__titulo">Gala de ópera</h2>#', $html);
+    }
+
     public function test_limpia_las_fotos_subidas_que_ningun_evento_usa(): void
     {
         Storage::fake('public');

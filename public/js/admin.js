@@ -2526,6 +2526,9 @@
             form.elements.namedItem('descripcion').value =
                 evento.descripcion || '';
 
+            form.elements.namedItem('frase_destacada').value =
+                evento.frase_destacada || '';
+
             form.elements.namedItem('fecha_evento').value =
                 dateForInput(evento.fecha_evento);
         }
@@ -3068,6 +3071,11 @@
                     formData.get('descripcion') || ''
                 ).trim(),
 
+                // Título de la primera escena de la experiencia (opcional)
+                frase_destacada: String(
+                    formData.get('frase_destacada') || ''
+                ).trim() || null,
+
                 imagen_url: String(
                     formData.get('imagen_url') || ''
                 ).trim() || null,
@@ -3144,6 +3152,7 @@
             const datosEnviar = isPublishedEdit
                 ? {
                     nombre: payload.nombre,
+                    frase_destacada: payload.frase_destacada,
                     descripcion: payload.descripcion,
                     imagen_url: payload.imagen_url,
                     imagen_url_2: payload.imagen_url_2,

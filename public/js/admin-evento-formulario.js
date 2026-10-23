@@ -121,6 +121,15 @@ document.addEventListener('DOMContentLoaded', () => {
         $('evento-fotos').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, true);
 
+    // Frase destacada: contador de caracteres
+    const frase = $('evento-frase');
+    const contarFrase = () => {
+        const contador = $('evento-frase-contador');
+        contador.textContent = `${frase.value.length} / ${frase.maxLength}`;
+        contador.dataset.lleno = String(frase.value.length >= frase.maxLength);
+    };
+    frase.addEventListener('input', contarFrase);
+
     // =====================================================
     // 2. Plano del recinto
     // =====================================================
@@ -351,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const campo = (nombre) => form.elements.namedItem(nombre)?.value ?? '';
         return {
             nombre: campo('nombre'),
+            frase_destacada: campo('frase_destacada'),
             recinto_id: campo('recinto_id'),
             fecha_evento: campo('fecha_evento'),
             descripcion: campo('descripcion'),
@@ -399,6 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (campo) campo.value = valor ?? '';
         };
         poner('nombre', datos.nombre);
+        poner('frase_destacada', datos.frase_destacada);
+        contarFrase();
         poner('fecha_evento', datos.fecha_evento);
         poner('descripcion', datos.descripcion);
         ['imagen_url', 'imagen_url_2', 'imagen_url_3'].forEach((nombre, i) => poner(nombre, datos.imagenes?.[i]));
@@ -445,6 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('evento-plano-mapa').dataset.recinto = '';
         botonPlano.disabled = !recinto.value;
         aviso(null);
+        contarFrase();
 
         // Después de que costos y localidades se preparen, se recupera el borrador
         setTimeout(() => {

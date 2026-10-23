@@ -112,7 +112,8 @@ class InventarioRepository implements IInventarioRepository
             ->whereNull('eventos.deleted_at')
             ->whereIn('eventos.estado', ['publicado', 'agotado'])
             ->first(['eventos.id', 'eventos.nombre', 'eventos.fecha_evento', 'recintos.nombre as recinto',
-                'eventos.imagen_url', 'eventos.imagen_url_2', 'eventos.imagen_url_3']);
+                'eventos.imagen_url', 'eventos.imagen_url_2', 'eventos.imagen_url_3',
+                'eventos.frase_destacada', 'eventos.descripcion']);
 
         if ($evento === null) {
             return null;
@@ -179,6 +180,9 @@ class InventarioRepository implements IInventarioRepository
                 'recinto'      => $evento->recinto,
                 // Las 3 fotos del evento, en orden (portada y escenas de la experiencia)
                 'imagenes'     => [$evento->imagen_url, $evento->imagen_url_2, $evento->imagen_url_3],
+                // Textos de la primera escena de la experiencia
+                'frase_destacada' => $evento->frase_destacada,
+                'descripcion'  => $evento->descripcion,
             ],
             'localidades' => array_values($localidades),
             'resumen'     => $resumen,

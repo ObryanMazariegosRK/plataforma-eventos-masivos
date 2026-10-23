@@ -14,6 +14,7 @@ class Evento extends Model
     protected $fillable = [
         'recinto_id',
         'nombre',
+        'frase_destacada',
         'descripcion',
         'imagen_url',
         'imagen_url_2',

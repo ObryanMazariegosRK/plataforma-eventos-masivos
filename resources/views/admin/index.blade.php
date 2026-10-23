@@ -624,6 +624,26 @@
                     rows="4"
                     maxlength="10000"
                     placeholder="Describe el evento..."></textarea>
+                <small class="evento-image-help">El inicio de la descripción también aparece en la primera escena de la experiencia.</small>
+            </label>
+
+            {{-- Título de la primera escena de la experiencia (admin-evento-formulario.js lleva la cuenta) --}}
+            <label class="evento-full evento-frase">
+                <span>Frase destacada <span class="evento-frase__opcional">(opcional)</span></span>
+
+                <input
+                    type="text"
+                    name="frase_destacada"
+                    id="evento-frase"
+                    maxlength="90"
+                    autocomplete="off"
+                    placeholder="Ej. Tres décadas de jazz en una sola noche"
+                    aria-describedby="evento-frase-ayuda evento-frase-contador">
+
+                <span class="evento-frase__pie">
+                    <small id="evento-frase-ayuda">Encabeza la primera escena de la experiencia. Si la dejas vacía, se usa el nombre del evento.</small>
+                    <small class="evento-frase__contador" id="evento-frase-contador" aria-live="polite">0 / 90</small>
+                </span>
             </label>
 
             {{-- Plano del recinto, desplegable (no ocupa espacio hasta que se pide) --}}

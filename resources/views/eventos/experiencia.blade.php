@@ -7,6 +7,13 @@
             $paradas[$i]['imagen'] = $imagen;
         }
     }
+
+    // La primera escena presenta al evento: su frase destacada (o su nombre) y el inicio de su
+    // descripción. Las otras dos explican la compra y son iguales en todos los eventos.
+    $paradas[0]['titulo'] = $evento['frase_destacada'] ?: $evento['nombre'];
+    if (filled($evento['descripcion'] ?? null)) {
+        $paradas[0]['texto'] = \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', $evento['descripcion'])), 170, '…', preserveWords: true);
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -27,7 +34,17 @@
 </head>
 <body>
     <header class="cabecera" data-cabecera>
-        <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
+        <div class="cabecera__inicio">
+            {{-- Regresar a la cartelera --}}
+            <a href="{{ route('catalogo.index') }}#eventos" class="cabecera__volver" aria-label="Volver a la cartelera">
+                <span class="cabecera__flecha" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+                </span>
+                <span class="cabecera__volver-texto">Cartelera</span>
+            </a>
+            <span class="cabecera__separador" aria-hidden="true"></span>
+            <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
+        </div>
         {{-- data-corte: fundido a negro y salto directo al plano (landing.js) --}}
         <a href="#asientos" class="cabecera__boton" data-corte>Elegir asientos</a>
     </header>

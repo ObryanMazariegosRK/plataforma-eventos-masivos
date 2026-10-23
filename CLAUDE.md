@@ -99,6 +99,7 @@ Separate database `eventos_bitacora` on the same MySQL server (connections `bita
 - **Venue plan**: "Ver plano del recinto" → `GET /api/admin/eventos/recintos/{id}/plano` (`ConsultarPlanoRecintoUseCase`, same shape as disponibilidad with every seat free) drawn by `MapaAsientos` (`asientos.js`/`asientos.css` are loaded in the admin view), showing the typed or suggested price per zone.
 - **Costs** (`admin-costos.js`): one field per category; recinto and artistas are required (> Q0) on create and on every costs save (`GuardarCostosEventoDTO::exigirBasicos`).
 - **Suggested prices**: from total costs, desired margin and expected occupancy (sliders) — gross income = costs ÷ (1 − commission − margin), split by zone weight (VIP 1.6, platea/palco 1.25, balcón/general 1.0, other numbered 1.15), rounded up to Q5 — plus a projection (income, profit, break-even seats).
+- **Phrase**: optional `eventos.frase_destacada` (≤ 90 chars, with a live counter) titles the FIRST scene of the event experience, whose text becomes the start of the description (`Str::limit` 170); if empty the event name is used. Scenes 2 and 3 keep the generic purchase copy from `config('landing.paradas')`. The experience header has a "← Cartelera" link (`.cabecera__volver` in `landing.css`).
 - **Draft memory**: a NEW event's fields (including uploaded photo URLs, costs, prices and sliders) are kept in `localStorage.soiree_borrador_evento` and restored on reopening until saved or "Descartar borrador".
 
 ### Finances (Finanzas)
