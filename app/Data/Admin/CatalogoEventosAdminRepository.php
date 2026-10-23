@@ -51,6 +51,15 @@ class CatalogoEventosAdminRepository implements ICatalogoEventosAdminRepository
         return $this->consulta($filtros)->count();
     }
 
+    public function contarPorEstado(): array
+    {
+        return DB::table('eventos')->whereNull('deleted_at')
+            ->select('estado')->selectRaw('COUNT(*) as total')->groupBy('estado')
+            ->pluck('total', 'estado')
+            ->map(fn ($total) => (int) $total)
+            ->all();
+    }
+
     private function consulta(array $filtros): Builder
     {
         $consulta = DB::table('eventos')

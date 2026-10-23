@@ -506,64 +506,6 @@
                 <!-- GRÁFICAS Y ACCIONES RÁPIDAS -->
                 <div class="insights-grid">
 
-                    <!-- ESTADOS DE RESERVAS -->
-                    <article class="panel chart-card">
-
-                        <div class="panel-heading">
-
-                            <div>
-                                <div class="heading-icon">
-                                    <svg>
-                                        <use href="#i-ticket"/>
-                                    </svg>
-                                </div>
-
-                                <h2>Estados de las reservas</h2>
-
-                                <p>
-                                    Distribución actual de las reservas
-                                </p>
-                            </div>
-
-                            <span class="mini-count"
-                                  id="reservas-total">
-                            </span>
-
-                        </div>
-
-                        <div id="reservation-bars"></div>
-
-                    </article>
-
-                    <!-- ESTADOS DE EVENTOS -->
-                    <article class="panel chart-card">
-
-                        <div class="panel-heading">
-
-                            <div>
-                                <div class="heading-icon">
-                                    <svg>
-                                        <use href="#i-calendar"/>
-                                    </svg>
-                                </div>
-
-                                <h2>Estados de los eventos</h2>
-
-                                <p>
-                                    Estado de publicación de los eventos
-                                </p>
-                            </div>
-
-                            <span class="mini-count"
-                                  id="eventos-total">
-                            </span>
-
-                        </div>
-
-                        <div id="event-bars"></div>
-
-                    </article>
-
                     <!-- ACCIONES RÁPIDAS -->
                     <article class="panel quick-card">
 
@@ -959,7 +901,36 @@
                 </form>
             </section>
 
-            <article class="panel data-card">
+                    <!-- ESTADOS DE RESERVAS: solo en la sección Reservas (admin.js) -->
+                    <article class="panel chart-card estados-tira" id="reservas-estados" hidden>
+
+                        <div class="panel-heading">
+
+                            <div>
+                                <div class="heading-icon">
+                                    <svg>
+                                        <use href="#i-ticket"/>
+                                    </svg>
+                                </div>
+
+                                <h2>Estados de las reservas</h2>
+
+                                <p>
+                                    Distribución actual de las reservas
+                                </p>
+                            </div>
+
+                            <span class="mini-count"
+                                  id="reservas-total">
+                            </span>
+
+                        </div>
+
+                        <div id="reservation-bars" class="estados-tira__barras"></div>
+
+                    </article>
+
+            <article class="panel data-card" id="tabla-datos">
 
                 <div class="table-head">
 
@@ -1019,6 +990,21 @@
         ================================================= -->
 
         <section id="catalogo-panel" class="catalogo-panel" hidden>
+            {{-- Estados de los eventos: cada estado filtra el catálogo al tocarlo --}}
+            <article class="panel chart-card estados-tira" aria-labelledby="catalogo-estados-titulo">
+                <div class="panel-heading">
+                    <div>
+                        <div class="heading-icon">
+                            <svg><use href="#i-calendar"/></svg>
+                        </div>
+                        <h2 id="catalogo-estados-titulo">Estados de los eventos</h2>
+                        <p>Estado de publicación de todos los eventos. Toca uno para filtrar.</p>
+                    </div>
+                    <span class="mini-count" id="catalogo-estados-total"></span>
+                </div>
+                <div id="catalogo-estados" class="estados-tira__barras"></div>
+            </article>
+
             <form class="catalogo-filtros" id="catalogo-filtros" role="search" aria-label="Filtrar eventos">
                 <label class="catalogo-filtros__nombre">
                     <span>Nombre</span>

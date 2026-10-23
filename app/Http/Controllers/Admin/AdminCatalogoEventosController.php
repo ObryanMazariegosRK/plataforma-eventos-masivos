@@ -37,6 +37,7 @@ class AdminCatalogoEventosController extends Controller
                 'por_pagina' => $porPagina,
                 'total'      => $resultado['total'],
                 'hay_mas'    => $pagina * $porPagina < $resultado['total'],
+                'por_estado' => $resultado['por_estado'],
             ],
         ]);
     }

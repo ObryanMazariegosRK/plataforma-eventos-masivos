@@ -460,16 +460,23 @@
             )
         );
 
-        bars('reservation-bars', data.reservas_por_estado);
-        bars('event-bars', data.eventos_por_estado);
+        // Los estados de reservas y de eventos ahora viven en Reservas y en el Catálogo
+        return data;
+    }
 
-        $('reservas-total').textContent =
-            'Total: ' + totals.reservas;
+    // Sección Reservas: tarjeta "Estados de las reservas" encima de la tabla
+    async function loadReservationStates() {
+        try {
+            const response = await api('resumen');
+            const data = await response.json();
 
-        $('eventos-total').textContent =
-            'Total: ' + totals.eventos;
+            if (section !== 'reservas') return;
 
-        return data.reservas_recientes || [];
+            bars('reservation-bars', data.reservas_por_estado);
+            $('reservas-total').textContent = 'Total: ' + data.totales.reservas;
+        } catch {
+            show('reservas-estados', false);
+        }
     }
 
     // =====================================================
@@ -2169,6 +2176,9 @@
         show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora);
         show('banner-panel', isBanner);
         show('catalogo-panel', isCatalogo);
+        show('reservas-estados', section === 'reservas');
+        // El Resumen ya no muestra "Reservas recientes": la misma tabla está en Reservas
+        show('tabla-datos', !isOverview);
         show('bitacora-panel', isBitacora);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
@@ -3218,62 +3228,51 @@
         feedback('Consultando datos reales de MySQL...');
 
         try {
-            let recent = [];
-
             if (section === 'resumen') {
-                recent = await loadSummary();
+                await loadSummary();
+                if (version === requestVersion) clearFeedback();
+                return;
+            }
+
+            if (section === 'reservas') {
+                loadReservationStates();
             }
 
             if (version !== requestVersion) {
                 return;
             }
 
-            const kind = section === 'resumen'
-                ? 'reservas'
-                : section;
+            const kind = section;
 
-            $('table-title').textContent =
-                section === 'resumen'
-                    ? 'Reservas recientes'
-                    : titles[section][0];
-
-            $('table-subtitle').textContent =
-                section === 'resumen'
-                    ? 'Últimos movimientos registrados en MySQL.'
-                    : 'Registros disponibles en el sistema.';
-
-            $('view-all').hidden =
-                section !== 'resumen';
+            $('table-title').textContent = titles[section][0];
+            $('table-subtitle').textContent = 'Registros disponibles en el sistema.';
+            $('view-all').hidden = true;
 
             renderFilters();
 
-            if (section === 'resumen') {
-                renderTable(recent, 'reservas');
-            } else {
-                const params = new URLSearchParams({
-                    page: String(page)
-                });
+            const params = new URLSearchParams({
+                page: String(page)
+            });
 
-                if (kind === 'usuarios' && query) {
-                    params.set('buscar', query);
-                }
-
-                const response = await api(
-                    kind + '?' + params.toString()
-                );
-
-                const result = await response.json();
-
-                if (version !== requestVersion) {
-                    return;
-                }
-
-                renderTable(
-                    result.data || [],
-                    kind,
-                    result
-                );
+            if (kind === 'usuarios' && query) {
+                params.set('buscar', query);
             }
+
+            const response = await api(
+                kind + '?' + params.toString()
+            );
+
+            const result = await response.json();
+
+            if (version !== requestVersion) {
+                return;
+            }
+
+            renderTable(
+                result.data || [],
+                kind,
+                result
+            );
 
             clearFeedback();
 

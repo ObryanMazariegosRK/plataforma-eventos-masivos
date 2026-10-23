@@ -1104,3 +1104,17 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
     .tema-soiree .evento-costos__linea :is(select, .evento-costos__monto) { grid-column: 1; }
     .tema-soiree .evento-costos__quitar { grid-column: 2; grid-row: 1; }
 }
+
+/* ---------- Estados en tira: "Estados de las reservas" (Reservas) y "de los eventos" (Catálogo) ---------- */
+.tema-soiree .estados-tira[hidden] { display: none; }
+.tema-soiree .estados-tira { margin-bottom: 18px; }
+.tema-soiree .estados-tira__barras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 22px; margin-top: 6px; }
+.tema-soiree .estados-tira__barras .bar-row { margin: 0; }
+.tema-soiree .estados-tira__estado {
+    display: block; width: 100%; padding: 8px 10px 10px; margin: 0;
+    border: 1px solid transparent; border-radius: 12px; background: transparent;
+    color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.tema-soiree .estados-tira__estado:hover { background: var(--t-velo-2); }
+.tema-soiree .estados-tira__estado[aria-pressed="true"] { border-color: var(--t-acento-borde); background: var(--t-acento-suave); }
+.tema-soiree .estados-tira__estado .bar-label { margin-bottom: 8px; }
