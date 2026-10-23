@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use App\Application\UseCases\Reembolsos\CancelarEventoConReembolsosUseCase;
 use App\Application\Abstractions\Reembolsos\IProcesarReembolsoUseCase;
 use App\Application\UseCases\Notificaciones\NotificarResolucionReembolsoUseCase;
+use App\Application\UseCases\Notificaciones\NotificarCambioEventoUseCase;
 use App\Domain\Abstractions\Reembolsos\IReembolsoRepository;
 use App\Domain\Enums\Reembolsos\EstadoReembolso;
 use App\Domain\Exceptions\Reembolsos\ReembolsoNoProcesadoException;
@@ -139,7 +140,8 @@ class ReembolsoController extends Controller
         CancelarEventoConReembolsosUseCase $cancelarEvento,
         ResolverSolicitudReembolsoUseCase $resolverReembolso,
         IProcesarReembolsoUseCase $procesarReembolso,
-        IReembolsoRepository $reembolsos
+        IReembolsoRepository $reembolsos,
+        NotificarCambioEventoUseCase $notificarCambio
     ): JsonResponse {
 
         // 1. Solo los administradores pueden cancelar eventos.
@@ -156,6 +158,10 @@ class ReembolsoController extends Controller
                 eventoId: $id,
                 administradorId: (int) $request->user()->id
             );
+
+            // 2.1 Avisar a cada comprador que la función se canceló
+            // (antes solo recibía el correo de su reembolso).
+            rescue(fn () => $notificarCambio->notificarCancelacion($id));
 
             // 3. Con el evento cancelado, el cliente tiene derecho al 100 %:
             // se aprueban y devuelven todas las solicitudes sin revisión.

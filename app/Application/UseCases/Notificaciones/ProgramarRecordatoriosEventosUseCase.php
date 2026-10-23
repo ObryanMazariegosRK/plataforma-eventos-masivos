@@ -51,9 +51,11 @@ class ProgramarRecordatoriosEventosUseCase
 
                 foreach ($compras as $compra) {
 
-                    $fecha = Carbon::parse(
-                        $compra->fecha_evento
-                    )->format('d/m/Y H:i');
+                    // Se guarda en UTC; el aviso la dice en hora de Guatemala
+                    $fecha = Carbon::parse($compra->fecha_evento)
+                        ->setTimezone('America/Guatemala')
+                        ->locale('es')
+                        ->isoFormat('dddd D [de] MMMM, h:mm a');
 
                     $notificacion = new Notificacion(
                         id: null,
@@ -64,8 +66,11 @@ class ProgramarRecordatoriosEventosUseCase
                         mensaje: 'Te recordamos que el evento '
                             . $compra->evento_nombre
                             . ' se realizará el ' . $fecha
-                            . '. Recuerda llevar tu boleto digital.',
-                        estado: EstadoNotificacion::PENDIENTE
+                            // La hora ya termina en "a. m." / "p. m."
+                            . ' Recuerda llevar tu boleto digital.',
+                        estado: EstadoNotificacion::PENDIENTE,
+                        tipo: 'recordatorio',
+                        url: '/mis-compras'
                     );
 
                     // Un recordatorio por usuario y evento.

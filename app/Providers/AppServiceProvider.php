@@ -25,6 +25,28 @@ class AppServiceProvider extends ServiceProvider
             \App\Data\Notificaciones\NotificacionRepository::class
         );
 
+        // ---- Notificaciones: push a los dispositivos (Web Push), avisos al personal y bandeja ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\IPersonalRepository::class,
+            \App\Data\Notificaciones\PersonalRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\IBandejaRepository::class,
+            \App\Data\Notificaciones\BandejaRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Notificaciones\IConsultarBandejaUseCase::class,
+            \App\Application\UseCases\Notificaciones\ConsultarBandejaUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Notificaciones\IMarcarAvisosLeidosUseCase::class,
+            \App\Application\UseCases\Notificaciones\MarcarAvisosLeidosUseCase::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\IEnviadorPush::class,
+            \App\Infrastructure\Notificaciones\Push\EnviadorPushWeb::class,
+        );
+
         // ---- Reembolsos ----
         $this->app->bind(
             \App\Domain\Abstractions\Reembolsos\IReembolsoRepository::class,

@@ -60,6 +60,8 @@ class NotificarResolucionReembolsoUseCase
                 asunto: $asunto,
                 mensaje: $mensaje,
                 estado: EstadoNotificacion::PENDIENTE,
+                tipo: 'reembolso_'.$estado->value,
+                url: '/mis-compras',
             ),
             claveIdempotencia: "reembolso:{$reembolsoId}:{$estado->value}",
         );

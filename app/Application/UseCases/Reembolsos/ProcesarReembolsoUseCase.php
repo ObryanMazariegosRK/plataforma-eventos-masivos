@@ -3,6 +3,7 @@
 namespace App\Application\UseCases\Reembolsos;
 
 use App\Application\Abstractions\Reembolsos\IProcesarReembolsoUseCase;
+use App\Application\UseCases\Notificaciones\NotificarPersonalUseCase;
 use App\Application\UseCases\Notificaciones\NotificarResolucionReembolsoUseCase;
 use App\Application\UseCases\Transacciones\RegistrarOperacionHistorialUseCase;
 use App\Application\UseCases\Transacciones\RegistrarTransaccionUseCase;
@@ -36,6 +37,7 @@ class ProcesarReembolsoUseCase implements IProcesarReembolsoUseCase
         private readonly RegistrarTransaccionUseCase $transacciones,
         private readonly RegistrarOperacionHistorialUseCase $historial,
         private readonly NotificarResolucionReembolsoUseCase $notificar,
+        private readonly NotificarPersonalUseCase $personal,
     ) {}
 
     public function execute(int $reembolsoId, int $procesadoPor): Reembolso
@@ -64,6 +66,7 @@ class ProcesarReembolsoUseCase implements IProcesarReembolsoUseCase
         );
 
         if (! $resultado->aprobado) {
+            rescue(fn () => $this->personal->devolucionPendiente($reembolsoId, (string) $resultado->motivo));
             throw new ReembolsoNoProcesadoException("La pasarela no devolvió el dinero: {$resultado->motivo}");
         }
 

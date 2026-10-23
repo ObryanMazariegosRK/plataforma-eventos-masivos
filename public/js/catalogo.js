@@ -1165,6 +1165,9 @@ document.addEventListener('DOMContentLoaded', () => {
         enlaceLogin.remove();
         enlaceRegistro.replaceWith(cuenta);
 
+        // Sesión válida: la campana de avisos (campana.js) se coloca junto a la cuenta
+        document.dispatchEvent(new CustomEvent('tienda:sesion', { detail: { cuenta, rol } }));
+
         document.addEventListener('click', event => {
             if (!cuenta.contains(event.target)) {
                 cuenta.open = false;

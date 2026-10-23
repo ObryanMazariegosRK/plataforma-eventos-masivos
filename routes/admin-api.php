@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminEventoController;
 use App\Http\Controllers\Admin\AdminPrecioEventoController;
 use App\Http\Controllers\Admin\AdminUsuarioController;
-use App\Http\Controllers\Admin\AdminNotificacionController;
 use App\Http\Controllers\Admin\AdminReporteDocumentoController;
 use App\Http\Controllers\Bitacora\BitacoraController;
 use App\Http\Controllers\Reembolsos\AdminReembolsoController;
@@ -206,12 +205,7 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('id')
                     ->name('eventos.contenido.actualizar');
 
-                // ACTIVIDAD Y NOTIFICACIONES ADMINISTRATIVAS
-
-                Route::get('/notificaciones', [
-                    AdminNotificacionController::class,
-                    'index'
-                ])->name('notificaciones');
+                // NOTIFICACIONES: ahora son avisos reales por persona (GET /api/notificaciones)
 
                 // RESUMEN
 

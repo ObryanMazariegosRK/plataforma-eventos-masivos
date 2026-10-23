@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Notificaciones;
 
+use App\Domain\Abstractions\Notificaciones\IEnviadorPush;
 use App\Domain\Abstractions\Notificaciones\INotificacionRepository;
 use App\Domain\Enums\Notificaciones\CanalNotificacion;
 use App\Domain\Enums\Notificaciones\EstadoNotificacion;
@@ -31,8 +32,11 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
 
 
     public function handle(
-        INotificacionRepository $repositorio
+        INotificacionRepository $repositorio,
+        ?IEnviadorPush $push = null
     ): void {
+        $push ??= app(IEnviadorPush::class);
+
 
         // Evitar envios simultaneos de la misma notificacion.
         $bloqueo = Cache::lock(
@@ -57,6 +61,23 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 return;
             }
 
+            // 1.1 Push a los dispositivos donde la persona lo activó: una sola
+            // vez (aunque el correo se reintente) y sin bloquear el correo si falla.
+            if (!$repositorio->pushEnviado($this->notificacionId)) {
+                try {
+                    $push->enviar(
+                        $notificacion->getUsuarioId(),
+                        $notificacion->getAsunto(),
+                        self::resumen($notificacion->getMensaje()),
+                        $notificacion->getUrl()
+                    );
+                } catch (Throwable $e) {
+                    report($e);
+                }
+
+                $repositorio->marcarPushEnviado($this->notificacionId);
+            }
+
             // 2. No volver a enviar una notificacion enviada.
             if (
                 $notificacion->getEstado()
@@ -65,11 +86,15 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 return;
             }
 
-            // 3. Solo procesar correos.
+            // 3. Solo procesar correos. Los avisos del panel
+            // (canal push) no van por correo: con el push basta.
             if (
                 $notificacion->getCanal()
                 !== CanalNotificacion::EMAIL
             ) {
+                $notificacion->marcarEnviada(new DateTimeImmutable());
+                $repositorio->guardar($notificacion);
+
                 return;
             }
 
@@ -119,5 +144,13 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
             // Liberar siempre el bloqueo.
             $bloqueo->release();
         }
+    }
+
+    // El push muestra poco texto: el primer párrafo del mensaje, recortado
+    private static function resumen(string $mensaje): string
+    {
+        $primero = trim(preg_split('/\R\s*\R/', trim($mensaje))[0] ?? '');
+
+        return \Illuminate\Support\Str::limit(preg_replace('/\s+/', ' ', $primero), 160);
     }
 }

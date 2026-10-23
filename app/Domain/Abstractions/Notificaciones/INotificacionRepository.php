@@ -13,6 +13,12 @@ interface INotificacionRepository
 
     public function buscarPorId(int $id): ?Notificacion;
 
+    /** El push de esta notificación ya salió (no se repite si el correo se reintenta). */
+    public function marcarPushEnviado(int $id): void;
+
+    /** Si ya salió su push. */
+    public function pushEnviado(int $id): bool;
+
     public function guardarUnica(
         Notificacion $notificacion,
         string $claveIdempotencia,

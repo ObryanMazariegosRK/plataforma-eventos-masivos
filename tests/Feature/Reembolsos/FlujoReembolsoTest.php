@@ -146,7 +146,9 @@ class FlujoReembolsoTest extends TestCase
         $this->assertDatabaseHas('historial_operaciones', ['tipo' => 'reembolso_confirmado', 'reserva_id' => $compra['reserva']]);
         $this->assertSame(2, DB::table('boletos')->where('estado', 'anulado')->count());
         $this->assertSame(2, DB::table('inventario')->where('estado', 'disponible')->whereNull('reserva_id')->count());
-        Queue::assertPushed(EnviarNotificacionCorreoJob::class, 1);
+        // Uno al admin (nueva solicitud) y uno al cliente (reembolso realizado)
+        Queue::assertPushed(EnviarNotificacionCorreoJob::class, 2);
+        $this->assertDatabaseHas('notificaciones', ['usuario_id' => $admin->id, 'tipo' => 'reembolso_solicitado', 'canal' => 'push']);
         $this->assertDatabaseHas('notificaciones', ['usuario_id' => $cliente->id, 'asunto' => 'Reembolso realizado']);
 
         // Mis compras sigue mostrando la compra, sus lugares (boletos anulados) y el reembolso

@@ -38,6 +38,9 @@
     <link rel="stylesheet" href="{{ asset('css/verificacion-boleto.css') }}?v={{ filemtime(public_path('css/verificacion-boleto.css')) }}">
     <script defer src="{{ asset('js/verificacion-boleto.js') }}?v={{ filemtime(public_path('js/verificacion-boleto.js')) }}"></script>
     <script defer src="{{ asset('js/admin-acceso.js') }}?v={{ filemtime(public_path('js/admin-acceso.js')) }}"></script>
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
+    <script defer src="{{ asset('js/notificaciones.js') }}?v={{ filemtime(public_path('js/notificaciones.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-notificaciones.js') }}?v={{ filemtime(public_path('js/admin-notificaciones.js')) }}"></script>
     <script defer src="{{ asset('js/asientos.js') }}?v={{ filemtime(public_path('js/asientos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-evento-formulario.js') }}?v={{ filemtime(public_path('js/admin-evento-formulario.js')) }}"></script>
     <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
@@ -1179,55 +1182,30 @@
         ================================================= -->
 
         <!-- CENTRO DE NOTIFICACIONES DEL ADMINISTRADOR -->
-        <section id="notificaciones-panel"
-                 class="panel so-notifications"
-                 hidden>
-
-            <div class="so-notifications-head">
+        <!-- =================================================
+             NOTIFICACIONES (admin-notificaciones.js): avisos reales por persona
+             (reembolsos por revisar, devoluciones pendientes, eventos que se llenan)
+             y push en este dispositivo. Admin y operador.
+             ================================================= -->
+        <section id="notificaciones-panel" class="avisos-panel" hidden>
+            <div class="avisos-push" id="avisos-push">
                 <div>
-                    <span class="section-kicker">ACTIVIDAD DE SOIRÉE</span>
-                    <h2>Centro de notificaciones</h2>
-                    <p class="muted">
-                        Reservas, pagos aprobados y boletos emitidos.
-                    </p>
+                    <strong>Avisos en este dispositivo</strong>
+                    <span id="avisos-push-nota">Recibe los avisos aunque no tengas el panel abierto.</span>
                 </div>
-
-                <button type="button"
-                        class="banner-boton"
-                        id="so-notificaciones-recargar">
-                    Actualizar
-                </button>
+                <button type="button" class="avisos-interruptor" id="avisos-push-interruptor"
+                        role="switch" aria-checked="false" aria-label="Activar avisos en este dispositivo"></button>
             </div>
 
-            <div class="so-notifications-stats">
-                <div><span>ACTIVIDAD RECIENTE</span>
-                    <strong id="so-notif-total">—</strong></div>
-                <div><span>RESERVAS</span>
-                    <strong id="so-notif-reservas">—</strong></div>
-                <div><span>PAGOS APROBADOS</span>
-                    <strong id="so-notif-pagos">—</strong></div>
-                <div><span>COMPRAS EMITIDAS</span>
-                    <strong id="so-notif-compras">—</strong></div>
+            <div class="avisos-barra">
+                <p class="catalogo-resumen" id="avisos-resumen" role="status" aria-live="polite"></p>
+                <button type="button" class="banner-boton" id="avisos-leer-todas" hidden>Marcar todo como leído</button>
             </div>
 
-            <div class="so-notifications-filters"
-                 id="so-notificaciones-filtros"
-                 aria-label="Filtrar actividad">
+            <ol class="avisos-lista" id="avisos-lista"></ol>
+            <div class="catalogo-mas">
+                <button type="button" class="banner-boton" id="avisos-ver-mas" hidden>Ver avisos anteriores</button>
             </div>
-
-            <p id="so-notificaciones-estado"
-               class="muted"
-               role="status"
-               aria-live="polite"></p>
-
-            <div id="so-notificaciones-lista"
-                 class="so-notifications-list">
-            </div>
-
-            <p class="so-notifications-footnote">
-                Actividad reciente basada en registros del sistema.
-                Se actualiza automáticamente cada 30 segundos.
-            </p>
         </section>
 
 

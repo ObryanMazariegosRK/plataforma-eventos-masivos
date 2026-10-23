@@ -657,6 +657,71 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .so-notif-mark:hover:not(:disabled) { color: var(--t-texto); }
 .tema-soiree .so-notif-mark:disabled { color: var(--t-tenue); }
 
+/* ---------- Notificaciones (admin-notificaciones.js): push del dispositivo + avisos ---------- */
+.tema-soiree .avisos-panel { display: grid; gap: 16px; }
+.tema-soiree .avisos-panel[hidden] { display: none; }
+
+.tema-soiree .avisos-push {
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    padding: 16px 20px; border: 1px solid var(--t-hilo); border-radius: 16px; background: var(--t-panel); box-shadow: var(--t-sombra);
+}
+.tema-soiree .avisos-push strong { display: block; color: var(--t-texto); font-size: 14.5px; font-weight: 600; }
+.tema-soiree .avisos-push span { display: block; margin-top: 3px; color: var(--t-piedra); font-size: 13px; line-height: 1.45; }
+.tema-soiree .avisos-push.es-aviso span { color: var(--t-rojo); }
+.tema-soiree .avisos-interruptor {
+    position: relative; flex: none; width: 46px; height: 26px; padding: 0;
+    border: 1px solid var(--t-hilo); border-radius: 999px; background: var(--t-velo-2); cursor: pointer;
+    transition: background-color .2s ease, border-color .2s ease;
+}
+.tema-soiree .avisos-interruptor::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--t-piedra); transition: transform .25s cubic-bezier(.2, .7, .15, 1), background-color .2s ease;
+}
+.tema-soiree .avisos-interruptor[aria-checked="true"] { border-color: var(--t-boton); background: var(--t-boton); }
+.tema-soiree .avisos-interruptor[aria-checked="true"]::after { transform: translateX(20px); background: var(--t-boton-texto); }
+.tema-soiree .avisos-interruptor:disabled { opacity: .45; cursor: default; }
+
+.tema-soiree .avisos-barra { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.tema-soiree .avisos-barra .catalogo-resumen { margin: 0; }
+.tema-soiree .avisos-barra .banner-boton[hidden] { display: none; }
+
+.tema-soiree .avisos-lista { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.tema-soiree .aviso {
+    display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px;
+    padding: 16px 20px; border: 1px solid var(--t-hilo); border-radius: 16px; background: var(--t-panel);
+}
+.tema-soiree .aviso.es-nuevo { border-color: var(--t-acento-borde); box-shadow: var(--t-sombra); }
+.tema-soiree .aviso__icono {
+    display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+    background: var(--t-velo-2); color: var(--t-piedra); font-size: 16px;
+}
+.tema-soiree .aviso.es-nuevo .aviso__icono { background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .aviso--devolucion_pendiente.es-nuevo .aviso__icono { background: var(--t-rojo-fondo); color: var(--t-rojo); }
+.tema-soiree .aviso--evento_agotado.es-nuevo .aviso__icono { background: var(--t-verde-fondo); color: var(--t-verde); }
+.tema-soiree .aviso__cuerpo { min-width: 0; }
+.tema-soiree .aviso__cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.tema-soiree .aviso__titulo { margin: 0; color: var(--t-piedra); font-family: var(--t-cuerpo); font-size: 15px; font-weight: 500; }
+.tema-soiree .aviso.es-nuevo .aviso__titulo { color: var(--t-texto); font-weight: 600; }
+.tema-soiree .aviso.es-nuevo .aviso__titulo::before { content: "● "; color: var(--t-acento); font-size: 9px; vertical-align: 2px; }
+.tema-soiree .aviso__hora { flex: none; color: var(--t-tenue); font-size: 12.5px; }
+.tema-soiree .aviso__mensaje { margin: 6px 0 0; color: var(--t-piedra); font-size: 13.5px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.tema-soiree .aviso__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.tema-soiree .aviso__acciones:empty { display: none; }
+.tema-soiree .aviso__boton {
+    padding: 8px 16px; border: 1px solid var(--t-hilo); border-radius: 999px; background: transparent;
+    color: var(--t-texto); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: border-color .2s ease, background-color .2s ease;
+}
+.tema-soiree .aviso__boton:hover { border-color: var(--t-acento); }
+.tema-soiree .aviso__boton.es-principal { border-color: var(--t-boton); background: var(--t-boton); color: var(--t-boton-texto); }
+.tema-soiree .aviso__boton.es-principal:hover { border-color: var(--t-boton-hover); background: var(--t-boton-hover); }
+
+@media (max-width: 560px) {
+    .tema-soiree .aviso { grid-template-columns: 1fr; padding: 16px; }
+    .tema-soiree .aviso__icono { display: none; }
+    .tema-soiree .aviso__cabeza { flex-direction: column; gap: 2px; }
+}
+
 /* ---------- Control de acceso (admin-acceso.js): cámara + resultado + últimos escaneos ---------- */
 .tema-soiree .acceso-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
 .tema-soiree .acceso-panel[hidden] { display: none; }

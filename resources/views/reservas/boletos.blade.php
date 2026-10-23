@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ asset('css/boletos.css') }}?v={{ filemtime(public_path('css/boletos.css')) }}">
     <script src="{{ asset('js/autenticacion.js') }}?v={{ filemtime(public_path('js/autenticacion.js')) }}"></script>
     <script src="{{ asset('js/catalogo.js') }}?v={{ filemtime(public_path('js/catalogo.js')) }}" defer></script>
+    @include('partials.avisos')
     <script src="{{ asset('js/boletos.js') }}?v={{ filemtime(public_path('js/boletos.js')) }}" defer></script>
 </head>
 <body class="pagina-boletos" data-marca="{{ config('marca.nombre') }}">

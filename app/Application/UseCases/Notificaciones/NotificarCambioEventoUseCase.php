@@ -33,12 +33,13 @@ class NotificarCambioEventoUseCase
         return $this->notificarCompradores(
             eventoId: $eventoId,
             asunto: 'Evento cancelado: ' . $evento->nombre,
-            mensaje: 'Te informamos que el evento '
+            mensaje: 'Lamentamos informarte que la función de '
                 . $evento->nombre
-                . ' ha sido cancelado. '
-                . 'La gestión de los reembolsos '
-                . 'se realizará según el proceso correspondiente.',
-            claveBase: 'evento_cancelado:' . $eventoId
+                . ' fue cancelada. '
+                . 'Te devolvemos el 100 % de tu compra automáticamente: '
+                . 'recibirás otro aviso cuando se haga la devolución.',
+            claveBase: 'evento_cancelado:' . $eventoId,
+            tipo: 'evento_cancelado'
         );
     }
 
@@ -90,7 +91,8 @@ class NotificarCambioEventoUseCase
                 . 'Si la nueva fecha no te funciona, puedes pedir el reembolso del 100 % '
                 . 'desde Mis compras, en cualquier momento antes de que empiece la función.',
             claveBase: 'evento_fecha:' . $eventoId
-                . ':' . $nueva->format('YmdHis')
+                . ':' . $nueva->format('YmdHis'),
+            tipo: 'cambio_fecha'
         );
     }
 
@@ -120,7 +122,8 @@ class NotificarCambioEventoUseCase
         int $eventoId,
         string $asunto,
         string $mensaje,
-        string $claveBase
+        string $claveBase,
+        ?string $tipo = null
     ): int {
         $programados = 0;
 
@@ -138,6 +141,7 @@ class NotificarCambioEventoUseCase
                 $asunto,
                 $mensaje,
                 $claveBase,
+                $tipo,
                 &$programados
             ) {
                 foreach ($compradores as $comprador) {
@@ -149,7 +153,9 @@ class NotificarCambioEventoUseCase
                         canal: CanalNotificacion::EMAIL,
                         asunto: $asunto,
                         mensaje: $mensaje,
-                        estado: EstadoNotificacion::PENDIENTE
+                        estado: EstadoNotificacion::PENDIENTE,
+                        tipo: $tipo,
+                        url: '/mis-compras'
                     );
 
                     $guardada = $this->notificaciones->guardarUnica(
