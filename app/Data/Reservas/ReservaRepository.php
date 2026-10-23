@@ -91,6 +91,27 @@ class ReservaRepository implements IReservaRepository
             ->count();
     }
 
+    public function apartadasSinPagar(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora): array
+    {
+        return DB::table('reservas')
+            ->leftJoin('inventario', 'inventario.reserva_id', '=', 'reservas.id')
+            ->where('reservas.usuario_id', $usuarioId)
+            ->where('reservas.evento_id', $eventoId)
+            ->where('reservas.estado', 'activa')
+            ->where('reservas.expira_en', '>', $ahora->format('Y-m-d H:i:s'))
+            ->whereNull('reservas.deleted_at')
+            ->groupBy('reservas.id', 'reservas.total', 'reservas.expira_en')
+            ->orderBy('reservas.expira_en')
+            ->get(['reservas.id', 'reservas.total', 'reservas.expira_en', DB::raw('COUNT(inventario.id) as lugares')])
+            ->map(fn ($r) => [
+                'reserva_id' => (int) $r->id,
+                'lugares'    => (int) $r->lugares,
+                'total'      => (float) $r->total,
+                'expira_en'  => (string) $r->expira_en,
+            ])
+            ->all();
+    }
+
     private function consultaResumen(): \Illuminate\Database\Query\Builder
     {
         return DB::table('reservas')

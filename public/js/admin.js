@@ -3737,7 +3737,15 @@
         try {
             const profile = await loadCurrentUser();
             if (nav) nav.hidden = false;
-            navigate(profile.rol === 'organizador' ? 'eventos' : 'resumen');
+
+            // /admin?seccion=catalogo abre esa sección (p. ej. al volver de la vista de asientos)
+            const pedida = new URLSearchParams(window.location.search).get('seccion');
+            if (pedida) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+            navigate(pedida && pedida in titles && canAccessSection(pedida)
+                ? pedida
+                : profile.rol === 'organizador' ? 'eventos' : 'resumen');
         } catch (error) {
             currentRole = null;
             feedback(error.message, true);

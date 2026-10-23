@@ -40,7 +40,8 @@
 
     // ---- Selección ----
     const cantidadElegida = () => seleccion.size + [...cupos.values()].reduce((a, b) => a + b, 0);
-    const puedeAgregar = () => cantidadElegida() < restantes;
+    let eventoPasado = false;   // ya ocurrió: el plano se ve, pero no se venden boletos
+    const puedeAgregar = () => !eventoPasado && cantidadElegida() < restantes;
 
     function mostrarAviso(texto, tipo = 'error') {
         aviso.textContent = texto;
@@ -132,8 +133,10 @@
 
         clavesPrevias = claves;
         animarTotal(items.reduce((suma, item) => suma + item.precio, 0));
-        boton.disabled = items.length === 0 || restantes === 0;
-        boton.textContent = restantes === 0
+        boton.disabled = eventoPasado || items.length === 0 || restantes === 0;
+        boton.textContent = eventoPasado
+            ? 'Evento finalizado'
+            : restantes === 0
             ? 'Límite alcanzado'
             : items.length ? `Reservar ${cantidadElegida()} y pagar` : 'Reservar y pagar';
     }
@@ -208,6 +211,95 @@
         }
     }
 
+    // ---- Reservas apartadas sin pagar: continuar el pago o liberar los lugares ----
+    // (p. ej. se fue a la pasarela, no pagó y regresó). Vencen solas a los pocos minutos.
+    let pendientes = [];
+    let reloj = null;
+
+    const restante = (iso) => Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000));
+    const mmss = (segundos) => `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`;
+
+    function pintarPendientes(lista) {
+        pendientes = lista;
+        const caja = document.getElementById('pendientes');
+        if (!caja) return;
+        caja.hidden = !lista.length;
+        caja.replaceChildren(...lista.map((p) => {
+            const item = document.createElement('div');
+            item.className = 'pendiente';
+            item.dataset.reserva = p.reserva_id;
+
+            const titulo = document.createElement('strong');
+            titulo.textContent = `Tienes ${p.lugares} ${p.lugares === 1 ? 'lugar apartado' : 'lugares apartados'} sin pagar`;
+            const detalle = document.createElement('span');
+            detalle.className = 'pendiente__detalle';
+            detalle.append(`${MapaAsientos.moneda(p.total)} · se liberan en `);
+            const tiempo = document.createElement('b');
+            tiempo.dataset.vence = p.expira_en;
+            tiempo.textContent = mmss(restante(p.expira_en));
+            detalle.append(tiempo);
+
+            const acciones = document.createElement('div');
+            acciones.className = 'pendiente__acciones';
+            const pagar = document.createElement('button');
+            pagar.type = 'button';
+            pagar.className = 'pendiente__pagar';
+            pagar.textContent = 'Continuar con el pago';
+            pagar.addEventListener('click', async () => {
+                pagar.disabled = true;
+                const error = await Auth.irAPagar(p.reserva_id);
+                if (error) {
+                    mostrarAviso(Auth.mensajeDeError(error));
+                    pagar.disabled = false;
+                }
+            });
+            const liberar = document.createElement('button');
+            liberar.type = 'button';
+            liberar.className = 'pendiente__liberar';
+            liberar.textContent = 'Liberar lugares';
+            liberar.addEventListener('click', async () => {
+                liberar.disabled = true;
+                const respuesta = await Auth.api(`/reservas/${p.reserva_id}`, { metodo: 'DELETE', conToken: true });
+                if (!respuesta.ok) {
+                    mostrarAviso(Auth.mensajeDeError(respuesta));
+                    liberar.disabled = false;
+                    return;
+                }
+                mostrarAviso('Liberamos esos lugares: ya puedes elegir otros.', 'info');
+                await refrescar();
+            });
+            acciones.append(pagar, liberar);
+
+            item.append(titulo, detalle, acciones);
+            return item;
+        }));
+
+        clearInterval(reloj);
+        if (lista.length) reloj = setInterval(contarRegresivo, 1000);
+    }
+
+    // Cuenta regresiva; al vencer, el cupo y el mapa se actualizan (los lugares quedan libres)
+    function contarRegresivo() {
+        let vencio = false;
+        document.querySelectorAll('#pendientes [data-vence]').forEach((nodo) => {
+            const segundos = restante(nodo.dataset.vence);
+            nodo.textContent = mmss(segundos);
+            if (segundos === 0) vencio = true;
+        });
+        if (vencio) {
+            clearInterval(reloj);
+            setTimeout(refrescar, 1500);
+        }
+    }
+
+    async function refrescar() {
+        if (await cargar()) {
+            await cargarCupo();
+            depurarSeleccion();
+            actualizar();
+        }
+    }
+
     // Cuántos boletos más puede apartar (solo con sesión; sin sesión se muestra el máximo)
     async function cargarCupo() {
         if (!Auth.obtenerToken()) return;
@@ -217,11 +309,16 @@
         restantes = respuesta.data.disponibles;
         usados = respuesta.data.usados;
         pintarAyuda();
+        pintarPendientes(respuesta.data.pendientes || []);
 
+        // El máximo puede venir de boletos ya pagados o de lugares apartados sin pagar
+        const pagados = respuesta.data.pagados ?? usados;
         const limite = document.getElementById('limite');
         limite.hidden = restantes > 0;
-        document.getElementById('limiteTexto').textContent =
-            `Ya tienes ${usados} boletos para esta función, el máximo por persona.`;
+        document.getElementById('limiteTexto').textContent = pagados >= respuesta.data.maximo
+            ? `Ya compraste ${pagados} boletos para esta función, el máximo por persona.`
+            : `Llegaste al máximo de ${respuesta.data.maximo} por persona contando tus lugares apartados. Paga o libera esa reserva para elegir otros.`;
+        document.getElementById('limiteCompras').hidden = pagados === 0;
 
         // Una selección guardada (p. ej. antes de iniciar sesión) que ya no cabe: se vacía y se avisa
         if (cantidadElegida() > restantes) {
@@ -243,6 +340,13 @@
             ? new Date(datos.evento.fecha_evento.replace(' ', 'T') + 'Z').toLocaleString('es-GT', { dateStyle: 'full', timeStyle: 'short' })
             : '';
         llenar('[data-datos-evento]', [datos.evento.recinto, fecha].filter(Boolean).join(' · '));
+
+        // Un evento que ya empezó no vende más boletos (el servidor también lo rechaza)
+        eventoPasado = Boolean(datos.evento.fecha_evento)
+            && new Date(datos.evento.fecha_evento.replace(' ', 'T') + 'Z') <= new Date();
+        if (eventoPasado) {
+            mostrarAviso('Este evento ya ocurrió: ya no se venden boletos.', 'info');
+        }
 
         try {
             const guardado = JSON.parse(sessionStorage.getItem(CLAVE) || 'null');

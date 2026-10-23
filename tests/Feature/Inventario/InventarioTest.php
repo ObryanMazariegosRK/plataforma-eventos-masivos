@@ -173,8 +173,12 @@ class InventarioTest extends TestCase
             ->assertJsonPath('message', 'Puedes tener hasta 5 boletos por persona para esta función. Ya tienes 3, así que puedes elegir 2 más.');
         $reservar(2)->assertCreated();
 
-        $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")
-            ->assertOk()->assertExactJson(['maximo' => 5, 'usados' => 5, 'disponibles' => 0]);
+        $cupo = $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")->assertOk();
+        $cupo->assertJsonPath('maximo', 5)->assertJsonPath('usados', 5)->assertJsonPath('disponibles', 0)
+            // los 5 están apartados sin pagar: la página ofrece continuar el pago o liberarlos
+            ->assertJsonPath('pagados', 0)->assertJsonPath('apartados', 5);
+        $this->assertSame([3, 2], array_column($cupo->json('pendientes'), 'lugares'));
+        $this->assertSame($primera, $cupo->json('pendientes.0.reserva_id'));
         $reservar(1)->assertUnprocessable()
             ->assertJsonPath('message', 'Ya tienes 5 boletos para esta función, el máximo por persona.');
 
@@ -182,6 +186,39 @@ class InventarioTest extends TestCase
         DB::table('reservas')->where('id', $primera)->update(['expira_en' => now()->subMinute()]);
         $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")->assertJsonPath('disponibles', 3);
         $reservar(3)->assertCreated();
+    }
+
+    public function test_liberar_una_reserva_pendiente_devuelve_el_cupo(): void
+    {
+        $eventoId = $this->publicar('Auditorio Central', ['VIP' => 300, 'General' => 120]);
+        $general = $this->localidad('Auditorio Central', 'General');
+        $token = $this->crearUsuario('ana@example.com')->createToken('t')->plainTextToken;
+
+        $reserva = $this->withToken($token)->postJson('/api/reservas', [
+            'evento_id' => $eventoId, 'cupos' => [['localidad_id' => $general, 'cantidad' => 5]],
+        ])->assertCreated()->json('id');
+        $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")->assertJsonPath('disponibles', 0);
+
+        // Se fue a la pasarela, no pagó y regresó: libera los lugares desde el plano
+        $this->withToken($token)->deleteJson("/api/reservas/{$reserva}")->assertOk();
+
+        $this->withToken($token)->getJson("/api/eventos/{$eventoId}/mi-cupo")
+            ->assertJsonPath('disponibles', 5)->assertJsonPath('pendientes', []);
+        $this->assertSame(0, DB::table('inventario')->where('reserva_id', $reserva)->count());
+    }
+
+    public function test_no_se_pueden_apartar_lugares_de_un_evento_que_ya_ocurrio(): void
+    {
+        $eventoId = $this->publicar('Auditorio Central', ['VIP' => 300, 'General' => 120]);
+        $general = $this->localidad('Auditorio Central', 'General');
+        $token = $this->crearUsuario('ana@example.com')->createToken('t')->plainTextToken;
+        // Sigue "publicado", pero ya pasó su fecha
+        DB::table('eventos')->where('id', $eventoId)->update(['fecha_evento' => now()->subHour()]);
+
+        $this->withToken($token)->postJson('/api/reservas', [
+            'evento_id' => $eventoId, 'cupos' => [['localidad_id' => $general, 'cantidad' => 1]],
+        ])->assertUnprocessable()->assertJsonPath('errors.evento_id.0', 'Este evento ya ocurrió: ya no se venden boletos.');
+        $this->assertSame(0, DB::table('reservas')->count());
     }
 
     public function test_el_maximo_es_por_persona_y_por_evento(): void

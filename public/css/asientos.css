@@ -535,3 +535,48 @@ body.pagina-asientos {
 }
 
 
+
+/* Lugares apartados sin pagar: continuar el pago o liberarlos */
+.asientos-app .pendientes { display: grid; gap: 10px; margin: 0 0 14px; }
+.asientos-app .pendientes[hidden] { display: none; }
+.asientos-app .pendiente {
+    display: grid; gap: 6px; padding: 14px 16px;
+    border: 1px solid rgba(217, 163, 91, .45); border-left-width: 2px;
+    background: rgba(217, 163, 91, .07); color: var(--piedra); font-size: 13px; line-height: 1.5;
+}
+.asientos-app .pendiente strong { color: var(--marfil); font-weight: 500; }
+.asientos-app .pendiente__detalle b { color: var(--apartado); font-weight: 500; font-variant-numeric: tabular-nums; }
+.asientos-app .pendiente__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.asientos-app .pendiente__acciones button {
+    padding: 9px 14px; font: 500 10.5px var(--cuerpo); letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+.asientos-app .pendiente__pagar { border: 1px solid var(--marfil); background: var(--marfil); color: var(--tinta); }
+.asientos-app .pendiente__pagar:hover:not(:disabled) { background: transparent; color: var(--marfil); }
+.asientos-app .pendiente__liberar { border: 1px solid var(--hilo-fuerte); background: transparent; color: var(--piedra); }
+.asientos-app .pendiente__liberar:hover:not(:disabled) { border-color: var(--marfil); color: var(--marfil); }
+.asientos-app .pendiente__acciones button:disabled { opacity: .5; cursor: wait; }
+
+/* Vista de ocupación (admin): regresar al catálogo de eventos del panel */
+.pagina-asientos .cabecera__inicio { display: flex; align-items: center; gap: 18px; }
+.pagina-asientos .cabecera__volver {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--piedra); font-size: 11px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
+    text-decoration: none; transition: color .3s ease;
+}
+.pagina-asientos .cabecera__flecha {
+    display: grid; place-items: center; width: 34px; height: 34px;
+    border: 1px solid var(--hilo-fuerte); border-radius: 50%;
+    transition: border-color .3s ease, background-color .3s ease, color .3s ease;
+}
+.pagina-asientos .cabecera__flecha svg { width: 16px; height: 16px; transition: transform .35s cubic-bezier(.2, .7, .15, 1); }
+.pagina-asientos .cabecera__volver:hover, .pagina-asientos .cabecera__volver:focus-visible { color: var(--marfil); outline: none; }
+.pagina-asientos .cabecera__volver:hover .cabecera__flecha, .pagina-asientos .cabecera__volver:focus-visible .cabecera__flecha {
+    border-color: var(--marfil); background: var(--marfil); color: var(--tinta);
+}
+.pagina-asientos .cabecera__volver:hover svg, .pagina-asientos .cabecera__volver:focus-visible svg { transform: translateX(-3px); }
+.pagina-asientos .cabecera__separador { width: 1px; height: 22px; background: var(--hilo-fuerte); }
+@media (max-width: 640px) {
+    .pagina-asientos .cabecera__inicio { gap: 12px; }
+    .pagina-asientos .cabecera__volver-texto, .pagina-asientos .cabecera__separador { display: none; }
+}

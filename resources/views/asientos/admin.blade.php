@@ -12,7 +12,17 @@
 </head>
 <body class="pagina-asientos">
     <header class="cabecera">
-        <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
+        <div class="cabecera__inicio">
+            {{-- Regresar al catálogo de eventos del panel --}}
+            <a href="/admin?seccion=catalogo" class="cabecera__volver" aria-label="Volver al catálogo de eventos">
+                <span class="cabecera__flecha" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+                </span>
+                <span class="cabecera__volver-texto">Catálogo de eventos</span>
+            </a>
+            <span class="cabecera__separador" aria-hidden="true"></span>
+            <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
+        </div>
         <nav class="cabecera__enlaces">
             <a href="/admin">Panel de administración</a>
         </nav>

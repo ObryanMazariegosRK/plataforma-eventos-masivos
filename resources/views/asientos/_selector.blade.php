@@ -34,10 +34,14 @@ Requiere: css/asientos.css, js/autenticacion.js, js/asientos.js y js/seleccion-a
 
         <div class="aviso" id="aviso" role="alert"></div>
 
+        {{-- Lugares apartados sin pagar (cuentan para el máximo mientras no vencen):
+             continuar el pago o liberarlos (seleccion-asientos.js) --}}
+        <div class="pendientes" id="pendientes" hidden></div>
+
         {{-- Ya tiene el máximo de boletos por persona para este evento --}}
         <p class="limite" id="limite" hidden>
             <span id="limiteTexto"></span>
-            <a href="{{ route('reservas.mis-compras') }}">Ver mis compras</a>
+            <a href="{{ route('reservas.mis-compras') }}" id="limiteCompras">Ver mis compras</a>
         </p>
 
         <ul class="lista" id="lista" data-lenis-prevent></ul>
