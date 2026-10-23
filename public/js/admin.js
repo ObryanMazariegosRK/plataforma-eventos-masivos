@@ -17,8 +17,8 @@
             'Consulta los usuarios registrados y sus roles.'
         ],
         eventos: [
-            'Gestión de eventos',
-            'Crea, edita y administra eventos de Soirée.'
+            'Crear un nuevo evento',
+            ''
         ],
         reservas: [
             'Gestión de reservas',
@@ -1787,7 +1787,12 @@
         }
 
         clearFormFeedback();
+
+        // En Eventos el formulario de crear siempre está abierto: al cerrar uno de edición
+        // (o al guardar) se vuelve a él. Si hay que regresar al catálogo, no.
+        const reabrir = section === 'eventos' && !regresarA;
         volverSiHaceFalta();
+        if (reabrir) openEventForm();
     }
 
     // =====================================================
@@ -2379,21 +2384,11 @@
                     lista.append(fila);
                 }
 
-                const boton = actionButton(
-                    data.editable
-                        ? 'Editar y guardar precios'
-                        : 'Consultar gestión de precios',
-                    'evento-action',
-                    () => openPrices(eventoId)
-                );
-
-                lista.append(boton);
 
                 if (!data.editable && mensaje) {
                     mensaje.textContent =
-                        'Las tarifas están protegidas para este evento. ' +
-                        'Puedes consultarlas, pero no modificarlas ' +
-                        'mientras la API no autorice el cambio.';
+                        'Este evento ya está publicado: puedes consultar sus precios, ' +
+                        'pero ya no se pueden modificar.';
                     mensaje.hidden = false;
                 }
 
@@ -2496,10 +2491,33 @@
         }
     }
 
+    let aperturasFormulario = 0;
+
+    async function guardarPreciosDelBorrador(eventoId) {
+        const campos = [...$('evento-localidades-lista').querySelectorAll('input[data-localidad-id]:not(:disabled)')];
+        if (!campos.length) return;
+
+        const precios = campos.map(input => ({
+            localidad_id: Number(input.dataset.localidadId),
+            precio: input.value.trim()
+        }));
+
+        try {
+            await api('eventos/' + eventoId + '/precios', {
+                method: 'PUT',
+                body: JSON.stringify({ precios })
+            });
+        } catch (error) {
+            throw new Error('El evento se guardó, pero no sus precios: ' + error.message);
+        }
+    }
+
     async function openEventForm(evento = null) {
         if (section !== 'eventos') {
             return;
         }
+
+        const apertura = ++aperturasFormulario;
 
         editingEventId = evento ? evento.id : null;
         editingPublished = evento?.estado === 'publicado';
@@ -2511,7 +2529,20 @@
 
         $('evento-form-title').textContent = editingPublished
             ? 'Modificar evento publicado'
-            : evento ? 'Editar evento' : 'Crear nuevo evento';
+            : evento ? 'Editar evento' : 'Datos del evento';
+
+        // El encabezado de la sección dice qué se está haciendo
+        if (evento) {
+            const texto = editingPublished ? 'Modificar evento publicado' : 'Editar evento';
+            const palabras = texto.split(' ');
+            $('page-title').replaceChildren(
+                document.createTextNode(palabras.slice(0, -1).join(' ') + ' '),
+                el('em', palabras.at(-1))
+            );
+        } else {
+            updateHeader();
+        }
+        $('evento-form-panel').dataset.modo = evento ? 'editar' : 'crear';
 
         $('btn-guardar-evento').textContent = evento
             ? 'Guardar cambios'
@@ -2555,6 +2586,7 @@
 
         try {
             await loadRecintos(evento?.recinto_id ?? '');
+            if (apertura !== aperturasFormulario) return;
             await loadVenueLocalities(
                 $('evento-recinto').value,
                 evento?.id ?? null
@@ -2562,6 +2594,9 @@
         } catch (error) {
             formFeedback(error.message, true);
         }
+
+        // Otra apertura empezó mientras se cargaba esta (p. ej. Editar desde el catálogo)
+        if (apertura !== aperturasFormulario) return;
 
         // En publicados, fecha y recinto son solo de consulta.
         const recintoCampo = $('evento-recinto');
@@ -3177,6 +3212,11 @@
 
                 const result = await response.json();
 
+                // Al editar un borrador, sus precios se guardan junto con el evento
+                if (isEditing && !isPublishedEdit) {
+                    await guardarPreciosDelBorrador(editingEventId);
+                }
+
                 // Al editar, los costos se guardan aparte (admin-costos.js; solo si cambiaron)
                 if (isEditing) {
                     await window.AdminCostos?.guardar(editingEventId);
@@ -3184,7 +3224,7 @@
 
                 // El borrador del formulario ya no hace falta (admin-evento-formulario.js)
                 document.dispatchEvent(new CustomEvent('admin:evento-guardado', {
-                    detail: { creado: !isEditing }
+                    detail: { creado: !isEditing, nombre: payload.nombre, publicado: isPublishedEdit }
                 }));
 
                 closeEventForm();

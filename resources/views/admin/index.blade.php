@@ -379,17 +379,6 @@
                     posible grandes experiencias.
                 </p>
 
-                {{-- Solo en la sección de eventos (admin-tema.css): antes estaba en un
-                     recuadro aparte (#eventos-tools) que repetía este mismo encabezado --}}
-                <div class="hero-acciones">
-                    <button
-                        type="button"
-                        class="primary"
-                        id="btn-nuevo-evento">
-                        + Nuevo evento
-                    </button>
-                </div>
-
             </div>
 
             <span class="user-pill">
@@ -523,7 +512,6 @@
         </p>
     </div>
 
-    {{-- El botón "+ Nuevo evento" pasó al encabezado (.hero-acciones) --}}
 
 </div>
 
@@ -588,7 +576,52 @@
                     required>
             </label>
 
+
             <label>
+                Fecha y hora
+
+                <input
+                    name="fecha_evento"
+                    type="datetime-local"
+                    required>
+            </label>
+
+            {{-- Título de la primera escena de la experiencia (admin-evento-formulario.js lleva la cuenta) --}}
+            <label class="evento-full evento-frase">
+                <span>Frase destacada <span class="evento-frase__opcional">(opcional)</span></span>
+
+                <input
+                    type="text"
+                    name="frase_destacada"
+                    id="evento-frase"
+                    maxlength="70"
+                    autocomplete="off"
+                    placeholder="Ej. Tres décadas de jazz en una sola noche"
+                    aria-describedby="evento-frase-ayuda evento-frase-contador">
+
+                <span class="evento-frase__pie">
+                    <small id="evento-frase-ayuda">Encabeza la primera escena de la experiencia. Si la dejas vacía, se usa el nombre del evento.</small>
+                    <small class="evento-frase__contador" id="evento-frase-contador" aria-live="polite">0 / 70</small>
+                </span>
+            </label>
+
+            <label class="evento-full">
+                Descripción
+
+                <textarea
+                    name="descripcion"
+                    id="evento-descripcion"
+                    rows="4"
+                    maxlength="10000"
+                    placeholder="Describe el evento..."
+                    aria-describedby="evento-descripcion-ayuda evento-descripcion-contador"></textarea>
+                <span class="evento-frase__pie">
+                    <small id="evento-descripcion-ayuda">El inicio de la descripción también aparece en la primera escena de la experiencia.</small>
+                    <small class="evento-frase__contador" id="evento-descripcion-contador" aria-live="polite">0 / 10,000</small>
+                </span>
+            </label>
+
+            <label class="evento-recinto">
                 Recinto
 
                 <select
@@ -607,44 +640,6 @@
                 </button>
             </label>
 
-            <label>
-                Fecha y hora
-
-                <input
-                    name="fecha_evento"
-                    type="datetime-local"
-                    required>
-            </label>
-
-            <label class="evento-full">
-                Descripción
-
-                <textarea
-                    name="descripcion"
-                    rows="4"
-                    maxlength="10000"
-                    placeholder="Describe el evento..."></textarea>
-                <small class="evento-image-help">El inicio de la descripción también aparece en la primera escena de la experiencia.</small>
-            </label>
-
-            {{-- Título de la primera escena de la experiencia (admin-evento-formulario.js lleva la cuenta) --}}
-            <label class="evento-full evento-frase">
-                <span>Frase destacada <span class="evento-frase__opcional">(opcional)</span></span>
-
-                <input
-                    type="text"
-                    name="frase_destacada"
-                    id="evento-frase"
-                    maxlength="90"
-                    autocomplete="off"
-                    placeholder="Ej. Tres décadas de jazz en una sola noche"
-                    aria-describedby="evento-frase-ayuda evento-frase-contador">
-
-                <span class="evento-frase__pie">
-                    <small id="evento-frase-ayuda">Encabeza la primera escena de la experiencia. Si la dejas vacía, se usa el nombre del evento.</small>
-                    <small class="evento-frase__contador" id="evento-frase-contador" aria-live="polite">0 / 90</small>
-                </span>
-            </label>
 
             {{-- Plano del recinto, desplegable (no ocupa espacio hasta que se pide) --}}
             <div class="evento-full evento-plano asientos-app" id="evento-plano" hidden>
@@ -729,6 +724,11 @@
                     GTQ · Quetzales
                 </span>
             </div>
+
+            <p class="evento-precios-aviso" id="evento-precios-aviso" hidden>
+                <strong>Revisa bien los precios.</strong> Puedes cambiarlos mientras el evento sea borrador,
+                pero una vez publicado ya no se podrán modificar.
+            </p>
 
             <div id="evento-localidades-lista"
                  class="evento-localidades-lista"

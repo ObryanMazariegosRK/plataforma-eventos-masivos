@@ -43,7 +43,7 @@ class GuardarEventoRequest extends FormRequest
             ],
 
             // Título de la primera escena de la experiencia (si falta, el nombre del evento)
-            'frase_destacada' => ['nullable', 'string', 'max:90'],
+            'frase_destacada' => ['nullable', 'string', 'max:70'],
             // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
             'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
@@ -83,7 +83,7 @@ class GuardarEventoRequest extends FormRequest
     {
         return [
             'frase_destacada.max' =>
-                'La frase destacada puede tener hasta 90 caracteres.',
+                'La frase destacada puede tener hasta 70 caracteres.',
             'imagen_url.required' =>
                 'Sube la foto principal del evento (portada y primera escena).',
             'imagen_url_2.required' =>

@@ -1208,3 +1208,58 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .evento-frase__pie small { color: var(--t-tenue); font-size: 12px; font-weight: 400; }
 .tema-soiree .evento-frase__contador { flex: none; font-variant-numeric: tabular-nums; }
 .tema-soiree .evento-frase__contador[data-lleno="true"] { color: var(--t-acento); font-weight: 600; }
+
+/* ---------- Eventos: el formulario de crear siempre está abierto ---------- */
+.tema-soiree #page-subtitle:empty { display: none; }
+.tema-soiree #evento-form-panel[data-modo="crear"] #btn-cerrar-evento { display: none; }
+.tema-soiree .evento-plano { scroll-margin-top: 90px; }
+
+/* Mensajes del formulario (antes verde/celeste fijo): legibles en claro y en oscuro */
+.tema-soiree .evento-form-feedback {
+    border: 1px solid var(--t-acento-borde); border-radius: 12px;
+    background: var(--t-acento-suave); color: var(--t-texto); line-height: 1.5;
+}
+.tema-soiree .evento-form-feedback.error { border-color: transparent; background: var(--t-rojo-fondo); color: var(--t-rojo); }
+
+/* Aviso: los precios quedan fijos al publicar */
+.tema-soiree .evento-precios-aviso {
+    margin: 0 0 14px; padding: 10px 14px 10px 40px; position: relative;
+    border-left: 3px solid var(--t-acento); border-radius: 0 10px 10px 0;
+    background: var(--t-panel); color: var(--t-piedra); font-size: 13px; line-height: 1.5;
+}
+.tema-soiree .evento-precios-aviso::before { content: "!"; position: absolute; left: 14px; top: 10px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--t-acento); color: var(--t-panel); font-size: 12px; font-weight: 700; }
+.tema-soiree .evento-precios-aviso strong { color: var(--t-texto); }
+.tema-soiree .evento-precios-aviso[hidden] { display: none; }
+
+/* ---------- Modal de éxito / confirmación (admin-evento-formulario.js) ---------- */
+.tema-soiree .evento-modal {
+    width: min(420px, calc(100% - 32px)); padding: 34px 30px 26px;
+    border: 1px solid var(--t-hilo); border-radius: 22px;
+    background: var(--t-panel); color: var(--t-texto); box-shadow: var(--t-sombra-dialogo);
+    text-align: center;
+}
+.tema-soiree .evento-modal::backdrop { background: rgba(13, 12, 11, .55); backdrop-filter: blur(3px); }
+.tema-soiree .evento-modal[open] { animation: evento-modal-entra .32s cubic-bezier(.2, .7, .15, 1); }
+.tema-soiree .evento-modal[open]::backdrop { animation: evento-modal-velo .32s ease; }
+@keyframes evento-modal-entra { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+@keyframes evento-modal-velo { from { opacity: 0; } }
+.tema-soiree .evento-modal__icono {
+    display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 18px;
+    border: 1px solid var(--t-acento-borde); border-radius: 50%;
+    background: var(--t-acento-suave); color: var(--t-acento); font: 500 26px var(--t-titulo);
+}
+.tema-soiree .evento-modal__titulo { margin: 0 0 10px; font: 500 30px/1.1 var(--t-titulo); color: var(--t-texto); }
+.tema-soiree .evento-modal__texto { margin: 0 auto 24px; max-width: 32ch; color: var(--t-piedra); font-size: 14px; line-height: 1.55; }
+.tema-soiree .evento-modal__acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.tema-soiree .evento-modal__boton {
+    min-width: 140px; padding: 11px 20px; border: 1px solid var(--t-hilo-2); border-radius: 999px;
+    background: transparent; color: var(--t-texto); font: 500 13.5px var(--t-cuerpo); cursor: pointer;
+    transition: background-color .2s ease, border-color .2s ease;
+}
+.tema-soiree .evento-modal__boton:hover { border-color: var(--t-acento); }
+.tema-soiree .evento-modal__boton.es-principal { border-color: var(--t-boton); background: var(--t-boton); color: var(--t-boton-texto); }
+.tema-soiree .evento-modal__boton.es-principal:hover { border-color: var(--t-boton-hover); background: var(--t-boton-hover); }
+.tema-soiree .evento-modal__boton:focus-visible { outline: 2px solid var(--t-acento); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    .tema-soiree .evento-modal[open], .tema-soiree .evento-modal[open]::backdrop { animation: none; }
+}

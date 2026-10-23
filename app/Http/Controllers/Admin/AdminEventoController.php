@@ -191,7 +191,7 @@ class AdminEventoController extends Controller
             'descripcion' => [
                 'nullable', 'string', 'max:10000',
             ],
-            'frase_destacada' => ['nullable', 'string', 'max:90'],
+            'frase_destacada' => ['nullable', 'string', 'max:70'],
             'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
             'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
             'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],

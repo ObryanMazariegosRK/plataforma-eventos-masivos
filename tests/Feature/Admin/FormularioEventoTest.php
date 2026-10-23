@@ -121,12 +121,12 @@ class FormularioEventoTest extends TestCase
         $this->assertGreaterThan(strpos($html, 'eventos/dos.webp'), strpos($html, 'eventos/tres.webp'));
     }
 
-    public function test_la_frase_destacada_se_guarda_con_un_maximo_de_90_caracteres(): void
+    public function test_la_frase_destacada_se_guarda_con_un_maximo_de_70_caracteres(): void
     {
         [$recinto, $platea, $general] = $this->teatro();
         Sanctum::actingAs($this->operador());
 
-        $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => str_repeat('a', 91)]))
+        $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => str_repeat('a', 71)]))
             ->assertStatus(422)->assertJsonValidationErrors('frase_destacada');
 
         $this->postJson('/api/admin/eventos', $this->evento($recinto, [$platea, $general], ['frase_destacada' => 'Tres décadas de jazz en una sola noche']))

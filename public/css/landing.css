@@ -464,3 +464,6 @@ em { font-style: italic; }
 @media (prefers-reduced-motion: reduce) {
     .cabecera__flecha svg { transition: none; }
 }
+
+/* Títulos y textos de las escenas: una palabra larga se parte en vez de salirse de la pantalla */
+.parada__titulo, .parada__texto { overflow-wrap: anywhere; }

@@ -30,6 +30,38 @@ document.addEventListener('DOMContentLoaded', () => {
     let restaurando = false;        // mientras se recupera el borrador no se vuelve a guardar
 
     // =====================================================
+    // Modal (éxito al guardar, confirmar al limpiar)
+    // =====================================================
+    function dialogo({ icono = '✓', titulo, texto, botones }) {
+        const modal = document.createElement('dialog');
+        modal.className = 'evento-modal';
+        modal.setAttribute('aria-labelledby', 'evento-modal-titulo');
+        const marca = crear('span', 'evento-modal__icono', icono);
+        marca.setAttribute('aria-hidden', 'true');
+        const titular = crear('h2', 'evento-modal__titulo', titulo);
+        titular.id = 'evento-modal-titulo';
+        const acciones = crear('div', 'evento-modal__acciones');
+        botones.forEach(({ texto: etiqueta, principal, alElegir }) => {
+            const boton = crear('button', principal ? 'evento-modal__boton es-principal' : 'evento-modal__boton', etiqueta);
+            boton.type = 'button';
+            boton.addEventListener('click', () => {
+                modal.close();
+                alElegir?.();
+            });
+            acciones.append(boton);
+        });
+        modal.append(marca, titular, crear('p', 'evento-modal__texto', texto), acciones);
+        modal.addEventListener('close', () => setTimeout(() => modal.remove(), 250));
+        // Clic fuera de la tarjeta = cerrar
+        modal.addEventListener('click', (evento) => {
+            if (evento.target === modal) modal.close();
+        });
+        document.body.append(modal);
+        modal.showModal();
+        acciones.querySelector('.es-principal')?.focus();
+    }
+
+    // =====================================================
     // 1. Fotos
     // =====================================================
     const MAX_MB = Number((document.querySelector('.evento-fotos legend span')?.textContent.match(/(\d+)\s*MB/) || [])[1] || 8);
@@ -121,14 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
         $('evento-fotos').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, true);
 
-    // Frase destacada: contador de caracteres
-    const frase = $('evento-frase');
-    const contarFrase = () => {
-        const contador = $('evento-frase-contador');
-        contador.textContent = `${frase.value.length} / ${frase.maxLength}`;
-        contador.dataset.lleno = String(frase.value.length >= frase.maxLength);
-    };
-    frase.addEventListener('input', contarFrase);
+    // Frase destacada y descripción: contador de caracteres
+    const numero = new Intl.NumberFormat('es-GT');
+    const contadores = [[$('evento-frase'), $('evento-frase-contador')], [$('evento-descripcion'), $('evento-descripcion-contador')]];
+    const contarFrase = () => contadores.forEach(([campo, contador]) => {
+        if (!campo || !contador) return;
+        contador.textContent = `${numero.format(campo.value.length)} / ${numero.format(campo.maxLength)}`;
+        contador.dataset.lleno = String(campo.value.length >= campo.maxLength);
+    });
+    contadores.forEach(([campo]) => campo?.addEventListener('input', contarFrase));
 
     // =====================================================
     // 2. Plano del recinto
@@ -164,7 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
         botonPlano.setAttribute('aria-expanded', 'true');
         botonPlano.textContent = 'Ocultar plano';
         const mapa = $('evento-plano-mapa');
-        if (mapa.dataset.recinto === recinto.value) return;
+        if (mapa.dataset.recinto === recinto.value) {
+            panelPlano.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
 
         mapa.replaceChildren(crear('p', 'evento-plano__estado', 'Cargando el plano…'));
         try {
@@ -176,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
             datosPlano = cuerpo.data;
             mapa.dataset.recinto = recinto.value;
             dibujarPlano();
+            panelPlano.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (error) {
             mapa.replaceChildren(crear('p', 'evento-plano__estado', error.message));
         }
@@ -243,7 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sugeridos = calcularSugeridos();
         const editables = campos.some((c) => !c.disabled);
-        $('sugerencia-usar').hidden = !editables || costos <= 0;
+        // Evento publicado: sus precios ya no cambian, no hay nada que sugerir
+        sugerencia.hidden = !editables;
+        if (!editables) return;
+        $('sugerencia-usar').hidden = costos <= 0;
 
         campos.forEach((campo) => {
             const fila = campo.closest('.evento-precio-fila') || campo.parentElement;
@@ -446,8 +486,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // =====================================================
     // Al abrir el formulario y al guardar (avisos de admin.js)
     // =====================================================
+    const cancelar = $('btn-cancelar-evento');
+
+    // Mientras se crea, "Cancelar" no cierra nada (el formulario siempre está abierto): limpia
+    cancelar?.addEventListener('click', (evento) => {
+        if (!modoNuevo) return;
+        evento.preventDefault();
+        evento.stopImmediatePropagation();
+        dialogo({
+            icono: '↺',
+            titulo: '¿Empezar de nuevo?',
+            texto: 'Se borrará todo lo que escribiste en este evento, incluidas las fotos elegidas.',
+            botones: [
+                { texto: 'Seguir editando' },
+                { texto: 'Limpiar formulario', principal: true, alElegir: descartarBorrador },
+            ],
+        });
+    }, true);
+
     document.addEventListener('admin:formulario-evento', (evento) => {
         modoNuevo = evento.detail?.eventoId == null;
+        if (cancelar) cancelar.textContent = modoNuevo ? 'Limpiar formulario' : 'Cancelar';
+        const subtitulo = $('evento-form-title')?.nextElementSibling;
+        if (subtitulo) {
+            subtitulo.textContent = modoNuevo
+                ? 'Completa la información para guardar el evento como borrador.'
+                : evento.detail?.publicado
+                    ? 'Los cambios se verán en la cartelera al guardarlos. Fecha, recinto y precios ya no se pueden cambiar.'
+                    : 'Revisa los datos y guarda los cambios. Sigue siendo un borrador.';
+        }
+        // Los precios quedan fijos al publicar: se avisa mientras todavía se pueden cambiar
+        $('evento-precios-aviso').hidden = Boolean(evento.detail?.publicado);
         $('evento-fotos-mensaje').hidden = true;
         casillas.forEach((c) => {
             c.querySelector('.evento-foto__estado').textContent = '';
@@ -471,12 +540,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('admin:evento-guardado', (evento) => {
-        if (!evento.detail?.creado) return;
-        clearTimeout(espera);
-        try {
-            localStorage.removeItem(CLAVE);
-        } catch {
-            // nada que borrar
+        const { creado, nombre, publicado } = evento.detail || {};
+
+        if (creado) {
+            clearTimeout(espera);
+            try {
+                localStorage.removeItem(CLAVE);
+            } catch {
+                // nada que borrar
+            }
+            dialogo({
+                titulo: '¡Evento creado!',
+                texto: `«${nombre}» quedó guardado como borrador. Cuando esté listo, publícalo desde el Catálogo de eventos.`,
+                botones: [
+                    { texto: 'Ir al catálogo', alElegir: () => document.querySelector('#nav [data-section="catalogo"]')?.click() },
+                    { texto: 'Crear otro evento', principal: true },
+                ],
+            });
+            return;
         }
+
+        dialogo({
+            titulo: 'Cambios guardados',
+            texto: publicado
+                ? `Los cambios de «${nombre}» ya se ven en la cartelera.`
+                : `Los cambios de «${nombre}» se guardaron correctamente.`,
+            botones: [{ texto: 'Aceptar', principal: true }],
+        });
     });
 });
