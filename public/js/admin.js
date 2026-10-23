@@ -2662,90 +2662,6 @@
     }
 
     // =====================================================
-    // CAMBIAR IMAGEN DE EVENTOS PUBLICADOS
-    // =====================================================
-
-    async function changeEventImage(id) {
-        try {
-            const evento = await fetchEvent(id);
-
-            const entrada = window.prompt(
-                'Fotografía del evento: ' + evento.nombre +
-                '\n\nIntroduce una URL HTTPS.\n' +
-                'Deja el campo vacío para quitar la imagen:',
-                evento.imagen_url || ''
-            );
-
-            if (entrada === null) {
-                return;
-            }
-
-            const imagenUrl = entrada.trim();
-
-            if (imagenUrl) {
-                try {
-                    const url = new URL(imagenUrl);
-
-                    if (url.protocol !== 'https:') {
-                        feedback(
-                            'La imagen debe utilizar HTTPS.',
-                            true
-                        );
-                        return;
-                    }
-                } catch {
-                    feedback(
-                        'Introduce una URL válida.',
-                        true
-                    );
-                    return;
-                }
-
-                if (imagenUrl.length > 2048) {
-                    feedback(
-                        'La URL no puede superar 2048 caracteres.',
-                        true
-                    );
-                    return;
-                }
-            }
-
-            const confirmado = window.confirm(
-                '¿Actualizar la fotografía del evento "' +
-                evento.nombre + '"?'
-            );
-
-            if (!confirmado) {
-                return;
-            }
-
-            feedback('Actualizando fotografía...');
-
-            const response = await api(
-                'eventos/' + id + '/imagen',
-                {
-                    method: 'PATCH',
-                    body: JSON.stringify({
-                        imagen_url: imagenUrl || null
-                    })
-                }
-            );
-
-            const result = await response.json();
-
-            await load();
-
-            feedback(
-                result.message ||
-                'Fotografía actualizada correctamente.'
-            );
-
-        } catch (error) {
-            feedback(error.message, true);
-        }
-    }
-
-    // =====================================================
     // VER EVENTO
     // =====================================================
 
@@ -2779,7 +2695,6 @@
                     <button type="button" class="so-icon-close" id="so-event-close" aria-label="Cerrar detalles">×</button>
                 </header>
                 <div id="so-dialog-content" class="so-dialog-content"></div>
-                <footer class="so-dialog-actions" id="so-dialog-actions"></footer>
             </div>`;
         document.body.append(dialog);
         $('so-event-close').addEventListener('click', () => dialog.close());
@@ -2800,9 +2715,7 @@
             const evento = await fetchEvent(id);
             const dialog = ensureEventDrawer();
             const content = $('so-dialog-content');
-            const actions = $('so-dialog-actions');
             content.replaceChildren();
-            actions.replaceChildren();
 
             const hero = el('div', undefined, 'so-dialog-cover');
             const validImage = safeEventImage(evento.imagen_url);
@@ -2830,7 +2743,7 @@
             details.append(
                 detailRow('Fecha y hora', formatCell('fecha_evento', evento.fecha_evento)),
                 detailRow('Recinto', evento.recinto?.nombre || evento.recinto || 'Consulta el catálogo'),
-                detailRow('Estado', evento.estado),
+                detailRow('Estado', (evento.estado || '').replace(/^./, letra => letra.toUpperCase())),
                 detailRow('Identificador', '#' + evento.id)
             );
             content.append(details);
@@ -2842,23 +2755,6 @@
             );
             content.append(about);
 
-            const closeButton = actionButton('Cerrar', 'so-button-quiet', () => dialog.close());
-            actions.append(closeButton);
-            if (evento.estado === 'borrador') {
-                actions.append(actionButton('Editar evento', 'so-button-primary', () => {
-                    dialog.close();
-                    editEvent(evento.id);
-                }));
-            } else {
-                // Inventario: plano de ocupación en vivo
-                actions.append(actionButton('Ver asientos', 'so-button-quiet', () => {
-                    window.location.href = '/admin/eventos/' + evento.id + '/asientos';
-                }));
-                actions.append(actionButton('Cambiar imagen', 'so-button-primary', () => {
-                    dialog.close();
-                    changeEventImage(evento.id);
-                }));
-            }
             dialog.showModal();
         } catch (error) {
             feedback(error.message, true);

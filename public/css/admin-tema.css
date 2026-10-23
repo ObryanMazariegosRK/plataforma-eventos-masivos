@@ -1265,3 +1265,56 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 }
 /* Texto guardado antes del límite actual: hay que recortarlo para poder guardar */
 .tema-soiree .evento-frase__contador[data-excedido="true"] { color: var(--t-rojo); }
+
+/* ---------- Detalle del evento (catálogo → "Ver detalles"): modal centrado ---------- */
+/* Antes era un panel pegado a la derecha con el encabezado fijo; ahora es una tarjeta al
+   centro, el encabezado se desplaza con el contenido y no tiene botones al pie (la X cierra). */
+.tema-soiree .so-event-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(620px, calc(100% - 32px));
+    max-width: none;
+    height: fit-content;
+    max-height: min(88dvh, 880px);
+    border: 1px solid var(--t-hilo);
+    border-radius: 22px;
+    background: var(--t-panel);
+    box-shadow: var(--t-sombra-dialogo);
+    overflow-y: auto;
+}
+.tema-soiree .so-event-dialog[open] { animation: detalle-evento-entra .3s cubic-bezier(.2, .7, .15, 1) both; }
+.tema-soiree .so-event-dialog[open]::backdrop { animation: detalle-evento-velo .3s ease both; }
+@keyframes detalle-evento-entra { from { opacity: 0; transform: translateY(16px) scale(.97); } }
+@keyframes detalle-evento-velo { from { opacity: 0; } }
+.tema-soiree .so-event-dialog .so-dialog-shell { min-height: 0; }
+.tema-soiree .so-event-dialog .so-dialog-header {
+    position: static;
+    padding: 22px 26px 6px;
+    border-bottom: 0;
+    background: transparent;
+}
+.tema-soiree .so-event-dialog .so-dialog-caption { color: var(--t-acento); letter-spacing: .16em; text-transform: uppercase; font-size: 10.5px; }
+.tema-soiree .so-event-dialog .so-dialog-header h2 { font: 500 26px var(--t-titulo); color: var(--t-texto); }
+.tema-soiree .so-event-dialog .so-icon-close {
+    border: 1px solid var(--t-hilo-2); border-radius: 50%; background: transparent; color: var(--t-piedra);
+}
+.tema-soiree .so-event-dialog .so-icon-close:hover { border-color: var(--t-acento); color: var(--t-texto); }
+.tema-soiree .so-event-dialog .so-dialog-content { padding: 16px 26px 28px; }
+.tema-soiree .so-event-dialog .so-dialog-cover { height: 240px; border-radius: 16px; }
+
+@media (max-width: 650px) {
+    .tema-soiree .so-event-dialog {
+        width: calc(100% - 20px);
+        max-height: 92dvh;
+        border-radius: 18px;
+    }
+    .tema-soiree .so-event-dialog .so-dialog-header { padding: 18px 18px 4px; }
+    .tema-soiree .so-event-dialog .so-dialog-content { padding: 12px 18px 22px; gap: 16px; }
+    .tema-soiree .so-event-dialog .so-dialog-cover { height: 180px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tema-soiree .so-event-dialog[open], .tema-soiree .so-event-dialog[open]::backdrop { animation: none; }
+}
+/* Evento sin foto: la palabra de respaldo se lee en claro y en oscuro */
+.tema-soiree .so-event-dialog .so-dialog-cover { color: var(--t-acento); font-family: var(--t-titulo); font-weight: 500; letter-spacing: .12em; }

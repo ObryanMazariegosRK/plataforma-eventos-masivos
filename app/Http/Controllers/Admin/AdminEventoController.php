@@ -75,7 +75,10 @@ class AdminEventoController extends Controller
         $evento = Evento::findOrFail($id);
 
         return response()->json([
-            'data' => $evento,
+            // Con el nombre del recinto, para el detalle del evento en el panel
+            'data' => $evento->toArray() + [
+                'recinto' => DB::table('recintos')->where('id', $evento->recinto_id)->value('nombre'),
+            ],
         ]);
     }
 
