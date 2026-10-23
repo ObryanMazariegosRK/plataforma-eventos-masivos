@@ -127,7 +127,7 @@ class FinanzasTest extends TestCase
 
         Sanctum::actingAs($this->usuario(RolUsuario::ADMIN));
         $datos = $this->getJson('/api/admin/finanzas')->assertOk()->json('data');
-        $eventos = collect($datos['eventos'])->keyBy('id');
+        $eventos = collect([...$datos['historial'], ...$datos['proximos']])->keyBy('id');
 
         $this->assertEquals(
             ['ingresos_brutos' => 1000, 'reembolsos' => 100, 'comision' => 35, 'ingresos_netos' => 865, 'costos' => 500, 'ganancia' => 365, 'margen' => 0.365, 'resultado' => 'ganancia'],
@@ -138,9 +138,32 @@ class FinanzasTest extends TestCase
         // Sin costos no se puede hablar de equilibrio ni de ganancia real
         $this->assertSame(['sin_costos', false], [$eventos[$sinCostos]['resultado'], $eventos[$sinCostos]['tiene_costos']]);
 
-        // La ganancia del mes solo cuenta lo que ya ocurrió en octubre
-        $this->assertEquals(365, $datos['totales']['ganancia_mes']);
-        $this->assertSame(1, $datos['totales']['eventos_mes']);
+        // Historial = eventos que ya ocurrieron dentro del período; los próximos van aparte
+        $this->assertSame([$pasado], array_column($datos['historial'], 'id'));
+        $this->assertSame([$proximo, $sinCostos], array_column($datos['proximos'], 'id'));
+        $this->assertEquals([365, 0.365, 1], [$datos['totales']['ganancia'], $datos['totales']['margen'], $datos['totales']['eventos_cerrados']]);
+
+        // Fuera del período elegido, el evento realizado ya no cuenta para la ganancia
+        $datos = $this->getJson('/api/admin/finanzas?desde=2026-10-10&hasta=2026-10-22')->assertOk()->json('data');
+        $this->assertSame([], $datos['historial']);
+        $this->assertEquals(0, $datos['totales']['ganancia']);
+    }
+
+    public function test_un_periodo_largo_agrupa_las_ventas_por_semana_o_por_mes(): void
+    {
+        Carbon::setTestNow('2026-10-22 18:00:00');
+        Sanctum::actingAs($this->usuario(RolUsuario::ADMIN));
+
+        $semanas = $this->getJson('/api/admin/finanzas?desde=2026-07-01&hasta=2026-10-22')->assertOk()->json('data');
+        $this->assertSame('semana', $semanas['periodo']['agrupacion']);
+        $this->assertSame(['2026-07-01', '2026-07-05'], [$semanas['ventas'][0]['inicio'], $semanas['ventas'][0]['fin']]);   // del miércoles al domingo
+
+        $meses = $this->getJson('/api/admin/finanzas?desde=2026-01-01&hasta=2026-10-22')->assertOk()->json('data');
+        $this->assertSame('mes', $meses['periodo']['agrupacion']);
+        $this->assertCount(10, $meses['ventas']);
+
+        $this->getJson('/api/admin/finanzas?desde=2025-01-01&hasta=2026-10-22')->assertStatus(422);
+        $this->getJson('/api/admin/finanzas?desde=2026-10-22&hasta=2026-10-01')->assertStatus(422);
     }
 
     public function test_agrupa_las_ventas_por_dia_de_guatemala_y_compara_con_el_periodo_anterior(): void
@@ -157,9 +180,10 @@ class FinanzasTest extends TestCase
 
         Sanctum::actingAs($this->usuario(RolUsuario::ADMIN));
         $datos = $this->getJson('/api/admin/finanzas')->assertOk()->json('data');
-        $dias = collect($datos['ventas_diarias'])->keyBy('dia');
+        $dias = collect($datos['ventas'])->keyBy('inicio');
 
-        $this->assertCount(30, $datos['ventas_diarias']);
+        $this->assertSame('dia', $datos['periodo']['agrupacion']);
+        $this->assertCount(30, $datos['ventas']);
         $this->assertSame(['2026-09-23', '2026-10-22'], [$datos['periodo']['desde'], $datos['periodo']['hasta']]);
         $this->assertEquals(200, $dias['2026-10-21']['monto']);
         $this->assertEquals(300, $dias['2026-10-22']['monto']);

@@ -40,6 +40,8 @@
     /* Series de las gráficas (validadas con el validador de dataviz contra --t-panel) */
     --t-serie-ingresos: #a8761c;
     --t-serie-costos: #0f7f9e;
+    --t-ganancia: #2f6db5;
+    --t-perdida: #c0442f;
 
     /* La barra lateral es oscura en ambos temas (ancla de la marca) */
     --l-fondo: #0d0c0b;
@@ -72,6 +74,8 @@ html[data-tema="oscuro"] .tema-soiree {
     --t-placeholder: rgba(242, 237, 228, .32);
     --t-serie-ingresos: #b98425;
     --t-serie-costos: #1a94b8;
+    --t-ganancia: #4a8bd0;
+    --t-perdida: #d65a43;
     --t-acento: #c8b48c;
     --t-acento-suave: rgba(200, 180, 140, .12);
     --t-acento-borde: rgba(200, 180, 140, .4);
@@ -947,19 +951,13 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .finanzas__variacion[data-tono="bien"] { color: var(--t-verde); }
 .tema-soiree .finanzas__variacion[data-tono="mal"] { color: var(--t-rojo); }
 
-.tema-soiree .finanzas__graficas { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.tema-soiree .finanzas__graficas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .tema-soiree .finanzas__tarjeta {
     min-width: 0; padding: 20px 22px;
     border: 1px solid var(--t-hilo); border-radius: 16px; background: var(--t-panel); box-shadow: var(--t-sombra);
 }
 
 /* Columnas de ventas */
-.tema-soiree .grafica-ventas { position: relative; margin-top: 14px; }
-.tema-soiree .grafica-ventas svg { display: block; width: 100%; height: auto; overflow: visible; }
-.tema-soiree .grafica-ventas .rejilla { stroke: var(--t-hilo); stroke-width: 1; }
-.tema-soiree .grafica-ventas .eje { stroke: var(--t-hilo-2); stroke-width: 1; }
-.tema-soiree .grafica-ventas .eje-texto { fill: var(--t-tenue); font: 11px var(--t-cuerpo); font-variant-numeric: tabular-nums; }
-.tema-soiree .grafica-ventas .valor-texto { fill: var(--t-texto); font: 600 11.5px var(--t-cuerpo); }
 .tema-soiree .columna__barra { fill: var(--t-serie-ingresos); transition: opacity .15s ease; }
 .tema-soiree .columna__zona { fill: transparent; }
 .tema-soiree .columna { outline: none; cursor: default; }
@@ -991,36 +989,77 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 .tema-soiree .leyenda__muestra--ingresos { background: var(--t-serie-ingresos); }
 .tema-soiree .leyenda__muestra--costos { background: var(--t-serie-costos); }
 
-/* Rentabilidad por evento */
-.tema-soiree .rentabilidad { display: grid; margin: 12px 0 0; padding: 0; list-style: none; }
-.tema-soiree .rentabilidad__evento { display: grid; gap: 7px; padding: 14px 0; border-top: 1px solid var(--t-hilo); }
-.tema-soiree .rentabilidad__evento:first-child { border-top: 0; padding-top: 4px; }
-.tema-soiree .rentabilidad__cabeza { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; }
-.tema-soiree .rentabilidad__titulo { display: grid; min-width: 0; }
-.tema-soiree .rentabilidad__titulo strong { overflow: hidden; color: var(--t-texto); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.tema-soiree .rentabilidad__fecha { color: var(--t-tenue); font-size: 12px; }
-.tema-soiree .rentabilidad__resultado { padding: 2px 9px; border-radius: 999px; background: var(--t-velo-2); color: var(--t-piedra); font-size: 11.5px; white-space: nowrap; }
+/* Filtro de período: una fila arriba de todo lo que filtra */
+.tema-soiree .finanzas__filtro { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; }
+.tema-soiree .finanzas__presets { display: inline-flex; padding: 3px; border: 1px solid var(--t-hilo-2); border-radius: 999px; background: var(--t-panel); }
+.tema-soiree .finanzas__presets button {
+    padding: 7px 14px; border: 0; border-radius: 999px; background: transparent;
+    color: var(--t-piedra); font: 500 13px var(--t-cuerpo); cursor: pointer;
+}
+.tema-soiree .finanzas__presets button:hover { color: var(--t-texto); background: var(--t-velo-2); }
+.tema-soiree .finanzas__presets button[aria-pressed="true"] { background: var(--t-boton); color: var(--t-boton-texto); }
+.tema-soiree .finanzas__rango { display: flex; gap: 10px; }
+.tema-soiree .finanzas__rango label { display: grid; gap: 4px; margin: 0; }
+.tema-soiree .finanzas__rango span { color: var(--t-tenue); font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.tema-soiree .finanzas__rango input {
+    height: 38px; padding: 0 10px; border: 1px solid var(--t-hilo-2); border-radius: 10px;
+    background: var(--t-campo); color: var(--t-texto); font: inherit; font-size: 13.5px;
+}
+.tema-soiree .finanzas__error { flex-basis: 100%; margin: 0; color: var(--t-rojo); font-size: 13px; }
+.tema-soiree .finanzas__error[hidden] { display: none; }
+.tema-soiree .finanzas[aria-busy="true"] :is(.finanzas__cifras, .finanzas__graficas, .rentabilidad) { opacity: .5; transition: opacity .2s ease; }
+
+/* Gráficas */
+.tema-soiree .grafica { position: relative; margin-top: 14px; }
+.tema-soiree .grafica svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tema-soiree .grafica .rejilla { stroke: var(--t-hilo); stroke-width: 1; }
+.tema-soiree .grafica .eje { stroke: var(--t-hilo-2); stroke-width: 1; }
+.tema-soiree .grafica .eje-texto { fill: var(--t-tenue); font: 11px var(--t-cuerpo); font-variant-numeric: tabular-nums; }
+.tema-soiree .grafica .valor-texto { fill: var(--t-texto); font: 600 11.5px var(--t-cuerpo); }
+.tema-soiree .columna__barra--ganancia { fill: var(--t-ganancia); }
+.tema-soiree .columna__barra--perdida { fill: var(--t-perdida); }
+.tema-soiree .leyenda__muestra--ganancia { background: var(--t-ganancia); }
+.tema-soiree .leyenda__muestra--perdida { background: var(--t-perdida); }
+
+/* Pestañas */
+.tema-soiree .finanzas__pestanas { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--t-velo-2); }
+.tema-soiree .finanzas__pestanas button {
+    padding: 6px 14px; border: 0; border-radius: 999px; background: transparent;
+    color: var(--t-piedra); font: 500 12.5px var(--t-cuerpo); cursor: pointer;
+}
+.tema-soiree .finanzas__pestanas button[aria-selected="true"] { background: var(--t-panel); color: var(--t-texto); box-shadow: var(--t-sombra); }
+
+/* Tabla de rentabilidad */
+.tema-soiree .rentabilidad { margin-top: 12px; }
+.tema-soiree .rentabilidad__desplazable { overflow-x: auto; }
+.tema-soiree .rentabilidad__tabla { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
+.tema-soiree .rentabilidad__tabla th {
+    padding: 0 12px 10px; background: none; color: var(--t-tenue);
+    font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-align: left; text-transform: uppercase; white-space: nowrap;
+}
+.tema-soiree .rentabilidad__tabla td { padding: 12px; border-top: 1px solid var(--t-hilo); color: var(--t-piedra); vertical-align: middle; }
+.tema-soiree .rentabilidad__tabla tbody tr:hover td { background: var(--t-velo); }
+.tema-soiree .rentabilidad__evento { display: table-cell; }
+.tema-soiree .rentabilidad__evento strong { display: block; color: var(--t-texto); font-weight: 500; }
+.tema-soiree .rentabilidad__evento span { color: var(--t-tenue); font-size: 12px; }
+.tema-soiree .rentabilidad__numero { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tema-soiree td.rentabilidad__numero.es-negativo { color: var(--t-rojo); font-weight: 600; }
+.tema-soiree .rentabilidad__resultado { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--t-velo-2); color: var(--t-piedra); font-size: 11.5px; white-space: nowrap; }
 .tema-soiree .rentabilidad__resultado[data-resultado="ganancia"],
 .tema-soiree .rentabilidad__resultado[data-resultado="cubierto"] { background: var(--t-verde-fondo); color: var(--t-verde); }
 .tema-soiree .rentabilidad__resultado[data-resultado="perdida"] { background: var(--t-rojo-fondo); color: var(--t-rojo); }
-.tema-soiree .rentabilidad__ganancia { display: grid; justify-items: end; min-width: 96px; }
-.tema-soiree .rentabilidad__ganancia strong { color: var(--t-texto); font-weight: 600; font-variant-numeric: tabular-nums; }
-.tema-soiree .rentabilidad__ganancia span { color: var(--t-tenue); font-size: 11.5px; }
-.tema-soiree .rentabilidad__fila { display: grid; grid-template-columns: 92px minmax(0, 1fr) 92px; align-items: center; gap: 10px; }
-.tema-soiree .rentabilidad__etiqueta { color: var(--t-piedra); font-size: 12px; }
-.tema-soiree .rentabilidad__pista { height: 8px; }
-.tema-soiree .rentabilidad__barra { display: block; height: 100%; min-width: 0; border-radius: 0 4px 4px 0; }
-.tema-soiree .rentabilidad__barra--ingresos { background: var(--t-serie-ingresos); }
-.tema-soiree .rentabilidad__barra--costos { background: var(--t-serie-costos); }
-.tema-soiree .rentabilidad__monto { color: var(--t-piedra); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.tema-soiree .rentabilidad__equilibrio { display: grid; gap: 5px; margin-top: 3px; color: var(--t-piedra); font-size: 12px; }
+.tema-soiree .rentabilidad__equilibrio { min-width: 170px; font-size: 12.5px; }
 .tema-soiree .rentabilidad__equilibrio[data-tono="mal"] { color: var(--t-rojo); }
-.tema-soiree .rentabilidad__aviso { color: inherit; }
-.tema-soiree .rentabilidad__medidor { height: 6px; overflow: hidden; border-radius: 6px; background: color-mix(in srgb, var(--t-serie-ingresos) 18%, transparent); }
+.tema-soiree .rentabilidad__aviso { color: var(--t-tenue); font-style: italic; }
+.tema-soiree .rentabilidad__medidor { height: 6px; margin-top: 5px; overflow: hidden; border-radius: 6px; background: color-mix(in srgb, var(--t-serie-ingresos) 18%, transparent); }
 .tema-soiree .rentabilidad__medidor span { display: block; height: 100%; border-radius: 6px; background: var(--t-serie-ingresos); }
-.tema-soiree .rentabilidad__vacio { padding: 18px 0; color: var(--t-tenue); }
-.tema-soiree .rentabilidad__pie { padding-top: 10px; border-top: 1px solid var(--t-hilo); }
-.tema-soiree .rentabilidad__mas { padding: 0; border: 0; background: none; color: var(--t-acento); font: inherit; font-size: 12.5px; cursor: pointer; }
+.tema-soiree .rentabilidad__vacio { margin: 0; padding: 22px 0; color: var(--t-tenue); }
+.tema-soiree .rentabilidad__mas {
+    display: block; margin: 14px auto 0; padding: 9px 20px; border: 1px solid var(--t-hilo-2); border-radius: 999px;
+    background: transparent; color: var(--t-piedra); font: inherit; font-size: 13px; cursor: pointer;
+}
+.tema-soiree .rentabilidad__mas:hover { border-color: var(--t-acento); color: var(--t-texto); }
+.tema-soiree .rentabilidad__mas[hidden] { display: none; }
 
 @media (max-width: 1250px) {
     .tema-soiree .finanzas__graficas { grid-template-columns: minmax(0, 1fr); }
@@ -1030,9 +1069,7 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 }
 @media (max-width: 560px) {
     .tema-soiree .finanzas__cifras { grid-template-columns: minmax(0, 1fr); }
-    .tema-soiree .rentabilidad__cabeza { grid-template-columns: minmax(0, 1fr) auto; }
-    .tema-soiree .rentabilidad__resultado { grid-row: 2; justify-self: start; }
-    .tema-soiree .rentabilidad__fila { grid-template-columns: 78px minmax(0, 1fr) 82px; }
+    .tema-soiree .finanzas__presets { flex-wrap: wrap; border-radius: 16px; }
 }
 
 /* ---------- Formulario de evento → Costos de producción (admin-costos.js) ---------- */

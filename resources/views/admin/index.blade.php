@@ -438,7 +438,8 @@
                      aria-label="Indicadores de la plataforma">
                 </div>
 
-                {{-- VENTAS Y GANANCIAS (admin-finanzas.js; GET /api/admin/finanzas, solo administrador) --}}
+                {{-- VENTAS Y GANANCIAS (admin-finanzas.js; GET /api/admin/finanzas, solo administrador).
+                     El filtro de fechas de arriba aplica a todo lo de abajo. --}}
                 <section id="finanzas-panel" class="finanzas" aria-labelledby="finanzas-titulo">
                     <header class="finanzas__cabecera">
                         <div>
@@ -448,31 +449,58 @@
                         </div>
                     </header>
 
+                    <form class="finanzas__filtro" id="finanzas-filtro" aria-label="Período">
+                        <div class="finanzas__presets" role="group" aria-label="Períodos rápidos">
+                            <button type="button" data-dias="7">7 días</button>
+                            <button type="button" data-dias="30" aria-pressed="true">30 días</button>
+                            <button type="button" data-dias="90">90 días</button>
+                            <button type="button" data-anio>Este año</button>
+                        </div>
+                        <div class="finanzas__rango">
+                            <label><span>Desde</span><input type="date" name="desde" id="finanzas-desde"></label>
+                            <label><span>Hasta</span><input type="date" name="hasta" id="finanzas-hasta"></label>
+                        </div>
+                        <p class="finanzas__error" id="finanzas-error" role="alert" hidden></p>
+                    </form>
+
                     <div class="finanzas__cifras" id="finanzas-cifras" aria-live="polite"></div>
 
                     <div class="finanzas__graficas">
                         <article class="finanzas__tarjeta" aria-labelledby="ventas-titulo">
-                            <h3 id="ventas-titulo">Ventas por día</h3>
-                            <p class="finanzas__nota">Monto cobrado (pagos aprobados) en cada día.</p>
-                            <div class="grafica-ventas" id="grafica-ventas"></div>
+                            <h3 id="ventas-titulo">Ventas</h3>
+                            <p class="finanzas__nota" id="ventas-nota">Monto cobrado (pagos aprobados).</p>
+                            <div class="grafica" id="grafica-ventas"></div>
                             <details class="finanzas__tabla">
                                 <summary>Ver los datos en tabla</summary>
                                 <div id="ventas-tabla"></div>
                             </details>
                         </article>
 
-                        <article class="finanzas__tarjeta" aria-labelledby="rentabilidad-titulo">
+                        <article class="finanzas__tarjeta" aria-labelledby="ganancias-titulo">
                             <div class="finanzas__titulo-leyenda">
-                                <h3 id="rentabilidad-titulo">Rentabilidad por evento</h3>
+                                <h3 id="ganancias-titulo">Ganancia por evento</h3>
                                 <ul class="leyenda" aria-label="Leyenda">
-                                    <li><span class="leyenda__muestra leyenda__muestra--ingresos"></span>Ingresos netos</li>
-                                    <li><span class="leyenda__muestra leyenda__muestra--costos"></span>Costos</li>
+                                    <li><span class="leyenda__muestra leyenda__muestra--ganancia"></span>Ganancia</li>
+                                    <li><span class="leyenda__muestra leyenda__muestra--perdida"></span>Pérdida</li>
                                 </ul>
                             </div>
-                            <p class="finanzas__nota" id="rentabilidad-nota">Ingresos netos = pagos aprobados − reembolsos − comisión de la pasarela.</p>
-                            <ol class="rentabilidad" id="rentabilidad-lista"></ol>
+                            <p class="finanzas__nota">Eventos que ya ocurrieron (o se cancelaron) en el período.</p>
+                            <div class="grafica" id="grafica-ganancias"></div>
                         </article>
                     </div>
+
+                    <article class="finanzas__tarjeta" aria-labelledby="rentabilidad-titulo">
+                        <div class="finanzas__titulo-leyenda">
+                            <h3 id="rentabilidad-titulo">Rentabilidad por evento</h3>
+                            <div class="finanzas__pestanas" role="tablist" aria-label="Eventos">
+                                <button type="button" role="tab" id="pestana-historial" aria-selected="true" aria-controls="rentabilidad-tabla" data-vista="historial">Historial del período</button>
+                                <button type="button" role="tab" id="pestana-proximos" aria-selected="false" aria-controls="rentabilidad-tabla" data-vista="proximos">Próximos eventos</button>
+                            </div>
+                        </div>
+                        <p class="finanzas__nota" id="rentabilidad-nota"></p>
+                        <div class="rentabilidad" id="rentabilidad-tabla" role="tabpanel"></div>
+                        <button type="button" class="rentabilidad__mas" id="rentabilidad-mas" hidden>Ver más</button>
+                    </article>
                 </section>
 
                 <!-- GRÁFICAS Y ACCIONES RÁPIDAS -->
