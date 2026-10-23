@@ -1,6 +1,35 @@
 /* Mis compras — usa los tokens y la cabecera de catalogo.css */
 
 .compras { padding: 64px 0 110px; }
+/* "Volver a la cartelera": flecha en un círculo, como en la experiencia del evento */
+.compras__volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 34px;
+    color: var(--piedra);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color .3s ease;
+}
+.compras__flecha {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--hilo);
+    border-radius: 50%;
+    transition: border-color .3s ease, background-color .3s ease, color .3s ease;
+}
+.compras__flecha svg { width: 16px; height: 16px; transition: transform .35s var(--curva); }
+.compras__volver:hover, .compras__volver:focus-visible { color: var(--marfil); }
+.compras__volver:hover .compras__flecha, .compras__volver:focus-visible .compras__flecha { border-color: var(--marfil); background: var(--marfil); color: var(--tinta); }
+.compras__volver:hover svg, .compras__volver:focus-visible svg { transform: translateX(-3px); }
+.compras__volver:focus-visible { outline: none; }
+
 .compras__encabezado { padding-bottom: 22px; margin-bottom: 36px; border-bottom: 1px solid var(--hilo); }
 .compras__encabezado h1 { margin: 14px 0 0; font-size: clamp(40px, 5vw, 60px); line-height: 1; }
 .compras__aviso { color: var(--piedra); font-family: var(--titulo); font-size: 22px; font-style: italic; }
@@ -240,6 +269,7 @@
 
 @media (max-width: 640px) {
     .compras { padding: 44px 0 80px; }
+    .compras__volver { margin-bottom: 26px; }
     .compra { grid-template-columns: 54px minmax(0, 1fr); gap: 18px; }
     .compra__dia { font-size: 34px; }
     .compra__lado { grid-column: 2; justify-items: start; text-align: left; }

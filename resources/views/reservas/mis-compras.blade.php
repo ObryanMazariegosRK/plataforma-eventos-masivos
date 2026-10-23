@@ -36,6 +36,13 @@
     </header>
 
     <main class="contenedor compras">
+        <a class="compras__volver" href="{{ route('catalogo.index') }}#eventos">
+            <span class="compras__flecha" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+            </span>
+            Volver a la cartelera
+        </a>
+
         <header class="compras__encabezado">
             <span class="label-seccion">Tu historial</span>
             <h1>Mis <em>compras</em></h1>

@@ -3,6 +3,8 @@
 // Boletos de una compra: uno por asiento, con su QR.
 // Datos: GET /api/reservas/{id} (lugares con su boleto) y GET /api/boletos/{id}/qr (SVG del
 // módulo Boletos). El QR pide el token, así que se descarga con fetch y se muestra como imagen.
+// Un boleto que ya no sirve (función pasada, usado o anulado) muestra el QR en gris con una
+// leyenda; si la API ya no entrega su QR (usado/anulado) se dibuja uno decorativo.
 
 document.addEventListener('DOMContentLoaded', async () => {
     const pagina = document.getElementById('paginaBoletos');
@@ -61,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const { evento, lugares } = compra;
     const fecha = new Date(evento.fecha_evento);
+    const finalizada = fecha < new Date();   // la función ya pasó: ningún boleto sirve
     const boletos = lugares.filter((l) => l.boleto);
 
     document.title = `Boletos · ${evento.nombre} · ${MARCA}`;
@@ -84,8 +87,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const articulo = crear('article', 'boleto');
         articulo.style.setProperty('--color-zona', lugar.color || '#c8b48c');
         articulo.style.animationDelay = `${Math.min(indice, 6) * 80}ms`;
-        const activo = lugar.boleto.estado === 'emitido';
+        const estadoBoleto = lugar.boleto.estado;
+        const activo = estadoBoleto === 'emitido' && !finalizada;
         if (!activo) articulo.classList.add('boleto--inactivo');
+        const leyenda = { usado: 'Utilizado', anulado: 'Anulado' }[estadoBoleto] || (finalizada ? 'Función finalizada' : null);
 
         // Parte principal
         const cuerpo = crear('div', 'boleto__cuerpo');
@@ -116,16 +121,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         qr.append(crear('span', 'cargando'));
         const estado = crear('span', 'boleto__estado',
             activo ? 'Válido para una persona'
-                : lugar.boleto.estado === 'usado'
-                    ? `Usado${lugar.boleto.usado_en ? ` el ${fechaCorta.format(new Date(lugar.boleto.usado_en))}` : ''}`
-                    : 'Anulado');
+                : estadoBoleto === 'usado'
+                    ? `Utilizado${lugar.boleto.usado_en ? ` el ${fechaCorta.format(new Date(lugar.boleto.usado_en))}` : ''}`
+                    : estadoBoleto === 'anulado' ? 'Anulado' : 'Sin validez');
         talon.append(crear('span', 'boleto__muesca boleto__muesca--a'), crear('span', 'boleto__muesca boleto__muesca--b'),
             qr, crear('span', 'boleto__codigo', numeroBoleto(lugar.boleto.id)), estado);
 
-        if (activo) {
-            cargarQr(lugar.boleto.id, qr);
+        if (estadoBoleto === 'emitido') {
+            cargarQr(lugar.boleto.id, qr, leyenda);
         } else {
-            qr.replaceChildren(crear('span', 'boleto__sello', lugar.boleto.estado === 'usado' ? 'Usado' : 'Anulado'));
+            qr.replaceChildren(qrDecorativo(lugar.boleto.id), crear('span', 'boleto__sello', leyenda));
         }
 
         articulo.append(cuerpo, talon);
@@ -133,7 +138,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // El endpoint del QR pide el token: se descarga y se muestra como imagen (blob)
-    async function cargarQr(boletoId, contenedor) {
+    // QR de adorno (siempre el mismo para un boleto): solo da la forma, no contiene nada
+    function qrDecorativo(semilla) {
+        const N = 25;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', `0 0 ${N} ${N}`);
+        svg.setAttribute('class', 'boleto__qr-adorno');
+        svg.setAttribute('aria-hidden', 'true');
+        let x = semilla * 9301 + 49297;
+        const azar = () => (x = (x * 1103515245 + 12345) % 2147483648) / 2147483648;
+        const esquina = (f, c) => f < 7 && c < 7 || f < 7 && c >= N - 7 || f >= N - 7 && c < 7;
+        let d = '';
+        for (let f = 0; f < N; f++) {
+            for (let c = 0; c < N; c++) {
+                if (!esquina(f, c) && azar() < 0.48) d += `M${c} ${f}h1v1h-1z`;
+            }
+        }
+        // Las tres esquinas de un QR: cuadro de 7, hueco de 5, centro de 3
+        [[0, 0], [0, N - 7], [N - 7, 0]].forEach(([f, c]) => {
+            d += `M${c} ${f}h7v7h-7zM${c + 1} ${f + 1}v5h5v-5zM${c + 2} ${f + 2}h3v3h-3z`;
+        });
+        const trazo = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        trazo.setAttribute('d', d);
+        trazo.setAttribute('fill-rule', 'evenodd');
+        trazo.setAttribute('fill', 'currentColor');
+        svg.append(trazo);
+        return svg;
+    }
+
+    async function cargarQr(boletoId, contenedor, leyenda = null) {
         try {
             const respuesta = await fetch(`/api/boletos/${boletoId}/qr`, {
                 headers: { Accept: 'image/svg+xml', Authorization: `Bearer ${Auth.obtenerToken()}` },
@@ -145,6 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             imagen.src = URL.createObjectURL(await respuesta.blob());
             await imagen.decode().catch(() => {});
             contenedor.replaceChildren(imagen);
+            if (leyenda) contenedor.append(crear('span', 'boleto__sello', leyenda));
         } catch {
             contenedor.replaceChildren(crear('p', 'boleto__error', 'No se pudo cargar el código. Recarga la página.'));
         }
