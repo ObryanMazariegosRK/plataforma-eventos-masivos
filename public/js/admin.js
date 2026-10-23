@@ -1480,7 +1480,7 @@
         const estado = String(item.estado || 'sin estado');
         const estadoReserva = String(
             item.reserva_estado || 'No disponible'
-        );
+        ).replace(/^./, letra => letra.toUpperCase());
 
         const header = el('header', undefined, 'so-payment-header');
 
@@ -1553,31 +1553,24 @@
         addDetail('Estado de reserva', estadoReserva);
         addDetail('Última actualización', fecha(item.updated_at));
 
+        // Qué significa el estado del pago (en vez de un aviso genérico)
         const notice = el(
             'p',
-            'Este apartado es de consulta. Un pago aprobado ' +
-            'no debe modificarse manualmente desde esta ventana. ' +
-            'Los reembolsos se gestionan mediante su proceso correspondiente.',
+            {
+                aprobado: 'Cobrado: la pasarela aprobó el pago, la reserva quedó confirmada y sus boletos fueron emitidos.',
+                pendiente: 'Sin completar: el cliente abrió la pasarela pero no terminó de pagar. No se cobró nada; si la reserva vence, este intento queda sin efecto.',
+                rechazado: 'Rechazado: la pasarela no aprobó el cobro (por ejemplo, fondos insuficientes). No se cobró nada.'
+            }[estado.toLowerCase()] || 'Estado del pago: ' + estado + '.',
             'so-payment-notice'
         );
-
-        const footer = el('footer', undefined, 'so-payment-footer');
-
-        footer.append(
-            actionButton(
-                'Cerrar detalles',
-                'so-payment-done',
-                () => dialog.close()
-            )
-        );
+        notice.dataset.estado = estado.toLowerCase();
 
         dialog.append(
             header,
             summary,
             sectionTitle,
             grid,
-            notice,
-            footer
+            notice
         );
 
         document.body.append(dialog);

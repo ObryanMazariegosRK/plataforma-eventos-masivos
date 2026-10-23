@@ -1393,3 +1393,34 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 
 /* Estados en las tablas del panel con mayúscula inicial (confirmada → Confirmada) */
 .tema-soiree .table-wrap .status { text-transform: capitalize; }
+
+/* ---------- Detalle del pago: modal en claro y oscuro ---------- */
+.tema-soiree .so-payment-header { position: relative; display: block; margin-bottom: 18px; padding-right: 48px; border: 0; }
+.tema-soiree .so-payment-eyebrow { color: var(--t-acento); font-size: 10.5px; letter-spacing: .16em; }
+.tema-soiree .so-payment-header h2 { margin: 4px 0; font: 500 28px var(--t-titulo); color: var(--t-texto); }
+.tema-soiree .so-payment-header p { margin: 0; color: var(--t-piedra); font-size: 13px; }
+.tema-soiree .so-payment-close {
+    position: absolute; top: -4px; right: -4px; width: 38px; height: 38px; padding: 0;
+    border: 1px solid var(--t-hilo-2); border-radius: 50%; background: transparent; color: var(--t-piedra); font-size: 22px; cursor: pointer;
+}
+.tema-soiree .so-payment-close:hover { border-color: var(--t-acento); color: var(--t-texto); }
+.tema-soiree .so-payment-summary { border: 1px solid var(--t-hilo); border-radius: 16px; background: var(--t-panel-2); box-shadow: none; }
+.tema-soiree .so-payment-amount { color: var(--t-texto); font-variant-numeric: tabular-nums; }
+.tema-soiree .so-payment-summary small { color: var(--t-tenue); }
+.tema-soiree .so-payment-status { border: 0; background: var(--t-velo-2); color: var(--t-piedra); text-transform: capitalize; }
+.tema-soiree .so-payment-status[data-status="aprobado"] { background: var(--t-verde-fondo); color: var(--t-verde); }
+.tema-soiree .so-payment-status:is([data-status="rechazado"], [data-status="fallido"]) { background: var(--t-rojo-fondo); color: var(--t-rojo); }
+.tema-soiree .so-payment-status[data-status="pendiente"] { background: var(--t-acento-suave); color: var(--t-acento); }
+.tema-soiree .so-payment-section-title { color: var(--t-texto); font-family: var(--t-titulo); }
+.tema-soiree .so-payment-detail { border-color: var(--t-hilo); background: var(--t-panel-2); }
+.tema-soiree .so-payment-detail span { color: var(--t-tenue); }
+.tema-soiree .so-payment-detail strong { color: var(--t-texto); overflow-wrap: anywhere; }
+.tema-soiree .so-payment-notice {
+    margin: 16px 0 0; padding: 12px 14px; border: 0; border-left: 3px solid var(--t-acento); border-radius: 0 10px 10px 0;
+    background: var(--t-acento-suave); color: var(--t-texto); font-size: 13.5px; line-height: 1.5;
+}
+.tema-soiree .so-payment-notice[data-estado="aprobado"] { border-left-color: var(--t-verde); background: var(--t-verde-fondo); }
+.tema-soiree .so-payment-notice[data-estado="rechazado"] { border-left-color: var(--t-rojo); background: var(--t-rojo-fondo); }
+@media (max-width: 560px) {
+    .tema-soiree .so-payment-grid { grid-template-columns: minmax(0, 1fr); }
+}
