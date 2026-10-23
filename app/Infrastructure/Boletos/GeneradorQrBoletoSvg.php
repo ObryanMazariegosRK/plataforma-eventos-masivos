@@ -12,10 +12,8 @@ class GeneradorQrBoletoSvg implements IGeneradorQrBoleto
 {
     public function generarSvg(string $contenido): string
     {
-        // El código va en el fragmento (#): el navegador no lo envía al servidor,
-        // así que no queda en los registros de acceso de nginx.
         $qrCode = new QrCode(
-            data: route('boletos.entrada').'#'.$contenido,
+            data: $this->enlace($contenido),
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
             size: 300,
@@ -27,5 +25,17 @@ class GeneradorQrBoletoSvg implements IGeneradorQrBoleto
         $resultado = $writer->write($qrCode);
 
         return $resultado->getString();
+    }
+
+    /** Lo que lleva el QR: <dirección>/b#<código>. */
+    public function enlace(string $codigo): string
+    {
+        // El código va en el fragmento (#): el navegador no lo envía al servidor,
+        // así que no queda en los registros de acceso de nginx.
+        // La dirección pública (ngrok, dominio real) manda sobre la de la petición.
+        $publica = config('boletos.url_publica');
+        $entrada = $publica ? rtrim($publica, '/').'/b' : route('boletos.entrada');
+
+        return $entrada.'#'.$codigo;
     }
 }

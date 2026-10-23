@@ -63,6 +63,15 @@ class EscaneoBoletoTest extends TestCase
         $this->get('/b')->assertOk()->assertSee('entrada-boleto.js');
     }
 
+    public function test_el_qr_lleva_la_direccion_publica_si_esta_configurada(): void
+    {
+        $generador = new \App\Infrastructure\Boletos\GeneradorQrBoletoSvg();
+
+        $this->assertSame(route('boletos.entrada').'#abc', $generador->enlace('abc'));
+        config(['boletos.url_publica' => 'https://soiree-demo.ngrok-free.app/']);
+        $this->assertSame('https://soiree-demo.ngrok-free.app/b#abc', $generador->enlace('abc'));
+    }
+
     public function test_el_operador_registra_la_entrada_y_un_segundo_escaneo_lo_detecta(): void
     {
         $boleto = $this->boleto($this->usuario('duenio@test.com'), now());
