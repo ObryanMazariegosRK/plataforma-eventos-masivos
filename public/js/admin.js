@@ -104,6 +104,9 @@
     let section = 'resumen';
     let page = 1;
     let query = '';
+    // Reservas: filtros por estado y por evento (la lista de eventos se pide una vez)
+    const filtroReservas = { estado: '', evento_id: '' };
+    let eventosParaFiltro = null;
     let requestVersion = 0;
     let editingEventId = null;
     let editingPublished = false;
@@ -1349,10 +1352,17 @@
         dialog.className = 'so-reservation-dialog';
 
         const header = el('div', undefined, 'so-reservation-header');
+        const cerrar = el('button', '×', 'so-icon-close');
+        cerrar.type = 'button';
+        cerrar.setAttribute('aria-label', 'Cerrar detalles');
+        cerrar.addEventListener('click', () => dialog.close());
+        const estadoPill = el('span', (item.estado || '').replace(/^./, letra => letra.toUpperCase()), 'so-event-status');
+        estadoPill.dataset.status = { confirmada: 'publicado', activa: 'borrador', cancelada: 'cancelado' }[item.estado] || '';
         header.append(
             el('span', 'SOIRÉE · CONTROL DE RESERVAS', 'so-reservation-caption'),
             el('h2', 'Reserva #' + item.id),
-            el('p', 'Información registrada de esta reserva.')
+            estadoPill,
+            cerrar
         );
 
         const grid = el('div', undefined, 'so-reservation-grid');
@@ -1385,7 +1395,6 @@
         addDetail('Evento', item.evento || 'Evento no disponible');
         addDetail('Cliente', cliente || 'Usuario #' + item.usuario_id);
         addDetail('Correo electrónico', item.cliente_email);
-        addDetail('Estado', item.estado);
         addDetail('Importe registrado', moneda.format(total));
         addDetail('Fecha de registro', formatCell('created_at', item.created_at));
         addDetail('Fecha de vencimiento',
@@ -1399,24 +1408,21 @@
                 : 'No disponible'
         );
 
+        // Qué significa el estado (una reserva solo se confirma cuando su pago se aprueba)
+        const vence = item.expira_en ? formatCell('created_at', item.expira_en) : '';
         const nota = el(
             'p',
-            'El importe mostrado pertenece a la reserva. ' +
-            'No confirma por sí solo que exista un pago aprobado.',
+            {
+                activa: 'Apartada: el cliente tiene hasta ' + (vence || 'que venza') + ' para pagar; si no paga, sus lugares se liberan solos.',
+                confirmada: 'Pagada: se confirmó al aprobarse el pago y sus boletos ya fueron emitidos.',
+                vencida: 'Venció sin pago: sus lugares volvieron a estar disponibles.',
+                cancelada: 'Cancelada: sus lugares volvieron a estar disponibles.'
+            }[item.estado] || 'Estado de la reserva: ' + (item.estado || 'desconocido') + '.',
             'so-reservation-note'
         );
+        nota.dataset.estado = item.estado || '';
 
-        const footer = el('div', undefined, 'so-reservation-footer');
-
-        footer.append(
-            actionButton(
-                'Cerrar',
-                'evento-action',
-                () => dialog.close()
-            )
-        );
-
-        dialog.append(header, grid, nota, footer);
+        dialog.append(header, grid, nota);
         document.body.append(dialog);
 
         dialog.addEventListener('close', () => dialog.remove(), {
@@ -1432,6 +1438,7 @@
 
     function renderReservationActions(item) {
         const cell = el('td');
+        cell.dataset.label = 'Acciones';
 
         cell.append(
             actionButton(
@@ -1626,8 +1633,9 @@
         for (const item of items) {
             const row = el('tr');
 
-            cols.forEach(([field]) => {
+            cols.forEach(([field, label]) => {
                 const cell = el('td');
+                cell.dataset.label = label;
                 const value = item[field] ?? '—';
 
                 if (field === 'estado' || field === 'rol') {
@@ -1662,6 +1670,18 @@
                     textGroup.append(el('strong', value), el('small', 'ID #' + item.id));
                     eventIdentity.append(thumb, textGroup);
                     cell.append(eventIdentity);
+                } else if (field === 'created_at' && value !== '—') {
+                    // En pantallas medianas se oculta el día y queda la hora (el detalle tiene la fecha)
+                    const fecha = new Date(value);
+                    if (Number.isNaN(fecha.getTime())) {
+                        cell.textContent = formatCell(field, value);
+                    } else {
+                        cell.classList.add('celda-fecha');
+                        cell.append(
+                            el('span', fecha.toLocaleDateString('es-GT', { dateStyle: 'medium' }) + ', ', 'celda-fecha__dia'),
+                            el('span', fecha.toLocaleTimeString('es-GT', { timeStyle: 'short' }), 'celda-fecha__hora')
+                        );
+                    }
                 } else {
                     cell.textContent = formatCell(field, value);
                 }
@@ -2207,9 +2227,65 @@
         }
     }
 
+    const ESTADOS_RESERVA = [
+        ['', 'Todos los estados'],
+        ['activa', 'Activas (apartadas)'],
+        ['confirmada', 'Confirmadas (pagadas)'],
+        ['vencida', 'Vencidas'],
+        ['cancelada', 'Canceladas']
+    ];
+
+    function filtroSelect(etiqueta, opciones, valor, alCambiar) {
+        const label = el('label', undefined, 'so-filtro');
+        label.append(el('span', etiqueta));
+        const select = document.createElement('select');
+        opciones.forEach(([v, texto]) => select.add(new Option(texto, v)));
+        select.value = valor;
+        select.addEventListener('change', () => alCambiar(select.value));
+        label.append(select);
+        return { label, select };
+    }
+
+    function renderReservationFilters(filters) {
+        const estado = filtroSelect('Estado', ESTADOS_RESERVA, filtroReservas.estado, valor => {
+            filtroReservas.estado = valor;
+            page = 1;
+            load();
+        });
+        const evento = filtroSelect('Evento', [['', 'Todos los eventos']], filtroReservas.evento_id, valor => {
+            filtroReservas.evento_id = valor;
+            page = 1;
+            load();
+        });
+        filters.append(estado.label, evento.label);
+
+        const llenarEventos = () => {
+            eventosParaFiltro.forEach(e => evento.select.add(new Option(e.nombre, String(e.id))));
+            evento.select.value = filtroReservas.evento_id;
+        };
+        if (eventosParaFiltro) {
+            llenarEventos();
+            return;
+        }
+        api('eventos/catalogo?por_pagina=48')
+            .then(r => r.json())
+            .then(({ data }) => {
+                eventosParaFiltro = (data || [])
+                    .map(e => ({ id: e.id, nombre: e.nombre }))
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+                llenarEventos();
+            })
+            .catch(() => { eventosParaFiltro = null; });
+    }
+
     function renderFilters() {
         const filters = $('filters');
         filters.replaceChildren();
+
+        if (section === 'reservas') {
+            renderReservationFilters(filters);
+            return;
+        }
 
         if (section !== 'usuarios') {
             return;
@@ -3215,6 +3291,11 @@
 
             if (kind === 'usuarios' && query) {
                 params.set('buscar', query);
+            }
+
+            if (kind === 'reservas') {
+                if (filtroReservas.estado) params.set('estado', filtroReservas.estado);
+                if (filtroReservas.evento_id) params.set('evento_id', filtroReservas.evento_id);
             }
 
             const response = await api(

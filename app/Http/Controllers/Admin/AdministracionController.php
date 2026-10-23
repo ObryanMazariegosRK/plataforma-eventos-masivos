@@ -40,10 +40,18 @@ class AdministracionController extends Controller
 
     public function reservas(Request $request): JsonResponse
     {
+        // Filtros del panel: estado de la reserva y evento
+        $filtros = $request->validate([
+            'estado' => ['sometimes', 'nullable', \Illuminate\Validation\Rule::enum(\App\Domain\Enums\Reservas\EstadoReserva::class)],
+            'evento_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+        ]);
+
         $reservas = DB::table('reservas as r')
             ->leftJoin('eventos as e', 'e.id', '=', 'r.evento_id')
             ->leftJoin('usuarios as u', 'u.id', '=', 'r.usuario_id')
             ->whereNull('r.deleted_at')
+            ->when($filtros['estado'] ?? null, fn ($q, $estado) => $q->where('r.estado', $estado))
+            ->when($filtros['evento_id'] ?? null, fn ($q, $evento) => $q->where('r.evento_id', $evento))
             ->select([
                 'r.id',
                 'r.usuario_id',
