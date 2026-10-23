@@ -40,7 +40,8 @@
     <script defer src="{{ asset('js/admin-acceso.js') }}?v={{ filemtime(public_path('js/admin-acceso.js')) }}"></script>
     <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
     <script defer src="{{ asset('js/notificaciones.js') }}?v={{ filemtime(public_path('js/notificaciones.js')) }}"></script>
-    <script defer src="{{ asset('js/admin-notificaciones.js') }}?v={{ filemtime(public_path('js/admin-notificaciones.js')) }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/campana.css') }}?v={{ filemtime(public_path('css/campana.css')) }}">
+    <script defer src="{{ asset('js/campana.js') }}?v={{ filemtime(public_path('js/campana.js')) }}"></script>
     <script defer src="{{ asset('js/asientos.js') }}?v={{ filemtime(public_path('js/asientos.js')) }}"></script>
     <script defer src="{{ asset('js/admin-evento-formulario.js') }}?v={{ filemtime(public_path('js/admin-evento-formulario.js')) }}"></script>
     <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
@@ -294,22 +295,6 @@
 
             <button type="button"
                     class="nav-item"
-                    data-section="notificaciones">
-
-                <svg class="nav-icon">
-                    <use href="#i-bell"/>
-                </svg>
-
-                <span>Notificaciones</span>
-                <span id="so-notif-badge"
-                      class="so-notif-badge"
-                      aria-label="Notificaciones pendientes"
-                      hidden>0</span>
-
-            </button>
-
-            <button type="button"
-                    class="nav-item"
                     data-section="bitacora">
 
                 <svg class="nav-icon">
@@ -386,6 +371,9 @@
                     <span class="online-indicator"></span>
                     SESIÓN ADMIN
                 </span>
+
+                {{-- Notificaciones push en este dispositivo (campana.js) --}}
+                <div data-campana></div>
 
                 {{-- Cambiar entre tema claro y oscuro (admin-tema.js) --}}
                 <button type="button" class="boton-tema" id="btnTema" aria-label="Cambiar a tema oscuro" title="Cambiar a tema oscuro">
@@ -1180,34 +1168,6 @@
         <!-- =================================================
              SECCIONES PENDIENTES
         ================================================= -->
-
-        <!-- CENTRO DE NOTIFICACIONES DEL ADMINISTRADOR -->
-        <!-- =================================================
-             NOTIFICACIONES (admin-notificaciones.js): avisos reales por persona
-             (reembolsos por revisar, devoluciones pendientes, eventos que se llenan)
-             y push en este dispositivo. Admin y operador.
-             ================================================= -->
-        <section id="notificaciones-panel" class="avisos-panel" hidden>
-            <div class="avisos-push" id="avisos-push">
-                <div>
-                    <strong>Avisos en este dispositivo</strong>
-                    <span id="avisos-push-nota">Recibe los avisos aunque no tengas el panel abierto.</span>
-                </div>
-                <button type="button" class="avisos-interruptor" id="avisos-push-interruptor"
-                        role="switch" aria-checked="false" aria-label="Activar avisos en este dispositivo"></button>
-            </div>
-
-            <div class="avisos-barra">
-                <p class="catalogo-resumen" id="avisos-resumen" role="status" aria-live="polite"></p>
-                <button type="button" class="banner-boton" id="avisos-leer-todas" hidden>Marcar todo como leído</button>
-            </div>
-
-            <ol class="avisos-lista" id="avisos-lista"></ol>
-            <div class="catalogo-mas">
-                <button type="button" class="banner-boton" id="avisos-ver-mas" hidden>Ver avisos anteriores</button>
-            </div>
-        </section>
-
 
         <!-- CONFIGURACIÓN DE CUENTA SOIRÉE -->
         <section id="so-configuracion"

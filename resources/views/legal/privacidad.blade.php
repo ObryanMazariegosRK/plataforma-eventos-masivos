@@ -73,8 +73,8 @@
                     contraseña en cada página, y usamos cookies técnicas indispensables para que el sitio funcione.
                     No usamos cookies de publicidad ni de rastreo.</li>
                 <li><strong>Si activas los avisos en tu dispositivo:</strong> la dirección que tu navegador crea para
-                    recibirlos (no incluye tu nombre ni tu ubicación). Puedes desactivarlos cuando quieras desde la
-                    campana de avisos; también se borra si retiras el permiso en tu navegador.</li>
+                    recibirlos (no incluye tu nombre ni tu ubicación). Puedes desactivarlos cuando quieras tocando la
+                    campana; también se borra si retiras el permiso en tu navegador.</li>
             </ul>
             <p class="legal__nota">
                 <strong>No pedimos</strong> tu número de teléfono, tu dirección, tu documento de identificación ni tu
@@ -89,9 +89,9 @@
                     y, si olvidas tu contraseña, otro para recuperarla.</li>
                 <li><strong>Venderte tus boletos:</strong> apartamos tus asientos por {{ $minutos }} minutos mientras
                     pagas, registramos la compra y emitimos un boleto con código QR por cada asiento.</li>
-                <li><strong>Mantenerte informado:</strong> te avisamos por correo y en la campana de avisos cuando tus
-                    boletos están listos, 24 horas antes de la función, si la función cambia de fecha o se cancela y
-                    cuando se resuelve un reembolso; si los activaste, también como notificación en tu dispositivo.</li>
+                <li><strong>Mantenerte informado:</strong> te avisamos por correo cuando tus boletos están listos,
+                    24 horas antes de la función, si la función cambia de fecha o se cancela y cuando se resuelve un
+                    reembolso; si activaste la campana, también como notificación en tu dispositivo.</li>
                 <li><strong>Dejarte entrar:</strong> en la entrada se escanea el código QR de tu boleto para
                     comprobar que es válido y que no se ha usado.</li>
                 <li><strong>Que la venta sea justa:</strong> limitamos las compras a {{ $maximo }} boletos por persona

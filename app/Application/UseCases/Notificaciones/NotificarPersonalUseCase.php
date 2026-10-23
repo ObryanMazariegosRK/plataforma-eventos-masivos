@@ -11,7 +11,7 @@ use App\Domain\Enums\Notificaciones\EstadoNotificacion;
 use App\Jobs\Notificaciones\EnviarNotificacionCorreoJob;
 
 /**
- * Avisos para el personal de Soirée (sección Notificaciones del panel + push; no van por correo):
+ * Avisos para el personal de Soirée (push en los dispositivos donde lo activó + correo):
  * solo lo que pide atención o conviene saber. Cada aviso se guarda una vez por persona.
  *   - reembolso_solicitado  (administradores) → Reembolsos
  *   - devolucion_pendiente  (administradores) → Reembolsos
@@ -93,7 +93,7 @@ class NotificarPersonalUseCase
                 notificacion: new Notificacion(
                     id: null,
                     usuarioId: $usuarioId,
-                    canal: CanalNotificacion::PUSH,
+                    canal: CanalNotificacion::EMAIL,
                     asunto: $asunto,
                     mensaje: $mensaje,
                     estado: EstadoNotificacion::PENDIENTE,

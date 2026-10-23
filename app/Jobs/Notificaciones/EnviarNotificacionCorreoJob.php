@@ -67,7 +67,7 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 try {
                     $push->enviar(
                         $notificacion->getUsuarioId(),
-                        $notificacion->getAsunto(),
+                        self::tituloPush($notificacion->getTipo(), $notificacion->getAsunto()),
                         self::resumen($notificacion->getMensaje()),
                         $notificacion->getUrl()
                     );
@@ -118,7 +118,8 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 Mail::to($correo)->send(
                     new NotificacionCorreo(
                         asunto: $notificacion->getAsunto(),
-                        mensaje: $notificacion->getMensaje()
+                        mensaje: $notificacion->getMensaje(),
+                        enlace: $notificacion->getUrl() ? url($notificacion->getUrl()) : null
                     )
                 );
 
@@ -144,6 +145,27 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
             // Liberar siempre el bloqueo.
             $bloqueo->release();
         }
+    }
+
+    // Un emoji por tipo, como en las notificaciones de las tiendas: se reconoce de un vistazo
+    private const EMOJIS = [
+        'compra_confirmada' => '🎟️',
+        'recordatorio' => '⏰',
+        'cambio_fecha' => '📅',
+        'evento_cancelado' => '❌',
+        'reembolso_procesado' => '💸',
+        'reembolso_rechazado' => '📄',
+        'reembolso_solicitado' => '↩️',
+        'devolucion_pendiente' => '⚠️',
+        'evento_casi_lleno' => '🔥',
+        'evento_agotado' => '🎉',
+    ];
+
+    private static function tituloPush(?string $tipo, string $asunto): string
+    {
+        $emoji = self::EMOJIS[$tipo] ?? null;
+
+        return $emoji ? "{$emoji} {$asunto}" : $asunto;
     }
 
     // El push muestra poco texto: el primer párrafo del mensaje, recortado

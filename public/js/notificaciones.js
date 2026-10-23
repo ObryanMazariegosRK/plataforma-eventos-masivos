@@ -1,9 +1,8 @@
 'use strict';
 
-// Avisos de Soirée para quien inició sesión, compartido por la campana de la tienda (campana.js)
-// y la sección Notificaciones del panel (admin-notificaciones.js):
-//   Avisos.listar(pagina) / leer(id) / leerTodas()   → /api/notificaciones
-//   Avisos.push.estado() / activar() / desactivar()   → push en ESTE dispositivo (public/sw.js)
+// Notificaciones push de Soirée en ESTE dispositivo (public/sw.js las muestra), usado por la
+// campana de la tienda y del panel (campana.js):
+//   Avisos.push.estado() / activar() / desactivar() / sincronizar()   → /api/push/*
 // La llave pública VAPID viene en <meta name="vapid-public-key">. Como en la tienda, se explican
 // los casos difíciles: permiso bloqueado, Brave y iPhone (solo con Soirée en la pantalla de inicio).
 
@@ -21,36 +20,11 @@ window.Avisos = (() => {
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
-            const error = new Error(datos.errors ? Object.values(datos.errors).flat()[0] : (datos.message || 'No se pudieron consultar tus avisos.'));
+            const error = new Error(datos.errors ? Object.values(datos.errors).flat()[0] : (datos.message || 'No se pudieron configurar las notificaciones.'));
             error.status = respuesta.status;
             throw error;
         }
         return datos;
-    }
-
-    const listar = async (pagina = 1, porPagina = 10) => (await pedir(`/notificaciones?pagina=${pagina}&por_pagina=${porPagina}`)).data;
-    const leer = async (id) => (await pedir(`/notificaciones/${id}/leer`, { method: 'POST' })).data.no_leidas;
-    const leerTodas = async () => (await pedir('/notificaciones/leer-todas', { method: 'POST' })).data.no_leidas;
-
-    // Ícono discreto por tipo de aviso
-    const ICONOS = {
-        compra_confirmada: '✦', recordatorio: '◷', cambio_fecha: '↻', evento_cancelado: '✕',
-        reembolso_procesado: '↺', reembolso_rechazado: '✕', reembolso_solicitado: '↺',
-        devolucion_pendiente: '!', evento_casi_lleno: '◐', evento_agotado: '●',
-    };
-    const icono = (tipo) => ICONOS[tipo] || '•';
-
-    // "hace 5 min", "ayer", "12 oct"
-    const relativo = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
-    const diaCorto = new Intl.DateTimeFormat('es-GT', { timeZone: 'America/Guatemala', day: 'numeric', month: 'short' });
-    function hace(fechaIso) {
-        const segundos = (new Date(fechaIso) - Date.now()) / 1000;
-        const abs = Math.abs(segundos);
-        if (abs < 60) return 'ahora';
-        if (abs < 3600) return relativo.format(Math.round(segundos / 60), 'minute');
-        if (abs < 86400) return relativo.format(Math.round(segundos / 3600), 'hour');
-        if (abs < 6 * 86400) return relativo.format(Math.round(segundos / 86400), 'day');
-        return diaCorto.format(new Date(fechaIso));
     }
 
     // ---------------- Push en este dispositivo ----------------
@@ -112,6 +86,14 @@ window.Avisos = (() => {
         await pedir('/push/suscribir', { method: 'POST', body: JSON.stringify(suscripcion) });
     }
 
+    // El dispositivo ya estaba suscrito (quizá con otra cuenta): se vuelve a registrar a nombre de
+    // quien inició sesión, así sus avisos llegan aquí y los de la cuenta anterior ya no
+    async function sincronizar() {
+        if (!soportado() || Notification.permission !== 'granted') return;
+        const suscripcion = await suscripcionActual();
+        if (suscripcion) await pedir('/push/suscribir', { method: 'POST', body: JSON.stringify(suscripcion) });
+    }
+
     async function desactivar() {
         const suscripcion = await suscripcionActual();
         if (!suscripcion) return;
@@ -119,5 +101,5 @@ window.Avisos = (() => {
         await suscripcion.unsubscribe();
     }
 
-    return { listar, leer, leerTodas, icono, hace, push: { estado, activar, desactivar, porQueNoSoportado } };
+    return { push: { estado, activar, desactivar, sincronizar, porQueNoSoportado } };
 })();

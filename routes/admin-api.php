@@ -205,8 +205,6 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('id')
                     ->name('eventos.contenido.actualizar');
 
-                // NOTIFICACIONES: ahora son avisos reales por persona (GET /api/notificaciones)
-
                 // RESUMEN
 
                 Route::get('/resumen', [

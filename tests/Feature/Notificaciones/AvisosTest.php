@@ -7,18 +7,22 @@ use App\Domain\Abstractions\Notificaciones\IEnviadorPush;
 use App\Domain\Abstractions\Notificaciones\INotificacionRepository;
 use App\Domain\Enums\Auth\EstadoUsuario;
 use App\Domain\Enums\Auth\RolUsuario;
+use App\Infrastructure\Notificaciones\Mail\NotificacionCorreo;
+use App\Infrastructure\Notificaciones\Push\AvisoPush;
+use App\Infrastructure\Notificaciones\Push\EnviadorPushWeb;
 use App\Jobs\Notificaciones\EnviarNotificacionCorreoJob;
 use App\Models\Auth\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Tests\Fakes\Notificaciones\EnviadorPushFalso;
 use Tests\TestCase;
 
-// Avisos: cada notificación se guarda una vez y sale por correo (clientes) y/o push; se ve en la
-// campana de la tienda y en la sección Notificaciones del panel, con leído/no leído en el servidor.
+// Avisos: cada notificación se guarda una vez y sale como push (en los dispositivos donde la persona
+// lo activó con la campana) y por correo, para clientes, administradores y operadores.
 class AvisosTest extends TestCase
 {
     use RefreshDatabase;
@@ -58,12 +62,13 @@ class AvisosTest extends TestCase
         (new EnviarNotificacionCorreoJob($id))->handle(app(INotificacionRepository::class));
         (new EnviarNotificacionCorreoJob($id))->handle(app(INotificacionRepository::class));
 
-        $this->assertSame([['usuario_id' => $cliente->id, 'titulo' => 'Confirmación de compra', 'cuerpo' => 'Tus boletos están listos.', 'url' => '/mis-compras/1/boletos']], $this->push->enviados);
+        $this->assertSame([['usuario_id' => $cliente->id, 'titulo' => '🎟️ Confirmación de compra', 'cuerpo' => 'Tus boletos están listos.', 'url' => '/mis-compras/1/boletos']], $this->push->enviados);
         Mail::assertSentCount(1);
+        Mail::assertSent(NotificacionCorreo::class, fn ($correo) => $correo->enlace === url('/mis-compras/1/boletos'));
         $this->assertNotNull(DB::table('notificaciones')->value('push_en'));
     }
 
-    public function test_si_el_push_falla_el_correo_sale_igual_y_los_avisos_del_panel_no_van_por_correo(): void
+    public function test_si_el_push_falla_el_correo_sale_igual_y_los_avisos_de_canal_push_no_van_por_correo(): void
     {
         $this->push->fallar = true;
         $cliente = $this->usuario('ana@test.com');
@@ -81,31 +86,23 @@ class AvisosTest extends TestCase
         $this->assertCount(1, $this->push->enviados);
     }
 
-    public function test_la_bandeja_muestra_solo_lo_propio_y_marca_leidos(): void
+    public function test_el_push_real_sale_a_los_dispositivos_de_la_persona(): void
     {
+        Notification::fake();
+        config(['webpush.vapid.public_key' => 'LLAVE-PUBLICA-DE-PRUEBA']);
+        $sinDispositivos = $this->usuario('otro@test.com');
         $ana = $this->usuario('ana@test.com');
-        $otro = $this->usuario('otro@test.com');
-        $primero = $this->aviso($ana, 'Primero', extra: ['created_at' => now()->subHour()]);
-        $segundo = $this->aviso($ana, 'Segundo');
-        $ajeno = $this->aviso($otro, 'Ajeno');
+        $ana->updatePushSubscription('https://fcm.googleapis.com/fcm/send/abc123', 'p256dh', 'auth');
 
-        Sanctum::actingAs($ana);
-        $datos = $this->getJson('/api/notificaciones')->assertOk()->json('data');
-        $this->assertSame(['Segundo', 'Primero'], array_column($datos['avisos'], 'titulo'));
-        $this->assertSame([2, 2], [$datos['no_leidas'], $datos['meta']['total']]);
-        $this->assertSame(['tipo' => 'compra_confirmada', 'url' => '/mis-compras/1/boletos', 'leida' => false], array_intersect_key($datos['avisos'][0], array_flip(['tipo', 'url', 'leida'])));
+        $this->assertSame(1, (new EnviadorPushWeb)->enviar($ana->id, '🎟️ Confirmación de compra', 'Tus boletos están listos.', '/mis-compras'));
+        $this->assertSame(0, (new EnviadorPushWeb)->enviar($sinDispositivos->id, 'Hola', 'Nada', null));
 
-        $this->postJson("/api/notificaciones/{$segundo}/leer")->assertOk()->assertJsonPath('data.no_leidas', 1);
-        // El aviso de otra persona no se toca
-        $this->postJson("/api/notificaciones/{$ajeno}/leer")->assertOk();
-        $this->assertNull(DB::table('notificaciones')->where('id', $ajeno)->value('leida_en'));
+        Notification::assertSentTo($ana, AvisoPush::class, function (AvisoPush $aviso) use ($ana) {
+            $datos = $aviso->toWebPush($ana, $aviso)->toArray();
 
-        $this->postJson('/api/notificaciones/leer-todas')->assertOk()->assertJsonPath('data.no_leidas', 0);
-        $this->assertNotNull(DB::table('notificaciones')->where('id', $primero)->value('leida_en'));
-        $this->assertTrue($this->getJson('/api/notificaciones?por_pagina=1')->json('data.meta.hay_mas'));
-
-        $this->app['auth']->forgetGuards();
-        $this->getJson('/api/notificaciones', ['Authorization' => ''])->assertUnauthorized();
+            return $datos['title'] === '🎟️ Confirmación de compra' && $datos['data'] === ['url' => '/mis-compras'];
+        });
+        Notification::assertNothingSentTo($sinDispositivos);
     }
 
     public function test_activar_el_push_solo_acepta_servicios_de_push_de_navegadores(): void
@@ -155,10 +152,12 @@ class AvisosTest extends TestCase
         $reembolso = DB::table('reembolsos')->insertGetId(['pago_id' => $pago, 'monto' => 720, 'estado' => 'solicitado', 'motivo' => 'Viaje', 'created_at' => now(), 'updated_at' => now()]);
         $this->assertSame(1, $personal->reembolsoSolicitado($reembolso));
         $aviso = DB::table('notificaciones')->where('tipo', 'reembolso_solicitado')->first();
-        $this->assertSame([$admin->id, 'push', '/admin?seccion=reembolsos'], [(int) $aviso->usuario_id, $aviso->canal, $aviso->url]);
+        $this->assertSame([$admin->id, 'email', '/admin?seccion=reembolsos'], [(int) $aviso->usuario_id, $aviso->canal, $aviso->url]);
         $this->assertSame("Ana Pérez pidió el reembolso de Q720.00 (80 %) de su compra para «Gala».\n\nMotivo: Viaje", $aviso->mensaje);
+        // Cada aviso sale por push y por correo
         $this->assertCount(5, $this->push->enviados);
-        Mail::assertNothingSent();   // los avisos del personal no van por correo
+        Mail::assertSentCount(5);
+        Mail::assertSent(NotificacionCorreo::class, fn ($correo) => $correo->hasTo('operador@test.com') && $correo->asunto === '«Gala» se agotó');
     }
 
     public function test_cancelar_un_evento_avisa_a_cada_comprador(): void
@@ -183,7 +182,7 @@ class AvisosTest extends TestCase
         config(['webpush.vapid.public_key' => 'LLAVE-PUBLICA-DE-PRUEBA']);
 
         $this->get('/mis-compras')->assertOk()->assertSee('<meta name="vapid-public-key" content="LLAVE-PUBLICA-DE-PRUEBA">', false)->assertSee('campana.js');
-        $this->get('/admin')->assertOk()->assertSee('LLAVE-PUBLICA-DE-PRUEBA')->assertSee('admin-notificaciones.js');
+        $this->get('/admin')->assertOk()->assertSee('LLAVE-PUBLICA-DE-PRUEBA')->assertSee('campana.js')->assertDontSee('notificaciones-panel');
         $this->assertFileExists(public_path('sw.js'));   // lo sirve nginx
     }
 }

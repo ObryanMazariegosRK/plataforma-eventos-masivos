@@ -13,7 +13,6 @@ use App\Http\Controllers\Pagos\PagoController;
 use App\Http\Controllers\Pasarelas\PasarelaController;
 use App\Http\Controllers\Inventario\DisponibilidadController;
 use App\Http\Controllers\Transacciones\TransaccionController;
-use App\Http\Controllers\Notificaciones\NotificacionController;
 use App\Http\Controllers\Notificaciones\PushController;
 use App\Http\Controllers\Reembolsos\ReembolsoController;
 use App\Http\Controllers\Reembolsos\ReembolsoCompraController;
@@ -174,14 +173,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 // ======================================================
-// 4.1 NOTIFICACIONES (avisos dentro de Soirée y push del dispositivo)
+// 4.1 NOTIFICACIONES PUSH (activarlas o quitarlas en este dispositivo)
 // ======================================================
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/notificaciones', [NotificacionController::class, 'index']);
-    Route::post('/notificaciones/leer-todas', [NotificacionController::class, 'leerTodas']);
-    Route::post('/notificaciones/{id}/leer', [NotificacionController::class, 'leer'])->whereNumber('id');
-
     Route::post('/push/suscribir', [PushController::class, 'suscribir'])->middleware('throttle:10,1');
     Route::post('/push/desuscribir', [PushController::class, 'desuscribir'])->middleware('throttle:10,1');
 });

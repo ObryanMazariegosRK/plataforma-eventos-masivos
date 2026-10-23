@@ -19,6 +19,12 @@
 
         <p style="color: #444444; line-height: 1.7; white-space: pre-line;">{{ $mensaje }}</p>
 
+        @if (! empty($enlace))
+            <p style="margin: 24px 0;">
+                <a href="{{ $enlace }}" style="display: inline-block; padding: 12px 22px; border-radius: 999px; background-color: #222222; color: #ffffff; text-decoration: none; font-weight: bold;">Ver en Soirée</a>
+            </p>
+        @endif
+
         <hr style="border: 0; border-top: 1px solid #dddddd;">
 
         <p style="color: #777777; font-size: 12px;">

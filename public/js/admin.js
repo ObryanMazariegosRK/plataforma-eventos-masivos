@@ -40,10 +40,6 @@
             'Centro de reportes',
             'Exporta información de la plataforma.'
         ],
-        notificaciones: [
-            'Notificaciones',
-            'Lo que necesita tu atención: reembolsos por revisar, devoluciones pendientes y eventos que se llenan.'
-        ],
         acceso: [
             'Control de acceso',
             'Escanea el QR de cada boleto en la entrada y registra a quien pasa.'
@@ -101,7 +97,7 @@
     let currentRole = null;
     let currentProfile = null;
     const operativeSections = new Set([
-        'eventos', 'catalogo', 'banner', 'acceso', 'notificaciones', 'configuracion'
+        'eventos', 'catalogo', 'banner', 'acceso', 'configuracion'
     ]);
 
     function canAccessSection(name) {
@@ -1817,16 +1813,10 @@
         if (reabrir) openEventForm();
     }
 
-    // =====================================================
-    // NOTIFICACIONES: bandeja, burbuja del menú y push del dispositivo
-    // las maneja admin-notificaciones.js (GET /api/notificaciones)
-    // =====================================================
-
     function updateSections() {
         const isOverview = section === 'resumen';
         const isEvents = section === 'eventos';
         const isReports = section === 'reportes';
-        const isNotifications = section === 'notificaciones';
         const isBanner = section === 'banner';   // lo maneja admin-banner.js
         const isCatalogo = section === 'catalogo';   // lo maneja admin-catalogo-eventos.js
         const isBitacora = section === 'bitacora';   // lo maneja admin-bitacora.js
@@ -1835,7 +1825,7 @@
         const isConfig = section === 'configuracion';
         const isPending = pendingSections.has(section) && !isConfig;
 
-        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo && !isBitacora && !isReembolsos && !isAcceso);
+        show('dashboard', !isReports && !isPending && !isBanner && !isConfig && !isCatalogo && !isBitacora && !isReembolsos && !isAcceso);
         show('banner-panel', isBanner);
         show('catalogo-panel', isCatalogo);
         show('reservas-estados', section === 'reservas');
@@ -1850,7 +1840,6 @@
         show('coming-soon', isPending);
         show('so-configuracion', isConfig);
         if (isConfig) renderConfiguracion();
-        show('notificaciones-panel', isNotifications);
 
         if (!isEvents) {
             closeEventForm();
@@ -2912,14 +2901,6 @@
     async function load() {
         // Aviso de recarga: lo escucha el catálogo para actualizarse (publicar, editar, imagen...)
         document.dispatchEvent(new CustomEvent('admin:recargar', { detail: { section } }));
-
-        if (section === 'notificaciones') {
-            ++requestVersion;
-            updateHeader();
-            updateSections();
-            clearFeedback();
-            return;
-        }
 
         const version = ++requestVersion;
 
