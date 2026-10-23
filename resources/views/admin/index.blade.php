@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta name="robots" content="noindex,nofollow">
@@ -20,6 +21,8 @@
     <!-- Administración: una sola hoja de estilos consolidada -->
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ filemtime(public_path('css/admin.css')) }}">
     <!-- Tema Soiree claro/oscuro (estilo de la tienda): solo apariencia, va encima de admin.css -->
+    <!-- Plano de asientos (formulario de evento → "Ver plano del recinto") -->
+    <link rel="stylesheet" href="{{ asset('css/asientos.css') }}?v={{ filemtime(public_path('css/asientos.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/admin-tema.css') }}?v={{ filemtime(public_path('css/admin-tema.css')) }}">
     <!-- Aplica el tema guardado antes de dibujar la página (sin destello al recargar) -->
     <script>
@@ -31,10 +34,24 @@
     <!-- JavaScript: conservar los módulos funcionales existentes -->
     <script defer src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
     <script defer src="{{ asset('js/admin-catalogo-eventos.js') }}?v={{ filemtime(public_path('js/admin-catalogo-eventos.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-bitacora.js') }}?v={{ filemtime(public_path('js/admin-bitacora.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-reembolsos.js') }}?v={{ filemtime(public_path('js/admin-reembolsos.js')) }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/verificacion-boleto.css') }}?v={{ filemtime(public_path('css/verificacion-boleto.css')) }}">
+    <script defer src="{{ asset('js/verificacion-boleto.js') }}?v={{ filemtime(public_path('js/verificacion-boleto.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-acceso.js') }}?v={{ filemtime(public_path('js/admin-acceso.js')) }}"></script>
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
+    <script defer src="{{ asset('js/notificaciones.js') }}?v={{ filemtime(public_path('js/notificaciones.js')) }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/campana.css') }}?v={{ filemtime(public_path('css/campana.css')) }}">
+    <script defer src="{{ asset('js/campana.js') }}?v={{ filemtime(public_path('js/campana.js')) }}"></script>
+    <script defer src="{{ asset('js/asientos.js') }}?v={{ filemtime(public_path('js/asientos.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-evento-formulario.js') }}?v={{ filemtime(public_path('js/admin-evento-formulario.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-costos.js') }}?v={{ filemtime(public_path('js/admin-costos.js')) }}"></script>
+    <script defer src="{{ asset('js/admin-finanzas.js') }}?v={{ filemtime(public_path('js/admin-finanzas.js')) }}"></script>
     <script defer src="{{ asset('js/admin-event-filters.js') }}?v=1"></script>
     <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
 
+    @include('partials.iconos')
 </head>
 
 <body class="tema-soiree">
@@ -85,6 +102,16 @@
         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 10h18c0-2-3-3-3-10zM10 22h4"/>
     </symbol>
 
+    <symbol id="i-scan" viewBox="0 0 24 24">
+        <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/>
+        <path d="M8 12h8"/>
+    </symbol>
+
+    <symbol id="i-refund" viewBox="0 0 24 24">
+        <path d="M9 14 4 9l5-5"/>
+        <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
+    </symbol>
+
     <symbol id="i-clock" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="9"/>
         <path d="M12 7v5l4 2"/>
@@ -121,9 +148,26 @@
 
 <div class="shell">
 
+    {{-- Celular y tableta: barra con el botón que despliega el menú lateral (admin-tema.js) --}}
+    <header class="barra-movil">
+        <button type="button" class="barra-movil__menu" id="btnMenu"
+                aria-controls="menu-lateral" aria-expanded="false" aria-label="Abrir menú">
+            <span class="barra-movil__icono" aria-hidden="true"><span></span></span>
+            <span>Menú</span>
+        </button>
+        <a class="barra-movil__marca" href="/admin">soirée<span>.</span></a>
+        <span class="barra-movil__seccion" id="barraSeccion" aria-live="polite"></span>
+    </header>
+    <div class="menu-velo" id="menuVelo" hidden></div>
+
     <!-- BARRA LATERAL -->
     <aside class="sidebar"
+           id="menu-lateral"
            aria-label="Navegación administrativa">
+
+        <button type="button" class="menu-cerrar" id="btnCerrarMenu" aria-label="Cerrar menú">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
 
         <a class="brand"
            href="/admin"
@@ -154,7 +198,7 @@
                     <use href="#i-home"/>
                 </svg>
 
-                <span>Resumen</span>
+                <span>Dashboard</span>
             </button>
 
             <button type="button"
@@ -203,6 +247,28 @@
 
             <button type="button"
                     class="nav-item"
+                    data-section="acceso">
+
+                <svg class="nav-icon">
+                    <use href="#i-scan"/>
+                </svg>
+
+                <span>Control de acceso</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
+                    data-section="reembolsos">
+
+                <svg class="nav-icon">
+                    <use href="#i-refund"/>
+                </svg>
+
+                <span>Reembolsos</span>
+            </button>
+
+            <button type="button"
+                    class="nav-item"
                     data-section="usuarios">
 
                 <svg class="nav-icon">
@@ -231,30 +297,13 @@
 
             <button type="button"
                     class="nav-item"
-                    data-section="notificaciones">
-
-                <svg class="nav-icon">
-                    <use href="#i-bell"/>
-                </svg>
-
-                <span>Notificaciones</span>
-                <span id="so-notif-badge"
-                      class="so-notif-badge"
-                      aria-label="Notificaciones pendientes"
-                      hidden>0</span>
-
-            </button>
-
-            <button type="button"
-                    class="nav-item"
-                    data-section="historial">
+                    data-section="bitacora">
 
                 <svg class="nav-icon">
                     <use href="#i-clock"/>
                 </svg>
 
-                <span>Historial</span>
-                <span class="nav-soon">Pronto</span>
+                <span>Bitácora</span>
             </button>
 
             <button type="button"
@@ -299,12 +348,9 @@
 
         </div>
 
+        {{-- Sin enlace a la tienda: el panel y la tienda son accesos separados. El rol lo pone admin.js --}}
         <div class="sidebar-bottom">
-            <a href="/catalogo">
-                ← Volver al catálogo
-            </a>
-
-            <small>Administrador · Soirée</small>
+            <small id="so-rol-pie">Soirée</small>
         </div>
 
     </aside>
@@ -318,25 +364,15 @@
         <!-- BARRA SUPERIOR -->
         <div class="utility-bar">
 
-            <div class="top-search">
-
-                <svg class="utility-icon">
-                    <use href="#i-search"/>
-                </svg>
-
-                <input id="global-search"
-                       type="search"
-                       placeholder="Buscar usuarios..."
-                       aria-label="Buscar usuarios">
-
-            </div>
-
             <div class="utility-person">
 
                 <span class="top-online">
                     <span class="online-indicator"></span>
                     SESIÓN ADMIN
                 </span>
+
+                {{-- Notificaciones push en este dispositivo (campana.js) --}}
+                <div data-campana></div>
 
                 {{-- Cambiar entre tema claro y oscuro (admin-tema.js) --}}
                 <button type="button" class="boton-tema" id="btnTema" aria-label="Cambiar a tema oscuro" title="Cambiar a tema oscuro">
@@ -368,17 +404,6 @@
                     Gestiona eventos, reservas y todo lo que hace
                     posible grandes experiencias.
                 </p>
-
-                {{-- Solo en la sección de eventos (admin-tema.css): antes estaba en un
-                     recuadro aparte (#eventos-tools) que repetía este mismo encabezado --}}
-                <div class="hero-acciones">
-                    <button
-                        type="button"
-                        class="primary"
-                        id="btn-nuevo-evento">
-                        + Nuevo evento
-                    </button>
-                </div>
 
             </div>
 
@@ -419,132 +444,71 @@
                      aria-label="Indicadores de la plataforma">
                 </div>
 
-                <!-- GRÁFICAS Y ACCIONES RÁPIDAS -->
-                <div class="insights-grid">
+                {{-- VENTAS Y GANANCIAS (admin-finanzas.js; GET /api/admin/finanzas, solo administrador).
+                     El filtro de fechas de arriba aplica a todo lo de abajo. --}}
+                <section id="finanzas-panel" class="finanzas" aria-labelledby="finanzas-titulo">
+                    <header class="finanzas__cabecera">
+                        <div>
+                            <span class="finanzas__eyebrow">Finanzas</span>
+                            <h2 id="finanzas-titulo">Ventas y ganancias</h2>
+                            <p id="finanzas-periodo" class="finanzas__nota">Consultando…</p>
+                        </div>
+                    </header>
 
-                    <!-- ESTADOS DE RESERVAS -->
-                    <article class="panel chart-card">
+                    <form class="finanzas__filtro" id="finanzas-filtro" aria-label="Período">
+                        <div class="finanzas__presets" role="group" aria-label="Períodos rápidos">
+                            <button type="button" data-dias="7">7 días</button>
+                            <button type="button" data-dias="30" aria-pressed="true">30 días</button>
+                            <button type="button" data-dias="90">90 días</button>
+                            <button type="button" data-anio>Este año</button>
+                        </div>
+                        <div class="finanzas__rango">
+                            <label><span>Desde</span><input type="date" name="desde" id="finanzas-desde"></label>
+                            <label><span>Hasta</span><input type="date" name="hasta" id="finanzas-hasta"></label>
+                        </div>
+                        <p class="finanzas__error" id="finanzas-error" role="alert" hidden></p>
+                    </form>
 
-                        <div class="panel-heading">
+                    <div class="finanzas__cifras" id="finanzas-cifras" aria-live="polite"></div>
 
-                            <div>
-                                <div class="heading-icon">
-                                    <svg>
-                                        <use href="#i-ticket"/>
-                                    </svg>
-                                </div>
+                    <div class="finanzas__graficas">
+                        <article class="finanzas__tarjeta" aria-labelledby="ventas-titulo">
+                            <h3 id="ventas-titulo">Ventas</h3>
+                            <p class="finanzas__nota" id="ventas-nota">Monto cobrado (pagos aprobados).</p>
+                            <div class="grafica" id="grafica-ventas"></div>
+                            <details class="finanzas__tabla">
+                                <summary>Ver los datos en tabla</summary>
+                                <div id="ventas-tabla"></div>
+                            </details>
+                        </article>
 
-                                <h2>Estados de las reservas</h2>
-
-                                <p>
-                                    Distribución actual de las reservas
-                                </p>
+                        <article class="finanzas__tarjeta" aria-labelledby="ganancias-titulo">
+                            <div class="finanzas__titulo-leyenda">
+                                <h3 id="ganancias-titulo">Ganancia por evento</h3>
+                                <ul class="leyenda" aria-label="Leyenda">
+                                    <li><span class="leyenda__muestra leyenda__muestra--ganancia"></span>Ganancia</li>
+                                    <li><span class="leyenda__muestra leyenda__muestra--perdida"></span>Pérdida</li>
+                                </ul>
                             </div>
+                            <p class="finanzas__nota">Eventos que ya ocurrieron (o se cancelaron) en el período.</p>
+                            <div class="grafica" id="grafica-ganancias"></div>
+                        </article>
+                    </div>
 
-                            <span class="mini-count"
-                                  id="reservas-total">
-                            </span>
-
-                        </div>
-
-                        <div id="reservation-bars"></div>
-
-                    </article>
-
-                    <!-- ESTADOS DE EVENTOS -->
-                    <article class="panel chart-card">
-
-                        <div class="panel-heading">
-
-                            <div>
-                                <div class="heading-icon">
-                                    <svg>
-                                        <use href="#i-calendar"/>
-                                    </svg>
-                                </div>
-
-                                <h2>Estados de los eventos</h2>
-
-                                <p>
-                                    Estado de publicación de los eventos
-                                </p>
+                    <article class="finanzas__tarjeta" aria-labelledby="rentabilidad-titulo">
+                        <div class="finanzas__titulo-leyenda">
+                            <h3 id="rentabilidad-titulo">Rentabilidad por evento</h3>
+                            <div class="finanzas__pestanas" role="tablist" aria-label="Eventos">
+                                <button type="button" role="tab" id="pestana-historial" aria-selected="true" aria-controls="rentabilidad-tabla" data-vista="historial">Historial del período</button>
+                                <button type="button" role="tab" id="pestana-proximos" aria-selected="false" aria-controls="rentabilidad-tabla" data-vista="proximos">Próximos eventos</button>
                             </div>
-
-                            <span class="mini-count"
-                                  id="eventos-total">
-                            </span>
-
                         </div>
-
-                        <div id="event-bars"></div>
-
+                        <p class="finanzas__nota" id="rentabilidad-nota"></p>
+                        <div class="rentabilidad" id="rentabilidad-tabla" role="tabpanel"></div>
+                        <button type="button" class="rentabilidad__mas" id="rentabilidad-mas" hidden>Ver más</button>
                     </article>
+                </section>
 
-                    <!-- ACCIONES RÁPIDAS -->
-                    <article class="panel quick-card">
-
-                        <div class="panel-heading">
-
-                            <div>
-                                <div class="heading-icon">
-                                    <svg>
-                                        <use href="#i-zap"/>
-                                    </svg>
-                                </div>
-
-                                <h2>Acciones rápidas</h2>
-
-                                <p>
-                                    Accede a tus herramientas administrativas
-                                </p>
-                            </div>
-
-                        </div>
-
-                        <div class="quick-links">
-
-                            <button type="button"
-                                    class="quick-link featured"
-                                    data-go="reportes">
-
-                                <svg>
-                                    <use href="#i-download"/>
-                                </svg>
-
-                                <span>Descargar reporte</span>
-                                <b>→</b>
-                            </button>
-
-                            <button type="button"
-                                    class="quick-link"
-                                    data-go="eventos">
-
-                                <svg>
-                                    <use href="#i-calendar"/>
-                                </svg>
-
-                                <span>Ver eventos</span>
-                                <b>›</b>
-                            </button>
-
-                            <button type="button"
-                                    class="quick-link"
-                                    data-go="usuarios">
-
-                                <svg>
-                                    <use href="#i-users"/>
-                                </svg>
-
-                                <span>Consultar usuarios</span>
-                                <b>›</b>
-                            </button>
-
-                        </div>
-
-                    </article>
-
-                </div>
-                <!-- FIN DE GRÁFICAS -->
 
             </div>
             <!-- FIN DE overview-content:
@@ -574,7 +538,6 @@
         </p>
     </div>
 
-    {{-- El botón "+ Nuevo evento" pasó al encabezado (.hero-acciones) --}}
 
 </div>
 
@@ -639,7 +602,53 @@
                     required>
             </label>
 
+
             <label>
+                Fecha y hora
+
+                <input
+                    name="fecha_evento"
+                    type="datetime-local"
+                    data-max-meses="{{ config('catalogo.max_meses_evento') }}"
+                    required>
+            </label>
+
+            {{-- Título de la primera escena de la experiencia (admin-evento-formulario.js lleva la cuenta) --}}
+            <label class="evento-full evento-frase">
+                <span>Frase destacada <span class="evento-frase__opcional">(opcional)</span></span>
+
+                <input
+                    type="text"
+                    name="frase_destacada"
+                    id="evento-frase"
+                    maxlength="70"
+                    autocomplete="off"
+                    placeholder="Ej. Tres décadas de jazz en una sola noche"
+                    aria-describedby="evento-frase-ayuda evento-frase-contador">
+
+                <span class="evento-frase__pie">
+                    <small id="evento-frase-ayuda">Encabeza la primera escena de la experiencia. Si la dejas vacía, se usa el nombre del evento.</small>
+                    <small class="evento-frase__contador" id="evento-frase-contador" aria-live="polite">0 / 70</small>
+                </span>
+            </label>
+
+            <label class="evento-full">
+                Descripción
+
+                <textarea
+                    name="descripcion"
+                    id="evento-descripcion"
+                    rows="4"
+                    maxlength="600"
+                    placeholder="Describe el evento..."
+                    aria-describedby="evento-descripcion-ayuda evento-descripcion-contador"></textarea>
+                <span class="evento-frase__pie">
+                    <small id="evento-descripcion-ayuda">Se ve completa en la página del evento; la primera escena de la experiencia muestra los primeros 170 caracteres.</small>
+                    <small class="evento-frase__contador" id="evento-descripcion-contador" aria-live="polite">0 / 600</small>
+                </span>
+            </label>
+
+            <label class="evento-recinto">
                 Recinto
 
                 <select
@@ -652,94 +661,76 @@
                     </option>
 
                 </select>
-            </label>
-
-            <label>
-                Fecha y hora
-
-                <input
-                    name="fecha_evento"
-                    type="datetime-local"
-                    required>
-            </label>
-
-            <label class="evento-full">
-                Descripción
-
-                <textarea
-                    name="descripcion"
-                    rows="4"
-                    maxlength="10000"
-                    placeholder="Describe el evento..."></textarea>
-            </label>
-
-            <!-- URL pública de fotografía del evento -->
-            <label class="evento-full" for="evento-imagen-url">
-                URL de imagen del evento
-
-                <input
-                    type="url"
-                    name="imagen_url"
-                    id="evento-imagen-url"
-                    maxlength="2048"
-                    placeholder="https://ejemplo.com/concierto.jpg"
-                    inputmode="url"
-                    autocomplete="off">
-
-                <small class="evento-image-help">
-                    Enlace HTTPS de una imagen pública. Es opcional.
-                </small>
+                {{-- Plano del recinto elegido (admin-evento-formulario.js) --}}
+                <button type="button" class="evento-ver-plano" id="evento-ver-plano" aria-expanded="false" aria-controls="evento-plano" disabled>
+                    Ver plano del recinto
+                </button>
             </label>
 
 
-            <!-- Fotografías adicionales de la galería -->
-            <label class="evento-full" for="evento-imagen-url-2">
-                URL de imagen 2 — Galería
-
-                <input
-                    type="url"
-                    name="imagen_url_2"
-                    id="evento-imagen-url-2"
-                    maxlength="2048"
-                    placeholder="https://ejemplo.com/imagen-2.jpg"
-                    inputmode="url"
-                    autocomplete="off">
-
-                <small class="evento-image-help">
-                    Segunda fotografía del evento. Enlace HTTPS opcional.
-                </small>
-            </label>
-
-            <label class="evento-full" for="evento-imagen-url-3">
-                URL de imagen 3 — Galería
-
-                <input
-                    type="url"
-                    name="imagen_url_3"
-                    id="evento-imagen-url-3"
-                    maxlength="2048"
-                    placeholder="https://ejemplo.com/imagen-3.jpg"
-                    inputmode="url"
-                    autocomplete="off">
-
-                <small class="evento-image-help">
-                    Tercera fotografía del evento. Enlace HTTPS opcional.
-                </small>
-            </label>
-
-            <!-- Vista previa: visible cuando la imagen carga -->
-            <div id="evento-image-preview"
-                 class="evento-full evento-image-preview"
-                 hidden>
-                <img id="evento-image-preview-img"
-                     alt="Vista previa de la imagen del evento"
-                     referrerpolicy="no-referrer">
+            {{-- Plano del recinto, desplegable (no ocupa espacio hasta que se pide) --}}
+            <div class="evento-full evento-plano asientos-app" id="evento-plano" hidden>
+                <div class="evento-plano__mapa mapa mapa--admin" id="evento-plano-mapa" aria-live="polite"></div>
             </div>
+
+            {{-- FOTOS (admin-evento-formulario.js): se suben al elegirlas; las tres son obligatorias.
+                 1 = portada del catálogo y primera escena de la experiencia; 2 y 3 = las otras escenas. --}}
+            <fieldset class="evento-full evento-fotos" id="evento-fotos">
+                <legend>Fotos del evento <span>Las tres son obligatorias · JPG, PNG o WebP de hasta {{ config('catalogo.imagen_evento_max_mb') }} MB</span></legend>
+                <div class="evento-fotos__lista">
+                    @foreach ([['imagen_url', 'Portada', 'Se ve en el catálogo y en la primera escena del evento'], ['imagen_url_2', 'Segunda escena', 'Aparece al bajar por la experiencia del evento'], ['imagen_url_3', 'Tercera escena', 'La última antes de elegir asientos']] as $i => [$campo, $titulo, $ayuda])
+                        <div class="evento-foto" data-campo="{{ $campo }}">
+                            <input type="hidden" name="{{ $campo }}">
+                            <label class="evento-foto__zona">
+                                <input type="file" accept="image/jpeg,image/png,image/webp" class="evento-foto__archivo">
+                                <img class="evento-foto__vista" alt="" hidden>
+                                <span class="evento-foto__vacia">
+                                    <strong>{{ $i + 1 }} · {{ $titulo }}</strong>
+                                    <span>Toca o arrastra una foto aquí</span>
+                                </span>
+                                <span class="evento-foto__estado" role="status"></span>
+                            </label>
+                            <small>{{ $ayuda }}</small>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="evento-form-feedback" id="evento-fotos-mensaje" role="alert" hidden></p>
+            </fieldset>
 
         </div>
 
+        {{-- COSTOS DE PRODUCCIÓN (admin-costos.js): un campo por concepto. El recinto y los artistas
+             son obligatorios; con el total se sugieren los precios de abajo. Los registran admin y
+             operador; la ganancia solo la ve el administrador. --}}
+        <section id="evento-costos-panel" class="evento-costos" aria-labelledby="evento-costos-titulo">
+            <div class="evento-costos__cabecera">
+                <div>
+                    <span class="evento-localidades-eyebrow">SOIRÉE · COSTOS DE PRODUCCIÓN</span>
+                    <h3 id="evento-costos-titulo">Costos del evento</h3>
+                    <p>Llénalos primero: con ellos te sugerimos el precio de cada localidad.</p>
+                </div>
+                <strong class="evento-costos__total" id="evento-costos-total">Total Q0.00</strong>
+            </div>
+            <div class="evento-costos__campos" id="evento-costos-campos">
+                @foreach ([['recinto', 'Alquiler del recinto', true], ['artistas', 'Artistas', true], ['produccion', 'Producción (sonido, luces)', false], ['publicidad', 'Publicidad', false], ['personal', 'Personal (seguridad, taquilla)', false], ['otros', 'Otros gastos', false]] as [$categoria, $concepto, $obligatorio])
+                    <label class="evento-costos__campo">
+                        <span>{{ $concepto }}@if ($obligatorio) <b aria-hidden="true">*</b>@endif</span>
+                        <span class="evento-costos__monto">
+                            <i aria-hidden="true">Q</i>
+                            <input type="number" inputmode="decimal" step="0.01" placeholder="0.00"
+                                   min="{{ $obligatorio ? '0.01' : '0' }}" max="9999999999.99"
+                                   data-categoria="{{ $categoria }}" data-concepto="{{ $concepto }}"
+                                   @if ($obligatorio) required @endif>
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+            <p class="evento-form-feedback" id="evento-costos-mensaje" role="status" hidden></p>
+        </section>
+
         <!-- PRECIOS SEGÚN EL RECINTO -->
         <section id="evento-localidades-panel"
+                 data-comision="{{ config('finanzas.comision_pasarela') }}"
                  class="evento-localidades-panel"
                  aria-labelledby="evento-localidades-title">
 
@@ -760,6 +751,11 @@
                     GTQ · Quetzales
                 </span>
             </div>
+
+            <p class="evento-precios-aviso" id="evento-precios-aviso" hidden>
+                <strong>Revisa bien los precios.</strong> Puedes cambiarlos mientras el evento sea borrador,
+                pero una vez publicado ya no se podrán modificar.
+            </p>
 
             <div id="evento-localidades-lista"
                  class="evento-localidades-lista"
@@ -856,7 +852,36 @@
                 </form>
             </section>
 
-            <article class="panel data-card">
+                    <!-- ESTADOS DE RESERVAS: solo en la sección Reservas (admin.js) -->
+                    <article class="panel chart-card estados-tira" id="reservas-estados" hidden>
+
+                        <div class="panel-heading">
+
+                            <div>
+                                <div class="heading-icon">
+                                    <svg>
+                                        <use href="#i-ticket"/>
+                                    </svg>
+                                </div>
+
+                                <h2>Estados de las reservas</h2>
+
+                                <p>
+                                    Distribución actual de las reservas
+                                </p>
+                            </div>
+
+                            <span class="mini-count"
+                                  id="reservas-total">
+                            </span>
+
+                        </div>
+
+                        <div id="reservation-bars" class="estados-tira__barras"></div>
+
+                    </article>
+
+            <article class="panel data-card" id="tabla-datos">
 
                 <div class="table-head">
 
@@ -916,6 +941,21 @@
         ================================================= -->
 
         <section id="catalogo-panel" class="catalogo-panel" hidden>
+            {{-- Estados de los eventos: cada estado filtra el catálogo al tocarlo --}}
+            <article class="panel chart-card estados-tira" aria-labelledby="catalogo-estados-titulo">
+                <div class="panel-heading">
+                    <div>
+                        <div class="heading-icon">
+                            <svg><use href="#i-calendar"/></svg>
+                        </div>
+                        <h2 id="catalogo-estados-titulo">Estados de los eventos</h2>
+                        <p>Estado de publicación de todos los eventos. Toca uno para filtrar.</p>
+                    </div>
+                    <span class="mini-count" id="catalogo-estados-total"></span>
+                </div>
+                <div id="catalogo-estados" class="estados-tira__barras"></div>
+            </article>
+
             <form class="catalogo-filtros" id="catalogo-filtros" role="search" aria-label="Filtrar eventos">
                 <label class="catalogo-filtros__nombre">
                     <span>Nombre</span>
@@ -953,6 +993,113 @@
             <div class="catalogo-grid" id="catalogo-grid"></div>
             <div class="catalogo-mas">
                 <button type="button" class="banner-boton" id="catalogo-ver-mas" hidden>Ver más eventos</button>
+            </div>
+        </section>
+
+        <!-- =================================================
+             CONTROL DE ACCESO (admin-acceso.js): admin y operador.
+             Escanea el QR del boleto y registra la entrada con un toque.
+             ================================================= -->
+        <section id="acceso-panel" class="acceso-panel" hidden>
+            <div class="acceso-escaner">
+                <div class="acceso-camara" id="acceso-camara">
+                    <video id="acceso-video" playsinline muted aria-label="Vista de la cámara"></video>
+                    <span class="acceso-marco" aria-hidden="true"></span>
+                    <div class="acceso-camara__velo" id="acceso-velo">
+                        <p id="acceso-camara-estado">Apunta la cámara al QR del boleto.</p>
+                        <button type="button" class="acceso-boton" id="acceso-camara-boton">Activar cámara</button>
+                    </div>
+                </div>
+
+                <form class="acceso-manual" id="acceso-manual" autocomplete="off">
+                    <label for="acceso-codigo">¿El QR no se lee? Pega el código o el enlace del boleto</label>
+                    <div>
+                        <input type="text" id="acceso-codigo" name="codigo" spellcheck="false" placeholder="Código del boleto">
+                        <button type="submit" class="acceso-boton">Verificar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="acceso-lado">
+                <div class="acceso-resultado" id="acceso-resultado">
+                    <p class="acceso-espera">El resultado del escaneo aparecerá aquí.</p>
+                </div>
+                <button type="button" class="acceso-boton acceso-siguiente" id="acceso-siguiente" hidden>Escanear el siguiente</button>
+
+                <h3 class="acceso-historial__titulo">Últimos escaneos</h3>
+                <ol class="acceso-historial" id="acceso-historial"></ol>
+                <p class="acceso-historial__vacio" id="acceso-historial-vacio">Todavía no escaneas boletos en esta sesión.</p>
+            </div>
+        </section>
+
+        <!-- =================================================
+             REEMBOLSOS (admin-reembolsos.js): solo admin
+             ================================================= -->
+        <section id="reembolsos-panel" class="reembolsos-panel" hidden>
+            <div class="reembolsos-periodos" id="reembolsos-periodos" role="group" aria-label="Solicitudes hechas en">
+                <button type="button" data-periodo="" aria-pressed="true">Todas</button>
+                <button type="button" data-periodo="hoy" aria-pressed="false">Hoy</button>
+                <button type="button" data-periodo="semana" aria-pressed="false">7 días</button>
+                <button type="button" data-periodo="mes" aria-pressed="false">1 mes</button>
+                <button type="button" data-periodo="anio" aria-pressed="false">1 año</button>
+            </div>
+            <div class="reembolsos-estados" id="reembolsos-estados" role="group" aria-label="Filtrar por estado"></div>
+            <p class="catalogo-resumen" id="reembolsos-resumen" role="status" aria-live="polite"></p>
+            <ol class="reembolsos-lista" id="reembolsos-lista"></ol>
+            <div class="catalogo-mas">
+                <button type="button" class="banner-boton" id="reembolsos-ver-mas" hidden>Ver más solicitudes</button>
+            </div>
+        </section>
+
+        <!-- =================================================
+             BITÁCORA (admin-bitacora.js): solo lectura, solo admin
+        ================================================= -->
+
+        <section id="bitacora-panel" class="bitacora-panel" hidden>
+            <form class="bitacora-filtros" id="bitacora-filtros" role="search" aria-label="Filtrar la bitácora">
+                <label class="bitacora-filtros__usuario">
+                    <span>Usuario</span>
+                    <input type="search" name="usuario" placeholder="Nombre o correo…" autocomplete="off">
+                </label>
+                <label>
+                    <span>Categoría</span>
+                    <select name="categoria" id="bitacora-categoria">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Panel / rol</span>
+                    <select name="rol">
+                        <option value="">Todos</option>
+                        <option value="admin">Administrador</option>
+                        <option value="organizador">Operador</option>
+                        <option value="cliente">Cliente</option>
+                        <option value="sin_sesion">Sin sesión</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Resultado</span>
+                    <select name="resultado">
+                        <option value="">Todos</option>
+                        <option value="exito">Exitosos</option>
+                        <option value="fallido">Fallidos</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Desde</span>
+                    <input type="date" name="desde">
+                </label>
+                <label>
+                    <span>Hasta</span>
+                    <input type="date" name="hasta">
+                </label>
+                <button type="reset" class="catalogo-limpiar">Limpiar</button>
+            </form>
+
+            <p class="catalogo-resumen" id="bitacora-resumen" role="status" aria-live="polite"></p>
+            <ol class="bitacora-lista" id="bitacora-lista"></ol>
+            <div class="catalogo-mas">
+                <button type="button" class="banner-boton" id="bitacora-ver-mas" hidden>Ver más registros</button>
             </div>
         </section>
 
@@ -1020,59 +1167,6 @@
         <!-- =================================================
              SECCIONES PENDIENTES
         ================================================= -->
-
-        <!-- CENTRO DE NOTIFICACIONES DEL ADMINISTRADOR -->
-        <section id="notificaciones-panel"
-                 class="panel so-notifications"
-                 hidden>
-
-            <div class="so-notifications-head">
-                <div>
-                    <span class="section-kicker">ACTIVIDAD DE SOIRÉE</span>
-                    <h2>Centro de notificaciones</h2>
-                    <p class="muted">
-                        Reservas, pagos aprobados y boletos emitidos.
-                    </p>
-                </div>
-
-                <button type="button"
-                        class="banner-boton"
-                        id="so-notificaciones-recargar">
-                    Actualizar
-                </button>
-            </div>
-
-            <div class="so-notifications-stats">
-                <div><span>ACTIVIDAD RECIENTE</span>
-                    <strong id="so-notif-total">—</strong></div>
-                <div><span>RESERVAS</span>
-                    <strong id="so-notif-reservas">—</strong></div>
-                <div><span>PAGOS APROBADOS</span>
-                    <strong id="so-notif-pagos">—</strong></div>
-                <div><span>COMPRAS EMITIDAS</span>
-                    <strong id="so-notif-compras">—</strong></div>
-            </div>
-
-            <div class="so-notifications-filters"
-                 id="so-notificaciones-filtros"
-                 aria-label="Filtrar actividad">
-            </div>
-
-            <p id="so-notificaciones-estado"
-               class="muted"
-               role="status"
-               aria-live="polite"></p>
-
-            <div id="so-notificaciones-lista"
-                 class="so-notifications-list">
-            </div>
-
-            <p class="so-notifications-footnote">
-                Actividad reciente basada en registros del sistema.
-                Se actualiza automáticamente cada 30 segundos.
-            </p>
-        </section>
-
 
         <!-- CONFIGURACIÓN DE CUENTA SOIRÉE -->
         <section id="so-configuracion"
@@ -1323,8 +1417,8 @@
             <h2>Reportes de Soirée</h2>
 
             <p class="muted">
-                Exporta información real de MySQL en formato CSV,
-                compatible con Microsoft Excel.
+                Descarga eventos, reservas, pagos o usuarios en Excel, PDF o CSV.
+                Deja las fechas vacías para incluir todo el historial.
             </p>
 
             <form id="report-form">
@@ -1362,13 +1456,13 @@
 
     <select id="soiree-formato" name="formato">
         <option value="excel">
-            Excel profesional (.xlsx)
+            Excel (.xlsx)
         </option>
         <option value="pdf">
-            Documento PDF (.pdf)
+            PDF (.pdf)
         </option>
         <option value="csv">
-            Datos CSV (.csv)
+            CSV (.csv)
         </option>
     </select>
 </div>
@@ -1400,46 +1494,5 @@
 
 </div>
 
-<!-- Vista previa independiente del envío del formulario -->
-<script>
-(() => {
-    'use strict';
-
-    const input = document.getElementById('evento-imagen-url');
-    const preview = document.getElementById('evento-image-preview');
-    const image = document.getElementById('evento-image-preview-img');
-    const form = document.getElementById('evento-form');
-    if (!input || !preview || !image) return;
-
-    function updatePreview() {
-        const value = input.value.trim();
-        preview.hidden = true;
-        image.removeAttribute('src');
-        if (!value) return;
-        try {
-            const url = new URL(value);
-            if (url.protocol !== 'https:') return;
-            image.src = url.href;
-        } catch (_) {
-            // Mostrar únicamente URLs HTTPS válidas.
-        }
-    }
-
-    input.addEventListener('input', updatePreview);
-    input.addEventListener('change', updatePreview);
-    image.addEventListener('load', () => {
-        preview.hidden = false;
-    });
-    image.addEventListener('error', () => {
-        preview.hidden = true;
-    });
-    if (form) {
-        form.addEventListener('reset', () => {
-            preview.hidden = true;
-            image.removeAttribute('src');
-        });
-    }
-})();
-</script>
 </body>
 </html>

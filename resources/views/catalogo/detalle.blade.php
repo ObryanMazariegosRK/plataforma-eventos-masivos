@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#0d0c0b">
@@ -13,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v={{ filemtime(public_path('css/catalogo.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/detalle-evento.css') }}?v={{ filemtime(public_path('css/detalle-evento.css')) }}">
     <script src="{{ asset('js/detalle-evento.js') }}?v={{ filemtime(public_path('js/detalle-evento.js')) }}" defer></script>
+    @include('partials.iconos')
 </head>
 <body data-marca="{{ config('marca.nombre') }}">
     @php($eventoId = request()->route('id'))

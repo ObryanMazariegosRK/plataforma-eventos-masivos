@@ -8,11 +8,9 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class SanctumTokenService implements ITokenService
 {
-    public function crear(Usuario $usuario, bool $recordar): string
+    public function crear(Usuario $usuario): string
     {
-        $expiraEn = $recordar
-            ? now()->addDays(config('autenticacion.token_recordar_dias'))
-            : now()->addHours(config('autenticacion.token_horas'));
+        $expiraEn = now()->addHours(config('autenticacion.token_horas'));
 
         return UsuarioModel::findOrFail($usuario->getId())
             ->createToken('auth_token', ['*'], $expiraEn)

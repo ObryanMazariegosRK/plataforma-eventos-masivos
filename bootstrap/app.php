@@ -10,6 +10,8 @@ use App\Domain\Exceptions\Auth\IntentosAgotadosException;
 use App\Domain\Exceptions\Auth\PasswordActualIncorrectaException;
 use App\Domain\Exceptions\Auth\PasswordNuevaIgualException;
 use App\Domain\Exceptions\Auth\UsuarioBloqueadoException;
+use App\Domain\Exceptions\Auth\AccesoDePersonalException;
+use App\Domain\Exceptions\Auth\SinAccesoAlPanelException;
 use App\Domain\Exceptions\Auth\UsuarioNoEncontradoException;
 use App\Domain\Exceptions\Pagos\PagoNoEncontradoException;
 use App\Domain\Exceptions\Pagos\PagoRechazadoException;
@@ -17,12 +19,18 @@ use App\Domain\Exceptions\Pagos\PasarelaNoDisponibleException;
 use App\Domain\Exceptions\Pagos\ReservaNoEncontradaException;
 use App\Domain\Exceptions\Pagos\ReservaNoPagableException;
 use App\Domain\Exceptions\Pagos\ReservaYaPagadaException;
+use App\Domain\Exceptions\Admin\ReporteDemasiadoGrandeException;
+use App\Domain\Exceptions\Bitacora\BitacoraNoDisponibleException;
+use App\Domain\Exceptions\Finanzas\EventoSinCostosEditablesException;
 use App\Domain\Exceptions\Catalogo\ArchivoBannerInvalidoException;
 use App\Domain\Exceptions\Inventario\EventoNoDisponibleException;
 use App\Domain\Exceptions\Reservas\LimitePorPersonaException;
 use App\Domain\Exceptions\Inventario\LocalidadesSinPrecioException;
 use App\Domain\Exceptions\Inventario\RecintoSinLugaresException;
 use App\Domain\Exceptions\ReglaDeNegocioException;
+use App\Domain\Exceptions\Reembolsos\ReembolsoNoEncontradoException;
+use App\Domain\Exceptions\Reembolsos\ReembolsoNoProcesadoException;
+use App\Http\Middleware\RegistrarBitacora;
 use App\Http\Middleware\VerificarRol;
 use App\Http\Middleware\VerificarUsuarioActivo;
 use Illuminate\Foundation\Application;
@@ -47,7 +55,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         // En todas las rutas /api: un usuario bloqueado pierde el acceso aunque su token siga vigente.
-        $middleware->api(append: [VerificarUsuarioActivo::class]);
+        $middleware->api(append: [VerificarUsuarioActivo::class, RegistrarBitacora::class]);
+
+        // Bitácora: inicios de sesión, compras, cambios en el panel... (ver CatalogoBitacora).
+        // En web solo registra el regreso del login con Google.
+        $middleware->web(append: [RegistrarBitacora::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -60,6 +72,8 @@ return Application::configure(basePath: dirname(__DIR__))
             CredencialesInvalidasException::class       => [401, 'credenciales_invalidas'],
             CorreoNoVerificadoException::class          => [403, 'correo_no_verificado'],
             UsuarioBloqueadoException::class            => [403, 'usuario_bloqueado'],
+            AccesoDePersonalException::class            => [403, 'acceso_personal'],
+            SinAccesoAlPanelException::class            => [403, 'sin_acceso_panel'],
             UsuarioNoEncontradoException::class         => [404, 'usuario_no_encontrado'],
             CorreoYaRegistradoException::class          => [409, 'correo_ya_registrado'],
             CorreoYaVerificadoException::class          => [409, 'correo_ya_verificado'],
@@ -76,10 +90,17 @@ return Application::configure(basePath: dirname(__DIR__))
             ReservaYaPagadaException::class             => [409, 'reserva_ya_pagada'],
             PasarelaNoDisponibleException::class        => [422, 'pasarela_no_disponible'],
             PagoRechazadoException::class               => [402, 'pago_rechazado'],   // 402 = Payment Required
+            BitacoraNoDisponibleException::class        => [503, 'bitacora_no_disponible'],
+            ReporteDemasiadoGrandeException::class      => [422, 'reporte_demasiado_grande'],
+            EventoSinCostosEditablesException::class    => [404, 'evento_no_encontrado'],
             // ---- Catálogo ----
             ArchivoBannerInvalidoException::class       => [422, 'banner_archivo_invalido'],
             // ---- Reservas ----
             LimitePorPersonaException::class            => [422, 'limite_por_persona'],
+            // ---- Reembolsos ----
+            ReembolsoNoEncontradoException::class       => [404, 'reembolso_no_encontrado'],
+            // la pasarela no hizo la devolución; el reembolso sigue aprobado y se puede reintentar
+            ReembolsoNoProcesadoException::class        => [409, 'reembolso_no_procesado'],
             // ---- Inventario ----
             EventoNoDisponibleException::class          => [404, 'evento_no_disponible'],
             LocalidadesSinPrecioException::class        => [422, 'localidades_sin_precio'],

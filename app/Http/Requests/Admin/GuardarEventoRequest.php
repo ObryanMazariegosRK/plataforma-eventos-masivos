@@ -36,35 +36,23 @@ class GuardarEventoRequest extends FormRequest
                 'max:255',
             ],
 
+            // Se ve completa en el detalle del evento; la experiencia muestra un adelanto
             'descripcion' => [
                 'nullable',
                 'string',
-                'max:10000',
+                'max:600',
             ],
 
-            'imagen_url' => [
-                'nullable',
-                'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
-            ],
+            // Título de la primera escena de la experiencia (si falta, el nombre del evento)
+            'frase_destacada' => ['nullable', 'string', 'max:70'],
+            // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
+            'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
-            'imagen_url_2' => [
-                'nullable',
-                'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
-            ],
+            // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
+            'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
-            'imagen_url_3' => [
-                'nullable',
-                'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
-            ],
+            // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
+            'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 
             'recinto_id' => [
                 'required',
@@ -75,9 +63,11 @@ class GuardarEventoRequest extends FormRequest
                     ->whereNull('deleted_at'),
             ],
 
+            // Hora de Guatemala; futura y hasta catalogo.max_meses_evento meses adelante
             'fecha_evento' => [
                 'required',
                 'date',
+                new \App\Rules\FechaDeFuncion(),
             ],
 
             'estado' => [
@@ -90,11 +80,32 @@ class GuardarEventoRequest extends FormRequest
     }
 
     /**
+     * La fecha llega en hora de Guatemala y se guarda en UTC.
+     */
+    public function validated($key = null, $default = null)
+    {
+        $datos = parent::validated();
+        if (isset($datos['fecha_evento'])) {
+            $datos['fecha_evento'] = \App\Rules\FechaDeFuncion::aUtc($datos['fecha_evento']);
+        }
+
+        return data_get($datos, $key, $default);
+    }
+
+    /**
      * Mensajes de validación en español.
      */
     public function messages(): array
     {
         return [
+            'frase_destacada.max' =>
+                'La frase destacada puede tener hasta 70 caracteres.',
+            'imagen_url.required' =>
+                'Sube la foto principal del evento (portada y primera escena).',
+            'imagen_url_2.required' =>
+                'Sube la segunda foto del evento.',
+            'imagen_url_3.required' =>
+                'Sube la tercera foto del evento.',
             'nombre.required' =>
                 'Debes ingresar el nombre del evento.',
 
@@ -105,7 +116,7 @@ class GuardarEventoRequest extends FormRequest
                 'El nombre no puede superar 255 caracteres.',
 
             'descripcion.max' =>
-                'La descripción es demasiado extensa.',
+                'La descripción puede tener hasta 600 caracteres.',
 
             'imagen_url.url' =>
                 'Debes ingresar una URL válida para la imagen.',

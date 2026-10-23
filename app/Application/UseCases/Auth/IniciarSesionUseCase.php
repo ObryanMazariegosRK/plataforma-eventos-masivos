@@ -7,8 +7,10 @@ use App\Application\DTOs\Auth\SesionDTO;
 use App\Domain\Abstractions\Auth\IPasswordHasher;
 use App\Domain\Abstractions\Auth\ITokenService;
 use App\Domain\Abstractions\Auth\IUsuarioRepository;
+use App\Domain\Exceptions\Auth\AccesoDePersonalException;
 use App\Domain\Exceptions\Auth\CorreoNoVerificadoException;
 use App\Domain\Exceptions\Auth\CredencialesInvalidasException;
+use App\Domain\Exceptions\Auth\SinAccesoAlPanelException;
 use App\Domain\Exceptions\Auth\UsuarioBloqueadoException;
 
 class IniciarSesionUseCase implements IIniciarSesionUseCase
@@ -34,10 +36,17 @@ class IniciarSesionUseCase implements IIniciarSesionUseCase
         if ($usuario->estaBloqueado()) {
             throw new UsuarioBloqueadoException();
         }
+        // Cada quien por su puerta: el personal por /admin/login, los clientes por la tienda
+        if ($dto->personal && ! $usuario->esPersonal()) {
+            throw new SinAccesoAlPanelException();
+        }
+        if (! $dto->personal && $usuario->esPersonal()) {
+            throw new AccesoDePersonalException();
+        }
         if (! $usuario->estaVerificado()) {
             throw new CorreoNoVerificadoException();
         }
 
-        return new SesionDTO($this->tokens->crear($usuario, $dto->recordar), $usuario);
+        return new SesionDTO($this->tokens->crear($usuario), $usuario);
     }
 }

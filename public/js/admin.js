@@ -17,8 +17,8 @@
             'Consulta los usuarios registrados y sus roles.'
         ],
         eventos: [
-            'Gestión de eventos',
-            'Crea, edita y administra eventos de Soirée.'
+            'Crear un nuevo evento',
+            ''
         ],
         reservas: [
             'Gestión de reservas',
@@ -40,13 +40,17 @@
             'Centro de reportes',
             'Exporta información de la plataforma.'
         ],
-        notificaciones: [
-            'Notificaciones',
-            'Reservas, pagos y boletos registrados en Soirée.'
+        acceso: [
+            'Control de acceso',
+            'Escanea el QR de cada boleto en la entrada y registra a quien pasa.'
         ],
-        historial: [
-            'Historial',
-            'Próximamente: auditoría de operaciones.'
+        reembolsos: [
+            'Reembolsos',
+            'Solicitudes de los clientes: apruébalas para devolver el dinero o recházalas.'
+        ],
+        bitacora: [
+            'Bitácora',
+            'Quién hizo qué y cuándo: sesiones, compras y cambios en el panel.'
         ],
         configuracion: [
             'Configuración',
@@ -86,7 +90,6 @@
     };
 
     const pendingSections = new Set([
-        'historial',
         'configuracion'
     ]);
 
@@ -94,7 +97,7 @@
     let currentRole = null;
     let currentProfile = null;
     const operativeSections = new Set([
-        'eventos', 'catalogo', 'banner', 'configuracion'
+        'eventos', 'catalogo', 'banner', 'acceso', 'configuracion'
     ]);
 
     function canAccessSection(name) {
@@ -105,6 +108,9 @@
     let section = 'resumen';
     let page = 1;
     let query = '';
+    // Reservas: filtros por estado y por evento (la lista de eventos se pide una vez)
+    const filtroReservas = { estado: '', evento_id: '' };
+    let eventosParaFiltro = null;
     let requestVersion = 0;
     let editingEventId = null;
     let editingPublished = false;
@@ -146,6 +152,8 @@
 
         currentRole = profile.rol;
         currentProfile = profile;
+        const pieRol = $('so-rol-pie');
+        if (pieRol) pieRol.textContent = (profile.rol === 'admin' ? 'Administrador' : 'Operador') + ' · Soirée';
         renderConfiguracion();
         document.querySelectorAll('#nav [data-section]').forEach(item => {
             item.hidden = !canAccessSection(item.dataset.section);
@@ -386,7 +394,7 @@
             const label = el('div', undefined, 'bar-label');
 
             label.append(
-                el('span', item.estado),
+                el('span', item.etiqueta || item.estado),
                 el('b', item.total)
             );
 
@@ -424,9 +432,9 @@
                 '♙'
             ),
             metric(
-                'Administradores',
-                totals.administradores,
-                'Cuentas admin',
+                'Operadores',
+                totals.operadores,
+                'Agentes que gestionan eventos',
                 '♧',
                 'blue'
             ),
@@ -446,31 +454,41 @@
             metric(
                 'Pagos',
                 totals.pagos,
-                'Registros de pagos',
+                (totals.pagos_aprobados || 0) + ' aprobados',
                 '▣',
                 'blue'
             ),
             metric(
-                'Monto de pagos',
+                'Ingresos netos',
                 currency.format(
-                    Number(totals.monto_pagos_registrados || 0)
+                    Number(totals.monto_pagos_aprobados || 0) -
+                    Number(totals.monto_reembolsado || 0)
                 ),
-                'Sin distinguir estado',
+                Number(totals.monto_reembolsado || 0) > 0
+                    ? 'Pagos aprobados − ' + currency.format(Number(totals.monto_reembolsado)) + ' reembolsados'
+                    : 'Solo pagos aprobados',
                 '◈',
                 'orange'
             )
         );
 
-        bars('reservation-bars', data.reservas_por_estado);
-        bars('event-bars', data.eventos_por_estado);
+        // Los estados de reservas y de eventos ahora viven en Reservas y en el Catálogo
+        return data;
+    }
 
-        $('reservas-total').textContent =
-            'Total: ' + totals.reservas;
+    // Sección Reservas: tarjeta "Estados de las reservas" encima de la tabla
+    async function loadReservationStates() {
+        try {
+            const response = await api('resumen');
+            const data = await response.json();
 
-        $('eventos-total').textContent =
-            'Total: ' + totals.eventos;
+            if (section !== 'reservas') return;
 
-        return data.reservas_recientes || [];
+            bars('reservation-bars', data.reservas_por_estado);
+            $('reservas-total').textContent = 'Total: ' + data.totales.reservas;
+        } catch {
+            show('reservas-estados', false);
+        }
     }
 
     // =====================================================
@@ -1081,9 +1099,8 @@
             const warning = el(
                 'p',
                 'Esta operación cancelará el evento, anulará los boletos ' +
-                'emitidos correspondientes y preparará solicitudes de ' +
-                'reembolso cuando existan pagos aprobados. ' +
-                'Los reembolsos no se pagan automáticamente.',
+                'emitidos y devolverá automáticamente el 100 % de cada ' +
+                'compra pagada por la pasarela. No se puede deshacer.',
                 'so-cancel-warning'
             );
 
@@ -1171,10 +1188,9 @@
                         (data.mensaje || 'Evento cancelado.') +
                         ' Boletos anulados: ' +
                         (resultado.boletos_anulados ?? 0) +
-                        '. Solicitudes de reembolso creadas: ' +
-                        (resultado.reembolsos_creados ?? 0) +
-                        '. Monto preparado: Q' +
-                        Number(resultado.monto_preparado ?? 0).toFixed(2)
+                        '. Monto a devolver: Q' +
+                        Number(resultado.monto_preparado ?? 0).toFixed(2) +
+                        '.'
                     );
                 } catch (error) {
                     message.textContent = error.message;
@@ -1343,10 +1359,17 @@
         dialog.className = 'so-reservation-dialog';
 
         const header = el('div', undefined, 'so-reservation-header');
+        const cerrar = el('button', '×', 'so-icon-close');
+        cerrar.type = 'button';
+        cerrar.setAttribute('aria-label', 'Cerrar detalles');
+        cerrar.addEventListener('click', () => dialog.close());
+        const estadoPill = el('span', (item.estado || '').replace(/^./, letra => letra.toUpperCase()), 'so-event-status');
+        estadoPill.dataset.status = { confirmada: 'publicado', activa: 'borrador', cancelada: 'cancelado' }[item.estado] || '';
         header.append(
             el('span', 'SOIRÉE · CONTROL DE RESERVAS', 'so-reservation-caption'),
             el('h2', 'Reserva #' + item.id),
-            el('p', 'Información registrada de esta reserva.')
+            estadoPill,
+            cerrar
         );
 
         const grid = el('div', undefined, 'so-reservation-grid');
@@ -1379,7 +1402,6 @@
         addDetail('Evento', item.evento || 'Evento no disponible');
         addDetail('Cliente', cliente || 'Usuario #' + item.usuario_id);
         addDetail('Correo electrónico', item.cliente_email);
-        addDetail('Estado', item.estado);
         addDetail('Importe registrado', moneda.format(total));
         addDetail('Fecha de registro', formatCell('created_at', item.created_at));
         addDetail('Fecha de vencimiento',
@@ -1393,24 +1415,21 @@
                 : 'No disponible'
         );
 
+        // Qué significa el estado (una reserva solo se confirma cuando su pago se aprueba)
+        const vence = item.expira_en ? formatCell('created_at', item.expira_en) : '';
         const nota = el(
             'p',
-            'El importe mostrado pertenece a la reserva. ' +
-            'No confirma por sí solo que exista un pago aprobado.',
+            {
+                activa: 'Apartada: el cliente tiene hasta ' + (vence || 'que venza') + ' para pagar; si no paga, sus lugares se liberan solos.',
+                confirmada: 'Pagada: se confirmó al aprobarse el pago y sus boletos ya fueron emitidos.',
+                vencida: 'Venció sin pago: sus lugares volvieron a estar disponibles.',
+                cancelada: 'Cancelada: sus lugares volvieron a estar disponibles.'
+            }[item.estado] || 'Estado de la reserva: ' + (item.estado || 'desconocido') + '.',
             'so-reservation-note'
         );
+        nota.dataset.estado = item.estado || '';
 
-        const footer = el('div', undefined, 'so-reservation-footer');
-
-        footer.append(
-            actionButton(
-                'Cerrar',
-                'evento-action',
-                () => dialog.close()
-            )
-        );
-
-        dialog.append(header, grid, nota, footer);
+        dialog.append(header, grid, nota);
         document.body.append(dialog);
 
         dialog.addEventListener('close', () => dialog.remove(), {
@@ -1426,6 +1445,7 @@
 
     function renderReservationActions(item) {
         const cell = el('td');
+        cell.dataset.label = 'Acciones';
 
         cell.append(
             actionButton(
@@ -1467,7 +1487,7 @@
         const estado = String(item.estado || 'sin estado');
         const estadoReserva = String(
             item.reserva_estado || 'No disponible'
-        );
+        ).replace(/^./, letra => letra.toUpperCase());
 
         const header = el('header', undefined, 'so-payment-header');
 
@@ -1540,31 +1560,24 @@
         addDetail('Estado de reserva', estadoReserva);
         addDetail('Última actualización', fecha(item.updated_at));
 
+        // Qué significa el estado del pago (en vez de un aviso genérico)
         const notice = el(
             'p',
-            'Este apartado es de consulta. Un pago aprobado ' +
-            'no debe modificarse manualmente desde esta ventana. ' +
-            'Los reembolsos se gestionan mediante su proceso correspondiente.',
+            {
+                aprobado: 'Cobrado: la pasarela aprobó el pago, la reserva quedó confirmada y sus boletos fueron emitidos.',
+                pendiente: 'Sin completar: el cliente abrió la pasarela pero no terminó de pagar. No se cobró nada; si la reserva vence, este intento queda sin efecto.',
+                rechazado: 'Rechazado: la pasarela no aprobó el cobro (por ejemplo, fondos insuficientes). No se cobró nada.'
+            }[estado.toLowerCase()] || 'Estado del pago: ' + estado + '.',
             'so-payment-notice'
         );
-
-        const footer = el('footer', undefined, 'so-payment-footer');
-
-        footer.append(
-            actionButton(
-                'Cerrar detalles',
-                'so-payment-done',
-                () => dialog.close()
-            )
-        );
+        notice.dataset.estado = estado.toLowerCase();
 
         dialog.append(
             header,
             summary,
             sectionTitle,
             grid,
-            notice,
-            footer
+            notice
         );
 
         document.body.append(dialog);
@@ -1620,8 +1633,9 @@
         for (const item of items) {
             const row = el('tr');
 
-            cols.forEach(([field]) => {
+            cols.forEach(([field, label]) => {
                 const cell = el('td');
+                cell.dataset.label = label;
                 const value = item[field] ?? '—';
 
                 if (field === 'estado' || field === 'rol') {
@@ -1656,6 +1670,18 @@
                     textGroup.append(el('strong', value), el('small', 'ID #' + item.id));
                     eventIdentity.append(thumb, textGroup);
                     cell.append(eventIdentity);
+                } else if (field === 'created_at' && value !== '—') {
+                    // En pantallas medianas se oculta el día y queda la hora (el detalle tiene la fecha)
+                    const fecha = new Date(value);
+                    if (Number.isNaN(fecha.getTime())) {
+                        cell.textContent = formatCell(field, value);
+                    } else {
+                        cell.classList.add('celda-fecha');
+                        cell.append(
+                            el('span', fecha.toLocaleDateString('es-GT', { dateStyle: 'medium' }) + ', ', 'celda-fecha__dia'),
+                            el('span', fecha.toLocaleTimeString('es-GT', { timeStyle: 'short' }), 'celda-fecha__hora')
+                        );
+                    }
                 } else {
                     cell.textContent = formatCell(field, value);
                 }
@@ -1770,7 +1796,7 @@
         if (recinto) recinto.disabled = false;
 
         const fecha = $('evento-form')?.elements.namedItem('fecha_evento');
-        if (fecha) fecha.readOnly = false;
+        if (fecha) delete fecha.dataset.original;
 
         show('evento-form-panel', false);
 
@@ -1781,402 +1807,41 @@
         }
 
         clearFormFeedback();
+
+        // En Eventos el formulario de crear siempre está abierto: al cerrar uno de edición
+        // (o al guardar) se vuelve a él. Si hay que regresar al catálogo, no.
+        const reabrir = section === 'eventos' && !regresarA;
         volverSiHaceFalta();
+        if (reabrir) openEventForm();
     }
-
-    // =====================================================
-    // NOTIFICACIONES ADMINISTRATIVAS
-    // Actividad reciente; consulta de solo lectura.
-    // =====================================================
-
-    let actividadNotificaciones = [];
-    let filtroNotificaciones = 'todas';
-    let cargandoNotificaciones = false;
-
-    function nodoNotificacion(tag, texto = '', clase = '') {
-        const nodo = document.createElement(tag);
-
-        if (clase) nodo.className = clase;
-        if (texto !== '') nodo.textContent = String(texto);
-
-        return nodo;
-    }
-
-    // Lecturas locales del Administrador.
-    // Se conserva el estado en este navegador.
-    const CLAVE_SOR_NOTIF_V2 = 'soiree-notificaciones-leidas-v2';
-
-    function sorLeidas() {
-        try {
-            const valor = JSON.parse(
-                localStorage.getItem(CLAVE_SOR_NOTIF_V2) || '[]'
-            );
-            return new Set(Array.isArray(valor) ? valor : []);
-        } catch {
-            return new Set();
-        }
-    }
-
-    function sorContador() {
-        const badge = $('so-notif-badge');
-        if (!badge) return;
-
-        const leidas = sorLeidas();
-
-        const nuevas = actividadNotificaciones.filter(
-            aviso => !leidas.has(String(aviso.clave))
-        ).length;
-
-        badge.textContent = nuevas > 99 ? '99+' : String(nuevas);
-        badge.hidden = nuevas === 0;
-        badge.setAttribute(
-            'aria-label', nuevas + ' notificaciones pendientes'
-        );
-    }
-
-    function sorMarcarLeida(clave) {
-        const leidas = sorLeidas();
-        leidas.add(String(clave));
-
-        localStorage.setItem(
-            CLAVE_SOR_NOTIF_V2,
-            JSON.stringify([...leidas].slice(-1000))
-        );
-
-        sorContador();
-
-        if (section === 'notificaciones') {
-            pintarNotificacionesAdmin();
-        }
-    }
-
-    async function sorAbrirNotificacion(aviso) {
-        const id = Number(aviso.referencia_id);
-        if (!Number.isInteger(id) || id <= 0) {
-            feedback('Identificador de notificación inválido.', true);
-            return;
-        }
-
-        const pago = aviso.tipo === 'pago';
-
-        try {
-            const response = await api(
-                (pago ? 'pagos/' : 'reservas/') + id
-            );
-
-            const json = await response.json();
-
-            if (!response.ok || !json.data) {
-                throw new Error(
-                    json.message || 'No se encontró el registro.'
-                );
-            }
-
-            // Abrir el detalle exacto sin depender de la
-            // página actual de la tabla.
-            if (pago) {
-                viewPayment(json.data);
-            } else {
-                viewReservation(json.data);
-            }
-
-            sorMarcarLeida(aviso.clave);
-        } catch (error) {
-            feedback('No se pudo abrir: ' + error.message, true);
-        }
-    }
-
-    let sorConsultando = false;
-
-    async function sorConsultarBurbuja() {
-        if (currentRole !== 'admin' || sorConsultando) return;
-
-        sorConsultando = true;
-
-        try {
-            const response = await api('notificaciones');
-            if (!response.ok) return;
-
-            const json = await response.json();
-            if (!Array.isArray(json.data)) return;
-
-            actividadNotificaciones = json.data;
-            sorContador();
-
-            if (section === 'notificaciones') {
-                pintarNotificacionesAdmin();
-            }
-        } catch (error) {
-            console.warn('No fue posible consultar avisos:', error);
-        } finally {
-            sorConsultando = false;
-        }
-    }
-
-    function pintarNotificacionesAdmin() {
-        const lista = $('so-notificaciones-lista');
-        const filtros = $('so-notificaciones-filtros');
-
-        if (!lista || !filtros) return;
-
-        const tipos = [
-            ['todas', 'Todas'],
-            ['reserva', 'Reservas'],
-            ['pago', 'Pagos'],
-            ['compra', 'Boletos']
-        ];
-
-        filtros.replaceChildren();
-
-        for (const [valor, nombre] of tipos) {
-            const boton = nodoNotificacion(
-                'button',
-                nombre,
-                'so-notif-filter'
-            );
-
-            boton.type = 'button';
-            boton.setAttribute(
-                'aria-pressed',
-                String(filtroNotificaciones === valor)
-            );
-
-            boton.addEventListener('click', () => {
-                filtroNotificaciones = valor;
-                pintarNotificacionesAdmin();
-            });
-
-            filtros.append(boton);
-        }
-
-        const conteos = {
-            reserva: 0,
-            pago: 0,
-            compra: 0
-        };
-
-        for (const aviso of actividadNotificaciones) {
-            if (Object.hasOwn(conteos, aviso.tipo)) {
-                conteos[aviso.tipo]++;
-            }
-        }
-
-        $('so-notif-total').textContent =
-            String(actividadNotificaciones.length);
-
-        $('so-notif-reservas').textContent =
-            String(conteos.reserva);
-
-        $('so-notif-pagos').textContent =
-            String(conteos.pago);
-
-        $('so-notif-compras').textContent =
-            String(conteos.compra);
-
-        const visibles = actividadNotificaciones.filter(aviso =>
-            filtroNotificaciones === 'todas' ||
-            aviso.tipo === filtroNotificaciones
-        );
-
-        lista.replaceChildren();
-
-        if (visibles.length === 0) {
-            lista.append(
-                nodoNotificacion(
-                    'p',
-                    'No hay actividad para este filtro.',
-                    'so-notif-empty'
-                )
-            );
-            return;
-        }
-
-        const etiquetas = {
-            reserva: 'Reserva registrada',
-            pago: 'Pago aprobado',
-            compra: 'Boletos emitidos'
-        };
-
-        const simbolos = {
-            reserva: '◷',
-            pago: '✓',
-            compra: '✦'
-        };
-
-        for (const aviso of visibles) {
-            const tarjeta = nodoNotificacion(
-                'article', '', 'so-notif-card'
-            );
-
-            const icono = nodoNotificacion(
-                'span',
-                simbolos[aviso.tipo] || '•',
-                'so-notif-icon'
-            );
-
-            icono.dataset.tipo = aviso.tipo || '';
-
-            const cuerpo = nodoNotificacion(
-                'div', '', 'so-notif-body'
-            );
-
-            const encabezado = nodoNotificacion(
-                'div', '', 'so-notif-card-head'
-            );
-
-            encabezado.append(
-                nodoNotificacion(
-                    'strong',
-                    aviso.titulo ||
-                    etiquetas[aviso.tipo] ||
-                    'Actividad'
-                ),
-                nodoNotificacion(
-                    'span',
-                    etiquetas[aviso.tipo] || 'Aviso',
-                    'so-notif-type'
-                )
-            );
-
-            const descripcion = nodoNotificacion(
-                'p', aviso.descripcion || ''
-            );
-
-            const pie = nodoNotificacion(
-                'div', '', 'so-notif-card-foot'
-            );
-
-            pie.append(
-                nodoNotificacion(
-                    'small',
-                    String(aviso.fecha || '')
-                        .replace('T', ' ')
-                        .slice(0, 19)
-                )
-            );
-
-            const ver = nodoNotificacion(
-                'button',
-                aviso.tipo === 'pago'
-                    ? 'Ver pago #' + aviso.referencia_id
-                    : aviso.tipo === 'compra'
-                        ? 'Ver boletos · reserva #' + aviso.referencia_id
-                        : 'Ver reserva #' + aviso.referencia_id,
-                'so-notif-link'
-            );
-
-            ver.type = 'button';
-            ver.addEventListener('click', () => {
-                sorAbrirNotificacion(aviso);
-            });
-
-            const leida = sorLeidas().has(String(aviso.clave));
-
-            const marcar = nodoNotificacion(
-                'button',
-                leida ? 'Leída' : 'Marcar leída',
-                'so-notif-mark'
-            );
-
-            marcar.type = 'button';
-            marcar.disabled = leida;
-            marcar.addEventListener('click', () => {
-                sorMarcarLeida(aviso.clave);
-            });
-
-            tarjeta.classList.toggle('so-notif-read', leida);
-            pie.append(ver, marcar);
-            cuerpo.append(encabezado, descripcion, pie);
-            tarjeta.append(icono, cuerpo);
-            lista.append(tarjeta);
-        }
-    }
-
-    async function cargarNotificacionesAdmin() {
-        if (currentRole !== 'admin' ||
-            section !== 'notificaciones' ||
-            cargandoNotificaciones) {
-            return;
-        }
-
-        cargandoNotificaciones = true;
-
-        const estado = $('so-notificaciones-estado');
-        if (estado) estado.textContent = 'Actualizando actividad...';
-
-        try {
-            const response = await api('notificaciones');
-            const resultado = await response.json();
-
-            if (!Array.isArray(resultado.data)) {
-                throw new Error('La API devolvió un formato inesperado.');
-            }
-
-            actividadNotificaciones = resultado.data;
-            sorContador();
-
-            if (section !== 'notificaciones') return;
-
-            pintarNotificacionesAdmin();
-
-            if (estado) {
-                estado.textContent =
-                    'Mostrando hasta 30 actividades recientes.';
-            }
-        } catch (error) {
-            if (estado && section === 'notificaciones') {
-                estado.textContent =
-                    'No se pudo actualizar la actividad: ' +
-                    error.message;
-            }
-        } finally {
-            cargandoNotificaciones = false;
-        }
-    }
-
-    $('so-notificaciones-recargar')?.addEventListener(
-        'click',
-        () => cargarNotificacionesAdmin()
-    );
-
-    // Solo consulta cuando está abierta la sección.
-    setInterval(() => {
-        if (section === 'notificaciones') {
-            cargarNotificacionesAdmin();
-        }
-    }, 30000);
-
-    // Comprobar nuevas actividades cada 30 segundos.
-    setInterval(() => {
-        sorConsultarBurbuja();
-    }, 30000);
 
     function updateSections() {
-        if (currentRole === 'admin' &&
-            section !== 'notificaciones') {
-            sorConsultarBurbuja();
-        }
-
         const isOverview = section === 'resumen';
         const isEvents = section === 'eventos';
         const isReports = section === 'reportes';
-        const isNotifications = section === 'notificaciones';
         const isBanner = section === 'banner';   // lo maneja admin-banner.js
         const isCatalogo = section === 'catalogo';   // lo maneja admin-catalogo-eventos.js
+        const isBitacora = section === 'bitacora';   // lo maneja admin-bitacora.js
+        const isReembolsos = section === 'reembolsos';   // lo maneja admin-reembolsos.js
+        const isAcceso = section === 'acceso';   // lo maneja admin-acceso.js
         const isConfig = section === 'configuracion';
         const isPending = pendingSections.has(section) && !isConfig;
 
-        show('dashboard', !isReports && !isPending && !isBanner && !isNotifications && !isConfig && !isCatalogo);
+        show('dashboard', !isReports && !isPending && !isBanner && !isConfig && !isCatalogo && !isBitacora && !isReembolsos && !isAcceso);
         show('banner-panel', isBanner);
         show('catalogo-panel', isCatalogo);
+        show('reservas-estados', section === 'reservas');
+        // El Resumen ya no muestra "Reservas recientes": la misma tabla está en Reservas
+        show('tabla-datos', !isOverview);
+        show('bitacora-panel', isBitacora);
+        show('reembolsos-panel', isReembolsos);
+        show('acceso-panel', isAcceso);
         show('overview-content', isOverview);
         show('eventos-tools', isEvents);
         show('reports', isReports);
         show('coming-soon', isPending);
         show('so-configuracion', isConfig);
         if (isConfig) renderConfiguracion();
-        show('notificaciones-panel', isNotifications);
-        if (isNotifications) cargarNotificacionesAdmin();
 
         if (!isEvents) {
             closeEventForm();
@@ -2191,9 +1856,65 @@
         }
     }
 
+    const ESTADOS_RESERVA = [
+        ['', 'Todos los estados'],
+        ['activa', 'Activas (apartadas)'],
+        ['confirmada', 'Confirmadas (pagadas)'],
+        ['vencida', 'Vencidas'],
+        ['cancelada', 'Canceladas']
+    ];
+
+    function filtroSelect(etiqueta, opciones, valor, alCambiar) {
+        const label = el('label', undefined, 'so-filtro');
+        label.append(el('span', etiqueta));
+        const select = document.createElement('select');
+        opciones.forEach(([v, texto]) => select.add(new Option(texto, v)));
+        select.value = valor;
+        select.addEventListener('change', () => alCambiar(select.value));
+        label.append(select);
+        return { label, select };
+    }
+
+    function renderReservationFilters(filters) {
+        const estado = filtroSelect('Estado', ESTADOS_RESERVA, filtroReservas.estado, valor => {
+            filtroReservas.estado = valor;
+            page = 1;
+            load();
+        });
+        const evento = filtroSelect('Evento', [['', 'Todos los eventos']], filtroReservas.evento_id, valor => {
+            filtroReservas.evento_id = valor;
+            page = 1;
+            load();
+        });
+        filters.append(estado.label, evento.label);
+
+        const llenarEventos = () => {
+            eventosParaFiltro.forEach(e => evento.select.add(new Option(e.nombre, String(e.id))));
+            evento.select.value = filtroReservas.evento_id;
+        };
+        if (eventosParaFiltro) {
+            llenarEventos();
+            return;
+        }
+        api('eventos/catalogo?por_pagina=48')
+            .then(r => r.json())
+            .then(({ data }) => {
+                eventosParaFiltro = (data || [])
+                    .map(e => ({ id: e.id, nombre: e.nombre }))
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+                llenarEventos();
+            })
+            .catch(() => { eventosParaFiltro = null; });
+    }
+
     function renderFilters() {
         const filters = $('filters');
         filters.replaceChildren();
+
+        if (section === 'reservas') {
+            renderReservationFilters(filters);
+            return;
+        }
 
         if (section !== 'usuarios') {
             return;
@@ -2285,14 +2006,34 @@
         }
     }
 
+    // La API da la fecha en UTC; el campo datetime-local se llena en hora de Guatemala
+    // (el servidor interpreta lo que se escribe como hora de Guatemala)
     function dateForInput(value) {
         if (!value) {
             return '';
         }
 
-        return String(value)
-            .replace(' ', 'T')
-            .slice(0, 16);
+        const fecha = new Date(String(value).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? '' : 'Z'));
+        if (Number.isNaN(fecha.getTime())) return '';
+
+        const partes = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Guatemala', year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+        }).formatToParts(fecha).map(p => [p.type, p.value]));
+
+        return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}`;
+    }
+
+    // Rango del campo de fecha: desde ahora (o la fecha actual del evento publicado, que solo
+    // se puede aplazar) hasta N meses adelante (catalogo.max_meses_evento en data-max-meses)
+    function limitarFecha(campo, minimo) {
+        const meses = Number(campo.dataset.maxMeses || 3);
+        const ahora = dateForInput(new Date().toISOString());
+        const limite = new Date();
+        limite.setMonth(limite.getMonth() + meses);
+        campo.min = minimo && minimo > ahora ? minimo : ahora;
+        campo.max = dateForInput(limite.toISOString()).slice(0, 10) + 'T23:59';
+        campo.dataset.original = minimo || '';
     }
 
     // =====================================================
@@ -2355,6 +2096,9 @@
                     input.max = '99999999.99';
                     input.value = localidad.precio ?? '';
                     input.dataset.localidadId = localidad.id;
+                    input.dataset.capacidad = localidad.capacidad;
+                    input.dataset.tipo = localidad.tipo || '';
+                    input.dataset.nombre = localidad.nombre;
                     input.className = 'evento-localidad-precio';
 
                     // La API determina si las tarifas son editables.
@@ -2365,21 +2109,11 @@
                     lista.append(fila);
                 }
 
-                const boton = actionButton(
-                    data.editable
-                        ? 'Editar y guardar precios'
-                        : 'Consultar gestión de precios',
-                    'evento-action',
-                    () => openPrices(eventoId)
-                );
-
-                lista.append(boton);
 
                 if (!data.editable && mensaje) {
                     mensaje.textContent =
-                        'Las tarifas están protegidas para este evento. ' +
-                        'Puedes consultarlas, pero no modificarlas ' +
-                        'mientras la API no autorice el cambio.';
+                        'Este evento ya está publicado: puedes consultar sus precios, ' +
+                        'pero ya no se pueden modificar.';
                     mensaje.hidden = false;
                 }
 
@@ -2461,6 +2195,9 @@
                 input.placeholder = '0.00';
                 input.required = true;
                 input.dataset.localidadId = localidad.id;
+                input.dataset.capacidad = localidad.capacidad;
+                input.dataset.tipo = localidad.tipo || '';
+                input.dataset.nombre = localidad.nombre;
                 input.className = 'evento-localidad-precio';
 
                 etiqueta.append(input);
@@ -2479,10 +2216,33 @@
         }
     }
 
+    let aperturasFormulario = 0;
+
+    async function guardarPreciosDelBorrador(eventoId) {
+        const campos = [...$('evento-localidades-lista').querySelectorAll('input[data-localidad-id]:not(:disabled)')];
+        if (!campos.length) return;
+
+        const precios = campos.map(input => ({
+            localidad_id: Number(input.dataset.localidadId),
+            precio: input.value.trim()
+        }));
+
+        try {
+            await api('eventos/' + eventoId + '/precios', {
+                method: 'PUT',
+                body: JSON.stringify({ precios })
+            });
+        } catch (error) {
+            throw new Error('El evento se guardó, pero no sus precios: ' + error.message);
+        }
+    }
+
     async function openEventForm(evento = null) {
         if (section !== 'eventos') {
             return;
         }
+
+        const apertura = ++aperturasFormulario;
 
         editingEventId = evento ? evento.id : null;
         editingPublished = evento?.estado === 'publicado';
@@ -2494,7 +2254,20 @@
 
         $('evento-form-title').textContent = editingPublished
             ? 'Modificar evento publicado'
-            : evento ? 'Editar evento' : 'Crear nuevo evento';
+            : evento ? 'Editar evento' : 'Datos del evento';
+
+        // El encabezado de la sección dice qué se está haciendo
+        if (evento) {
+            const texto = editingPublished ? 'Modificar evento publicado' : 'Editar evento';
+            const palabras = texto.split(' ');
+            $('page-title').replaceChildren(
+                document.createTextNode(palabras.slice(0, -1).join(' ') + ' '),
+                el('em', palabras.at(-1))
+            );
+        } else {
+            updateHeader();
+        }
+        $('evento-form-panel').dataset.modo = evento ? 'editar' : 'crear';
 
         $('btn-guardar-evento').textContent = evento
             ? 'Guardar cambios'
@@ -2508,6 +2281,9 @@
 
             form.elements.namedItem('descripcion').value =
                 evento.descripcion || '';
+
+            form.elements.namedItem('frase_destacada').value =
+                evento.frase_destacada || '';
 
             form.elements.namedItem('fecha_evento').value =
                 dateForInput(evento.fecha_evento);
@@ -2535,6 +2311,7 @@
 
         try {
             await loadRecintos(evento?.recinto_id ?? '');
+            if (apertura !== aperturasFormulario) return;
             await loadVenueLocalities(
                 $('evento-recinto').value,
                 evento?.id ?? null
@@ -2543,12 +2320,21 @@
             formFeedback(error.message, true);
         }
 
+        // Otra apertura empezó mientras se cargaba esta (p. ej. Editar desde el catálogo)
+        if (apertura !== aperturasFormulario) return;
+
         // En publicados, fecha y recinto son solo de consulta.
         const recintoCampo = $('evento-recinto');
         if (recintoCampo) recintoCampo.disabled = editingPublished;
 
+        // La fecha de un publicado se puede aplazar (nunca adelantar): si cambia, se avisa a los compradores
         const fechaCampo = form.elements.namedItem('fecha_evento');
-        if (fechaCampo) fechaCampo.readOnly = editingPublished;
+        if (fechaCampo) limitarFecha(fechaCampo, editingPublished ? fechaCampo.value : null);
+
+        // Aviso para fotos, costos, plano y borrador (admin-evento-formulario.js, admin-costos.js)
+        document.dispatchEvent(new CustomEvent('admin:formulario-evento', {
+            detail: { eventoId: evento ? evento.id : null, publicado: editingPublished }
+        }));
 
         $('evento-form-panel').scrollIntoView({
             behavior: 'smooth',
@@ -2602,90 +2388,6 @@
     }
 
     // =====================================================
-    // CAMBIAR IMAGEN DE EVENTOS PUBLICADOS
-    // =====================================================
-
-    async function changeEventImage(id) {
-        try {
-            const evento = await fetchEvent(id);
-
-            const entrada = window.prompt(
-                'Fotografía del evento: ' + evento.nombre +
-                '\n\nIntroduce una URL HTTPS.\n' +
-                'Deja el campo vacío para quitar la imagen:',
-                evento.imagen_url || ''
-            );
-
-            if (entrada === null) {
-                return;
-            }
-
-            const imagenUrl = entrada.trim();
-
-            if (imagenUrl) {
-                try {
-                    const url = new URL(imagenUrl);
-
-                    if (url.protocol !== 'https:') {
-                        feedback(
-                            'La imagen debe utilizar HTTPS.',
-                            true
-                        );
-                        return;
-                    }
-                } catch {
-                    feedback(
-                        'Introduce una URL válida.',
-                        true
-                    );
-                    return;
-                }
-
-                if (imagenUrl.length > 2048) {
-                    feedback(
-                        'La URL no puede superar 2048 caracteres.',
-                        true
-                    );
-                    return;
-                }
-            }
-
-            const confirmado = window.confirm(
-                '¿Actualizar la fotografía del evento "' +
-                evento.nombre + '"?'
-            );
-
-            if (!confirmado) {
-                return;
-            }
-
-            feedback('Actualizando fotografía...');
-
-            const response = await api(
-                'eventos/' + id + '/imagen',
-                {
-                    method: 'PATCH',
-                    body: JSON.stringify({
-                        imagen_url: imagenUrl || null
-                    })
-                }
-            );
-
-            const result = await response.json();
-
-            await load();
-
-            feedback(
-                result.message ||
-                'Fotografía actualizada correctamente.'
-            );
-
-        } catch (error) {
-            feedback(error.message, true);
-        }
-    }
-
-    // =====================================================
     // VER EVENTO
     // =====================================================
 
@@ -2693,7 +2395,8 @@
     function safeEventImage(value) {
         if (typeof value !== 'string' || !value.trim()) return null;
         try {
-            const parsed = new URL(value);
+            // Acepta también las fotos subidas al propio sitio (/storage/eventos/...)
+            const parsed = new URL(value, window.location.origin);
             return ['https:', 'http:'].includes(parsed.protocol)
                 ? parsed.href
                 : null;
@@ -2718,7 +2421,6 @@
                     <button type="button" class="so-icon-close" id="so-event-close" aria-label="Cerrar detalles">×</button>
                 </header>
                 <div id="so-dialog-content" class="so-dialog-content"></div>
-                <footer class="so-dialog-actions" id="so-dialog-actions"></footer>
             </div>`;
         document.body.append(dialog);
         $('so-event-close').addEventListener('click', () => dialog.close());
@@ -2739,9 +2441,7 @@
             const evento = await fetchEvent(id);
             const dialog = ensureEventDrawer();
             const content = $('so-dialog-content');
-            const actions = $('so-dialog-actions');
             content.replaceChildren();
-            actions.replaceChildren();
 
             const hero = el('div', undefined, 'so-dialog-cover');
             const validImage = safeEventImage(evento.imagen_url);
@@ -2769,7 +2469,7 @@
             details.append(
                 detailRow('Fecha y hora', formatCell('fecha_evento', evento.fecha_evento)),
                 detailRow('Recinto', evento.recinto?.nombre || evento.recinto || 'Consulta el catálogo'),
-                detailRow('Estado', evento.estado),
+                detailRow('Estado', (evento.estado || '').replace(/^./, letra => letra.toUpperCase())),
                 detailRow('Identificador', '#' + evento.id)
             );
             content.append(details);
@@ -2781,23 +2481,6 @@
             );
             content.append(about);
 
-            const closeButton = actionButton('Cerrar', 'so-button-quiet', () => dialog.close());
-            actions.append(closeButton);
-            if (evento.estado === 'borrador') {
-                actions.append(actionButton('Editar evento', 'so-button-primary', () => {
-                    dialog.close();
-                    editEvent(evento.id);
-                }));
-            } else {
-                // Inventario: plano de ocupación en vivo
-                actions.append(actionButton('Ver asientos', 'so-button-quiet', () => {
-                    window.location.href = '/admin/eventos/' + evento.id + '/asientos';
-                }));
-                actions.append(actionButton('Cambiar imagen', 'so-button-primary', () => {
-                    dialog.close();
-                    changeEventImage(evento.id);
-                }));
-            }
             dialog.showModal();
         } catch (error) {
             feedback(error.message, true);
@@ -3045,6 +2728,11 @@
                     formData.get('descripcion') || ''
                 ).trim(),
 
+                // Título de la primera escena de la experiencia (opcional)
+                frase_destacada: String(
+                    formData.get('frase_destacada') || ''
+                ).trim() || null,
+
                 imagen_url: String(
                     formData.get('imagen_url') || ''
                 ).trim() || null,
@@ -3104,6 +2792,10 @@
                 }
 
                 payload.precios = precios;
+
+                // Costos de producción (admin-costos.js): se crean junto con el evento
+                const costos = window.AdminCostos?.leer() || [];
+                if (costos.length) payload.costos = costos;
             }
 
             const path = isPublishedEdit
@@ -3117,12 +2809,29 @@
             const datosEnviar = isPublishedEdit
                 ? {
                     nombre: payload.nombre,
+                    frase_destacada: payload.frase_destacada,
                     descripcion: payload.descripcion,
                     imagen_url: payload.imagen_url,
                     imagen_url_2: payload.imagen_url_2,
                     imagen_url_3: payload.imagen_url_3
                 }
                 : payload;
+
+            // Reprogramar un evento publicado: se confirma porque avisa por correo a los compradores
+            const fechaOriginal = eventForm.elements.namedItem('fecha_evento')?.dataset.original || '';
+            const fechaCambiada = isPublishedEdit && fechaOriginal && payload.fecha_evento !== fechaOriginal;
+            if (fechaCambiada) {
+                const formato = new Intl.DateTimeFormat('es-GT', { dateStyle: 'full', timeStyle: 'short' });
+                const seguir = await window.AdminEventoFormulario?.confirmar({
+                    icono: '↻',
+                    titulo: '¿Reprogramar la función?',
+                    texto: `La función pasará al ${formato.format(new Date(payload.fecha_evento)).replace(/\.$/, "")}. `
+                        + 'Avisaremos por correo a todas las personas que compraron boletos; sus boletos siguen siendo válidos.',
+                    aceptar: 'Reprogramar y avisar',
+                }) ?? window.confirm('¿Reprogramar la función y avisar a los compradores?');
+                if (!seguir) return;
+                datosEnviar.fecha_evento = payload.fecha_evento;
+            }
 
             savingEvent = true;
 
@@ -3140,6 +2849,27 @@
                 });
 
                 const result = await response.json();
+
+                // Al editar un borrador, sus precios se guardan junto con el evento
+                if (isEditing && !isPublishedEdit) {
+                    await guardarPreciosDelBorrador(editingEventId);
+                }
+
+                // Al editar, los costos se guardan aparte (admin-costos.js; solo si cambiaron)
+                if (isEditing) {
+                    await window.AdminCostos?.guardar(editingEventId);
+                }
+
+                // El borrador del formulario ya no hace falta (admin-evento-formulario.js)
+                document.dispatchEvent(new CustomEvent('admin:evento-guardado', {
+                    detail: {
+                        creado: !isEditing,
+                        nombre: payload.nombre,
+                        publicado: isPublishedEdit,
+                        reprogramado: Boolean(result.fecha_cambiada),
+                        avisados: result.compradores_avisados ?? 0
+                    }
+                }));
 
                 closeEventForm();
                 page = 1;
@@ -3174,14 +2904,6 @@
         // Aviso de recarga: lo escucha el catálogo para actualizarse (publicar, editar, imagen...)
         document.dispatchEvent(new CustomEvent('admin:recargar', { detail: { section } }));
 
-        if (section === 'notificaciones') {
-            ++requestVersion;
-            updateHeader();
-            updateSections();
-            clearFeedback();
-            return;
-        }
-
         const version = ++requestVersion;
 
         updateHeader();
@@ -3195,7 +2917,10 @@
             pendingSections.has(section) ||
             section === 'reportes' ||
             section === 'banner' ||
-            section === 'catalogo'
+            section === 'catalogo' ||
+            section === 'bitacora' ||
+            section === 'reembolsos' ||
+            section === 'acceso'
         ) {
             clearFeedback();
             return;
@@ -3204,62 +2929,56 @@
         feedback('Consultando datos reales de MySQL...');
 
         try {
-            let recent = [];
-
             if (section === 'resumen') {
-                recent = await loadSummary();
+                await loadSummary();
+                if (version === requestVersion) clearFeedback();
+                return;
+            }
+
+            if (section === 'reservas') {
+                loadReservationStates();
             }
 
             if (version !== requestVersion) {
                 return;
             }
 
-            const kind = section === 'resumen'
-                ? 'reservas'
-                : section;
+            const kind = section;
 
-            $('table-title').textContent =
-                section === 'resumen'
-                    ? 'Reservas recientes'
-                    : titles[section][0];
-
-            $('table-subtitle').textContent =
-                section === 'resumen'
-                    ? 'Últimos movimientos registrados en MySQL.'
-                    : 'Registros disponibles en el sistema.';
-
-            $('view-all').hidden =
-                section !== 'resumen';
+            $('table-title').textContent = titles[section][0];
+            $('table-subtitle').textContent = 'Registros disponibles en el sistema.';
+            $('view-all').hidden = true;
 
             renderFilters();
 
-            if (section === 'resumen') {
-                renderTable(recent, 'reservas');
-            } else {
-                const params = new URLSearchParams({
-                    page: String(page)
-                });
+            const params = new URLSearchParams({
+                page: String(page)
+            });
 
-                if (kind === 'usuarios' && query) {
-                    params.set('buscar', query);
-                }
-
-                const response = await api(
-                    kind + '?' + params.toString()
-                );
-
-                const result = await response.json();
-
-                if (version !== requestVersion) {
-                    return;
-                }
-
-                renderTable(
-                    result.data || [],
-                    kind,
-                    result
-                );
+            if (kind === 'usuarios' && query) {
+                params.set('buscar', query);
             }
+
+            if (kind === 'reservas') {
+                if (filtroReservas.estado) params.set('estado', filtroReservas.estado);
+                if (filtroReservas.evento_id) params.set('evento_id', filtroReservas.evento_id);
+            }
+
+            const response = await api(
+                kind + '?' + params.toString()
+            );
+
+            const result = await response.json();
+
+            if (version !== requestVersion) {
+                return;
+            }
+
+            renderTable(
+                result.data || [],
+                kind,
+                result
+            );
 
             clearFeedback();
 
@@ -3500,7 +3219,7 @@
             localStorage.removeItem('auth_token');
             sessionStorage.removeItem('auth_token');
 
-            window.location.replace('/login');
+            window.location.replace('/admin/login');
 
         } catch (error) {
             if (mensaje) {
@@ -3765,8 +3484,22 @@
         try {
             const profile = await loadCurrentUser();
             if (nav) nav.hidden = false;
-            navigate(profile.rol === 'organizador' ? 'eventos' : 'resumen');
+
+            // /admin?seccion=catalogo abre esa sección (p. ej. al volver de la vista de asientos)
+            const pedida = new URLSearchParams(window.location.search).get('seccion');
+            if (pedida) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+            // Sin sección pedida: el admin empieza en el Dashboard y el operador en el Catálogo
+            navigate(pedida && pedida in titles && canAccessSection(pedida)
+                ? pedida
+                : profile.rol === 'organizador' ? 'catalogo' : 'resumen');
         } catch (error) {
+            // Sin sesión válida del personal: al acceso del personal (sesion.js), que regresa aquí
+            if (window.SesionPanel) {
+                window.SesionPanel.irAlAcceso(error.message);
+                return;
+            }
             currentRole = null;
             feedback(error.message, true);
             show('dashboard', false);

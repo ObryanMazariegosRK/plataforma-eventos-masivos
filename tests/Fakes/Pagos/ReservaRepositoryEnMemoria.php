@@ -21,6 +21,11 @@ class ReservaRepositoryEnMemoria extends RepositorioEnMemoria implements IReserv
         return $this->lugaresPorPersona["{$usuarioId}:{$eventoId}"] ?? 0;
     }
 
+    public function apartadasSinPagar(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora): array
+    {
+        return [];
+    }
+
     public function comprasDeUsuario(int $usuarioId): array
     {
         return array_values(array_filter($this->detalles, fn ($d) => $d['usuario_id'] === $usuarioId && $d['estado'] === 'confirmada'));

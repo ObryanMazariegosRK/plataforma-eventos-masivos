@@ -5,13 +5,17 @@ use App\Domain\Enums\Auth\EstadoUsuario;
 use App\Domain\Enums\Auth\RolUsuario;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 // Extiende Authenticatable (no Model) para que Laravel/Sanctum
 // puedan autenticarlo; HasApiTokens agrega createToken() y tokens().
 class Usuario extends Authenticatable
 {
-    use HasApiTokens, SoftDeletes;
+    // HasPushSubscriptions: dispositivos con notificaciones push activadas (tabla push_subscriptions);
+    // Notifiable: notifyNow(), con el que EnviadorPushWeb manda el push a esos dispositivos
+    use HasApiTokens, HasPushSubscriptions, Notifiable, SoftDeletes;
 
     protected $table = 'usuarios';
 

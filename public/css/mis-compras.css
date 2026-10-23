@@ -1,6 +1,35 @@
 /* Mis compras — usa los tokens y la cabecera de catalogo.css */
 
 .compras { padding: 64px 0 110px; }
+/* "Volver a la cartelera": flecha en un círculo, como en la experiencia del evento */
+.compras__volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 34px;
+    color: var(--piedra);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color .3s ease;
+}
+.compras__flecha {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--hilo);
+    border-radius: 50%;
+    transition: border-color .3s ease, background-color .3s ease, color .3s ease;
+}
+.compras__flecha svg { width: 16px; height: 16px; transition: transform .35s var(--curva); }
+.compras__volver:hover, .compras__volver:focus-visible { color: var(--marfil); }
+.compras__volver:hover .compras__flecha, .compras__volver:focus-visible .compras__flecha { border-color: var(--marfil); background: var(--marfil); color: var(--tinta); }
+.compras__volver:hover svg, .compras__volver:focus-visible svg { transform: translateX(-3px); }
+.compras__volver:focus-visible { outline: none; }
+
 .compras__encabezado { padding-bottom: 22px; margin-bottom: 36px; border-bottom: 1px solid var(--hilo); }
 .compras__encabezado h1 { margin: 14px 0 0; font-size: clamp(40px, 5vw, 60px); line-height: 1; }
 .compras__aviso { color: var(--piedra); font-family: var(--titulo); font-size: 22px; font-style: italic; }
@@ -120,6 +149,118 @@
 .compra__boletos a:hover, .compra__boletos button:not(:disabled):hover { border-color: var(--champan); background: var(--champan-suave); }
 .compra__boletos button:disabled { color: var(--tenue); cursor: default; }
 
+/* Reembolso: enlace discreto para pedirlo y etiqueta con su estado */
+.compra__pedir-reembolso {
+    margin-top: 4px;
+    padding: 4px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: var(--tenue);
+    font-size: 12px;
+    letter-spacing: .02em;
+    transition: color .3s ease, border-color .3s ease;
+}
+.compra__pedir-reembolso:hover { color: var(--marfil); border-bottom-color: var(--hilo); }
+.compra__reembolso {
+    margin-top: 6px;
+    padding: 5px 11px;
+    border: 1px solid var(--hilo);
+    border-radius: 999px;
+    color: var(--piedra);
+    font-size: 11.5px;
+    line-height: 1.3;
+}
+.compra__reembolso--espera { border-color: rgba(200, 180, 140, .45); color: var(--champan); }
+.compra__reembolso--listo { border-color: rgba(142, 196, 160, .45); color: #a9d6b6; }
+.compra__reembolso--aviso { border-color: rgba(230, 150, 130, .45); color: #f0b4a4; }
+
+/* Diálogo "Solicitar reembolso" */
+.reembolso {
+    width: min(520px, calc(100% - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    border: 1px solid var(--hilo);
+    border-radius: 18px;
+    background: var(--tinta-2);
+    color: var(--marfil);
+    overflow: auto;
+}
+.reembolso::backdrop { background: rgba(5, 4, 3, .72); backdrop-filter: blur(3px); }
+.reembolso[open] { animation: aparecer .45s var(--curva) both; }
+.reembolso__caja { position: relative; padding: 30px 30px 26px; }
+.reembolso__cerrar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--hilo);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--piedra);
+    font-size: 13px;
+}
+.reembolso__cerrar:hover { color: var(--marfil); border-color: var(--champan); }
+.reembolso h2 { margin: 10px 0 4px; font-size: 34px; line-height: 1.05; }
+.reembolso h2:focus { outline: none; }
+.reembolso__evento { margin: 0 0 22px; color: var(--piedra); font-size: 13.5px; }
+.reembolso__cargando, .reembolso__no, .reembolso__listo { margin: 0 0 18px; color: var(--piedra); font-family: var(--titulo); font-size: 21px; font-style: italic; line-height: 1.3; }
+.reembolso__listo { color: var(--champan); }
+
+.reembolso__monto { display: grid; gap: 4px; padding: 18px 20px; border: 1px solid rgba(200, 180, 140, .35); border-radius: 14px; background: var(--champan-suave); }
+.reembolso__monto span { color: var(--piedra); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.reembolso__monto strong { font-family: var(--titulo); font-size: 42px; font-weight: 400; line-height: 1; }
+.reembolso__monto small { color: var(--piedra); font-size: 12.5px; }
+
+.reembolso__subtitulo { margin: 22px 0 8px; color: var(--tenue); font-size: 10.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+.reembolso__politica { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--hilo); }
+.reembolso__politica li { display: flex; justify-content: space-between; gap: 16px; padding: 9px 4px; border-bottom: 1px solid var(--hilo); color: var(--piedra); font-size: 13px; }
+.reembolso__politica strong { color: var(--marfil); font-weight: 400; }
+.reembolso__politica li.es-vigente { color: var(--marfil); }
+.reembolso__politica li.es-vigente strong { color: var(--champan); font-weight: 500; }
+.reembolso__politica li.es-vigente span::before { content: "● "; color: var(--champan); font-size: 9px; vertical-align: 2px; }
+
+.reembolso__motivo { position: relative; display: grid; gap: 8px; margin-top: 22px; color: var(--tenue); font-size: 10.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+.reembolso__motivo textarea {
+    width: 100%;
+    padding: 12px 14px 24px;
+    border: 1px solid var(--hilo);
+    border-radius: 12px;
+    background: rgba(242, 237, 228, .04);
+    color: var(--marfil);
+    font: inherit;
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    resize: vertical;
+}
+.reembolso__motivo textarea:focus { outline: none; border-color: var(--champan); }
+.reembolso__contador { position: absolute; right: 12px; bottom: 9px; color: var(--tenue); font-size: 10.5px; letter-spacing: .04em; }
+.reembolso__nota { margin: 16px 0 0; color: var(--tenue); font-size: 12.5px; line-height: 1.55; }
+.reembolso__nota--destacada { margin-top: 18px; padding: 12px 14px; border-left: 2px solid var(--champan); background: var(--champan-suave); color: var(--marfil); }
+.reembolso__error { margin: 16px 0 0; color: #f0b4a4; font-size: 13px; }
+.reembolso__error[hidden] { display: none; }
+
+.reembolso__acciones { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.reembolso__acciones button {
+    padding: 12px 20px;
+    border: 1px solid var(--hilo);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--marfil);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    transition: border-color .3s ease, background-color .3s ease;
+}
+.reembolso__acciones button:hover { border-color: var(--champan); }
+.reembolso__acciones .reembolso__principal { border-color: var(--champan); background: var(--champan); color: var(--tinta); }
+.reembolso__acciones .reembolso__principal:hover { background: #d6c4a0; }
+.reembolso__acciones .reembolso__principal:disabled { opacity: .6; cursor: default; }
+.reembolso__acciones .reembolso__principal[hidden] { display: none; }
+
 /* Funciones que ya pasaron: más tenues */
 .compras__panel--pasadas .compra { opacity: .6; }
 .compras__panel--pasadas .compra:hover { opacity: .85; }
@@ -129,12 +270,16 @@
 
 @media (max-width: 640px) {
     .compras { padding: 44px 0 80px; }
+    .compras__volver { margin-bottom: 26px; }
     .compra { grid-template-columns: 54px minmax(0, 1fr); gap: 18px; }
     .compra__dia { font-size: 34px; }
     .compra__lado { grid-column: 2; justify-items: start; text-align: left; }
     .compras__pestanas { gap: 26px; }
+    .reembolso__caja { padding: 26px 20px 22px; }
+    .reembolso h2 { font-size: 28px; padding-right: 36px; }
+    .reembolso__acciones button { flex: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .compra { animation: none; }
+    .compra, .reembolso[open] { animation: none; }
 }

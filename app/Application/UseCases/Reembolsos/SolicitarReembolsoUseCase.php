@@ -138,7 +138,9 @@ class SolicitarReembolsoUseCase
                 montoPagado: (float) $pago->monto,
                 fechaEvento: new DateTimeImmutable(
                     $evento->fecha_evento
-                )
+                ),
+                // Si la función se aplazó, el cliente recibe el 100 %.
+                eventoReprogramado: $evento->reprogramado_en !== null
             );
 
             $montoReembolso = $calculo['monto_reembolso'];

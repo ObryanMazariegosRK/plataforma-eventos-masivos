@@ -11,4 +11,7 @@ interface ICatalogoEventosAdminRepository
     public function buscar(array $filtros, int $limite, int $desde): array;
 
     public function contar(array $filtros): int;
+
+    /** Cuántos eventos hay en cada estado (todos, sin filtros): ['publicado' => 6, ...] */
+    public function contarPorEstado(): array;
 }

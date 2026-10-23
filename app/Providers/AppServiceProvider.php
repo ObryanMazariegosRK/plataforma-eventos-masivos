@@ -25,10 +25,36 @@ class AppServiceProvider extends ServiceProvider
             \App\Data\Notificaciones\NotificacionRepository::class
         );
 
+        // ---- Notificaciones: push a los dispositivos (Web Push) y avisos al personal ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\IPersonalRepository::class,
+            \App\Data\Notificaciones\PersonalRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Notificaciones\IEnviadorPush::class,
+            \App\Infrastructure\Notificaciones\Push\EnviadorPushWeb::class,
+        );
+
         // ---- Reembolsos ----
         $this->app->bind(
             \App\Domain\Abstractions\Reembolsos\IReembolsoRepository::class,
             \App\Data\Reembolsos\ReembolsoRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\IProcesarReembolsoUseCase::class,
+            \App\Application\UseCases\Reembolsos\ProcesarReembolsoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\IConsultarReembolsoDeCompraUseCase::class,
+            \App\Application\UseCases\Reembolsos\ConsultarReembolsoDeCompraUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\ISolicitarReembolsoDeCompraUseCase::class,
+            \App\Application\UseCases\Reembolsos\SolicitarReembolsoDeCompraUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Reembolsos\IListarReembolsosAdminUseCase::class,
+            \App\Application\UseCases\Reembolsos\ListarReembolsosAdminUseCase::class,
         );
 
         //Transacciones
@@ -53,6 +79,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             \App\Domain\Abstractions\Boletos\IBoletoRepository::class,
             \App\Data\Boletos\BoletoRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Boletos\IConsultaBoletoRepository::class,
+            \App\Data\Boletos\ConsultaBoletoRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Boletos\IConsultarBoletoEscaneadoUseCase::class,
+            \App\Application\UseCases\Boletos\ConsultarBoletoEscaneadoUseCase::class,
         );
 
          // Caso de uso para emitir boletos
@@ -195,6 +229,68 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             \App\Application\Abstractions\Admin\IBuscarEventosAdminUseCase::class,
             \App\Application\UseCases\Admin\BuscarEventosAdminUseCase::class,
+        );
+
+        // ---- Inventario: plano de un recinto (formulario de evento) ----
+        $this->app->bind(
+            \App\Application\Abstractions\Inventario\IConsultarPlanoRecintoUseCase::class,
+            \App\Application\UseCases\Inventario\ConsultarPlanoRecintoUseCase::class,
+        );
+
+        // ---- Admin: fotos de los eventos ----
+        $this->app->bind(
+            \App\Application\Abstractions\Admin\ISubirImagenEventoUseCase::class,
+            \App\Application\UseCases\Admin\SubirImagenEventoUseCase::class,
+        );
+
+        // ---- Admin: reportes en Excel y PDF ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Admin\IReporteAdminRepository::class,
+            \App\Data\Admin\ReporteAdminRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Admin\IGenerarReporteAdminUseCase::class,
+            \App\Application\UseCases\Admin\GenerarReporteAdminUseCase::class,
+        );
+
+        // ---- Finanzas: costos de producción y ganancias por evento ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Finanzas\ICostoEventoRepository::class,
+            \App\Data\Finanzas\CostoEventoRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Finanzas\IFinanzasRepository::class,
+            \App\Data\Finanzas\FinanzasRepository::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Finanzas\IListarCostosEventoUseCase::class,
+            \App\Application\UseCases\Finanzas\ListarCostosEventoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Finanzas\IGuardarCostosEventoUseCase::class,
+            \App\Application\UseCases\Finanzas\GuardarCostosEventoUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Finanzas\IObtenerFinanzasUseCase::class,
+            \App\Application\UseCases\Finanzas\ObtenerFinanzasUseCase::class,
+        );
+
+        // ---- Bitácora (base aparte; la llena el middleware RegistrarBitacora) ----
+        $this->app->bind(
+            \App\Domain\Abstractions\Bitacora\IBitacoraRepository::class,
+            \App\Data\Bitacora\BitacoraRepository::class,
+        );
+        $this->app->bind(
+            \App\Domain\Abstractions\Bitacora\IContextoBitacora::class,
+            \App\Data\Bitacora\ContextoBitacora::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Bitacora\IRegistrarEnBitacoraUseCase::class,
+            \App\Application\UseCases\Bitacora\RegistrarEnBitacoraUseCase::class,
+        );
+        $this->app->bind(
+            \App\Application\Abstractions\Bitacora\IBuscarEnBitacoraUseCase::class,
+            \App\Application\UseCases\Bitacora\BuscarEnBitacoraUseCase::class,
         );
 
         // ---- Catálogo: banner de la portada ----

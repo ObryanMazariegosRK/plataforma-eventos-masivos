@@ -1,0 +1,71 @@
+/* Campana de notificaciones (campana.js): activa / quita el push en este dispositivo.
+   Colores por variables: la tienda usa sus tokens de catalogo.css; el panel los cambia en admin-tema.css. */
+
+.campana {
+    --campana-borde: var(--hilo);
+    --campana-color: var(--piedra);
+    --campana-acento: var(--champan);
+    --campana-acento-borde: rgba(200, 180, 140, .55);
+    --campana-acento-fondo: var(--champan-suave);
+    --campana-nota-fondo: rgba(21, 19, 17, .98);
+    --campana-nota-texto: var(--piedra);
+    --campana-nota-borde: var(--hilo);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.campana__boton {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--campana-borde);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--campana-color);
+    cursor: pointer;
+    transition: color .25s ease, border-color .25s ease, background-color .25s ease, opacity .25s ease;
+}
+.campana__boton svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.campana__boton:hover { border-color: var(--campana-acento-borde); color: var(--campana-acento); }
+.campana__boton:focus-visible { outline: 2px solid var(--campana-acento); outline-offset: 2px; }
+
+/* Activadas: campana rellena en el color de acento */
+.campana__boton.es-activa { border-color: var(--campana-acento-borde); background: var(--campana-acento-fondo); color: var(--campana-acento); }
+.campana__boton.es-activa .campana__relleno { fill: currentColor; fill-opacity: .9; }
+.campana__boton.es-bloqueada { opacity: .55; }
+.campana__boton.esta-ocupada { cursor: progress; opacity: .6; }
+
+/* Nota breve bajo la campana */
+.campana__nota {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: -8px;
+    z-index: 1000;
+    width: max-content;
+    max-width: min(300px, calc(100vw - 24px));
+    margin: 0;
+    padding: 11px 14px;
+    border: 1px solid var(--campana-nota-borde);
+    border-radius: 12px;
+    background: var(--campana-nota-fondo);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .35);
+    color: var(--campana-nota-texto);
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: normal;
+    text-align: left;
+    animation: campana-nota .22s ease;
+}
+.campana__nota[hidden] { display: none; }
+@keyframes campana-nota { from { opacity: 0; transform: translateY(-4px); } }
+
+@media (max-width: 640px) {
+    .campana__nota { position: fixed; top: 62px; right: 12px; left: 12px; width: auto; max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .campana__nota { animation: none; }
+}

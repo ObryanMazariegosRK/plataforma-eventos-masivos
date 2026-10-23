@@ -55,9 +55,23 @@ class ReservaRepository implements IReservaRepository
             ->select('reserva_id', DB::raw('MAX(updated_at) as pagado_en'), DB::raw('MAX(referencia_externa) as referencia'))
             ->groupBy('reserva_id');
 
+        // Reembolsos de la compra resumidos en uno: el estado más atrasado manda (una compra
+        // puede tener dos si el evento se canceló después de que el cliente pidió el suyo)
+        $reembolsos = DB::table('reembolsos')
+            ->join('pagos', 'pagos.id', '=', 'reembolsos.pago_id')
+            ->whereNull('reembolsos.deleted_at')
+            ->groupBy('pagos.reserva_id')
+            ->select('pagos.reserva_id', DB::raw('MAX(reembolsos.updated_at) as updated_at'))
+            ->selectRaw("MIN(CASE reembolsos.estado WHEN 'solicitado' THEN 1 WHEN 'aprobado' THEN 2 WHEN 'procesado' THEN 3 ELSE 4 END) as etapa")
+            ->selectRaw("SUM(CASE WHEN reembolsos.estado = 'rechazado' THEN 0 ELSE reembolsos.monto END) as monto_vigente")
+            ->selectRaw('SUM(reembolsos.monto) as monto_total');
+
         $reservas = $this->consultaResumen()
             ->leftJoinSub($pagos, 'pago', 'pago.reserva_id', '=', 'reservas.id')
-            ->addSelect('pago.pagado_en', 'pago.referencia')
+            ->leftJoinSub($reembolsos, 'reembolso', 'reembolso.reserva_id', '=', 'reservas.id')
+            ->addSelect('pago.pagado_en', 'pago.referencia', 'eventos.estado as evento_estado',
+                'reembolso.etapa as reembolso_etapa', 'reembolso.monto_vigente as reembolso_monto',
+                'reembolso.monto_total as reembolso_monto_total', 'reembolso.updated_at as reembolso_en')
             ->where('reservas.usuario_id', $usuarioId)
             ->where('reservas.estado', 'confirmada')
             ->get();
@@ -68,6 +82,12 @@ class ReservaRepository implements IReservaRepository
         return $reservas->map(fn ($r) => $this->aResumen($r, $lugares[$r->id] ?? []) + [
             'pagado_en'  => $r->pagado_en ? \Illuminate\Support\Carbon::parse($r->pagado_en)->toIso8601String() : null,
             'referencia' => $r->referencia,
+            'evento_cancelado' => $r->evento_estado === 'cancelado',
+            'reembolso'  => $r->reembolso_etapa === null ? null : [
+                'estado' => [1 => 'solicitado', 2 => 'aprobado', 3 => 'procesado', 4 => 'rechazado'][(int) $r->reembolso_etapa],
+                'monto'  => (float) ((int) $r->reembolso_etapa === 4 ? $r->reembolso_monto_total : $r->reembolso_monto),
+                'fecha'  => \Illuminate\Support\Carbon::parse($r->reembolso_en)->toIso8601String(),
+            ],
         ])->all();
     }
 
@@ -89,6 +109,27 @@ class ReservaRepository implements IReservaRepository
                     ->where('reservas.estado', 'activa')
                     ->where('reservas.expira_en', '>', $ahora->format('Y-m-d H:i:s'))))
             ->count();
+    }
+
+    public function apartadasSinPagar(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora): array
+    {
+        return DB::table('reservas')
+            ->leftJoin('inventario', 'inventario.reserva_id', '=', 'reservas.id')
+            ->where('reservas.usuario_id', $usuarioId)
+            ->where('reservas.evento_id', $eventoId)
+            ->where('reservas.estado', 'activa')
+            ->where('reservas.expira_en', '>', $ahora->format('Y-m-d H:i:s'))
+            ->whereNull('reservas.deleted_at')
+            ->groupBy('reservas.id', 'reservas.total', 'reservas.expira_en')
+            ->orderBy('reservas.expira_en')
+            ->get(['reservas.id', 'reservas.total', 'reservas.expira_en', DB::raw('COUNT(inventario.id) as lugares')])
+            ->map(fn ($r) => [
+                'reserva_id' => (int) $r->id,
+                'lugares'    => (int) $r->lugares,
+                'total'      => (float) $r->total,
+                'expira_en'  => (string) $r->expira_en,
+            ])
+            ->all();
     }
 
     private function consultaResumen(): \Illuminate\Database\Query\Builder
@@ -113,14 +154,27 @@ class ReservaRepository implements IReservaRepository
         // Numeradas: fila y número del asiento; generales: sin asiento (un cupo por fila).
         // El boleto (módulo Boletos) es uno por lugar vendido; null mientras se emite.
         // No se expone su código: solo viaja dentro del QR (GET /api/boletos/{id}/qr).
-        return DB::table('inventario')
+        // Lugares de cada compra: los que aún apuntan a ella y, si se reembolsó, los que se
+        // devolvieron a la venta (solo los recuerda su boleto anulado)
+        $pares = DB::table('inventario')
+            ->select('inventario.id as inventario_id', 'inventario.reserva_id')
+            ->whereIn('inventario.reserva_id', $reservaIds)
+            ->union(DB::table('boletos')
+                ->join('inventario', 'inventario.id', '=', 'boletos.inventario_id')
+                ->select('boletos.inventario_id', 'boletos.reserva_id')
+                ->whereIn('boletos.reserva_id', $reservaIds)
+                ->whereNull('boletos.deleted_at')
+                ->where(fn ($q) => $q->whereNull('inventario.reserva_id')->orWhereColumn('inventario.reserva_id', '!=', 'boletos.reserva_id')));
+
+        return DB::query()->fromSub($pares, 'pares')
+            ->join('inventario', 'inventario.id', '=', 'pares.inventario_id')
             ->join('localidades', 'localidades.id', '=', 'inventario.localidad_id')
             ->leftJoin('asientos', 'asientos.id', '=', 'inventario.asiento_id')
-            ->leftJoin('boletos', fn ($j) => $j->on('boletos.inventario_id', '=', 'inventario.id')->whereNull('boletos.deleted_at'))
-            ->whereIn('inventario.reserva_id', $reservaIds)
+            ->leftJoin('boletos', fn ($j) => $j->on('boletos.inventario_id', '=', 'pares.inventario_id')
+                ->on('boletos.reserva_id', '=', 'pares.reserva_id')->whereNull('boletos.deleted_at'))
             ->orderBy('localidades.id')->orderBy('asientos.fila')->orderBy('asientos.numero')->orderBy('inventario.id')
             ->get([
-                'inventario.reserva_id', 'localidades.nombre as localidad', 'localidades.tipo', 'localidades.color',
+                'pares.reserva_id', 'localidades.nombre as localidad', 'localidades.tipo', 'localidades.color',
                 'asientos.fila', 'asientos.numero', 'boletos.id as boleto_id', 'boletos.estado as boleto_estado',
                 'boletos.usado_en as boleto_usado_en',
             ])

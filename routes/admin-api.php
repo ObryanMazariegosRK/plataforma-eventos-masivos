@@ -6,8 +6,11 @@ use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminEventoController;
 use App\Http\Controllers\Admin\AdminPrecioEventoController;
 use App\Http\Controllers\Admin\AdminUsuarioController;
-use App\Http\Controllers\Admin\AdminNotificacionController;
 use App\Http\Controllers\Admin\AdminReporteDocumentoController;
+use App\Http\Controllers\Bitacora\BitacoraController;
+use App\Http\Controllers\Reembolsos\AdminReembolsoController;
+use App\Http\Controllers\Finanzas\CostoEventoController;
+use App\Http\Controllers\Finanzas\FinanzasController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -66,10 +69,25 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('recintoId')
                     ->name('eventos.recintos.localidades');
 
+                // FOTOS DEL EVENTO (se suben al elegirlas en el formulario)
+
+                Route::post('/eventos/imagenes', [
+                    \App\Http\Controllers\Admin\AdminImagenEventoController::class,
+                    'store'
+                ])->name('eventos.imagenes');
+
                 Route::post('/eventos', [
                     AdminEventoController::class,
                     'store'
                 ])->name('eventos.store');
+
+                // Plano del recinto (para elegirlo al crear un evento)
+                Route::get('/eventos/recintos/{recintoId}/plano', [
+                    \App\Http\Controllers\Inventario\PlanoRecintoController::class,
+                    'show'
+                ])
+                    ->whereNumber('recintoId')
+                    ->name('eventos.recintos.plano');
 
                 // PRECIOS POR LOCALIDAD
 
@@ -86,6 +104,22 @@ Route::middleware(['auth:sanctum'])
                 ])
                     ->whereNumber('id')
                     ->name('eventos.precios.guardar');
+
+                // COSTOS DE PRODUCCIÓN (los registra también el operador; las ganancias no las ve)
+
+                Route::get('/eventos/{id}/costos', [
+                    CostoEventoController::class,
+                    'index'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.costos');
+
+                Route::put('/eventos/{id}/costos', [
+                    CostoEventoController::class,
+                    'guardar'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.costos.guardar');
 
                 // CONSULTAR EVENTO
 
@@ -170,13 +204,6 @@ Route::middleware(['auth:sanctum'])
                 ])
                     ->whereNumber('id')
                     ->name('eventos.contenido.actualizar');
-
-                // ACTIVIDAD Y NOTIFICACIONES ADMINISTRATIVAS
-
-                Route::get('/notificaciones', [
-                    AdminNotificacionController::class,
-                    'index'
-                ])->name('notificaciones');
 
                 // RESUMEN
 
@@ -272,6 +299,33 @@ Route::middleware(['auth:sanctum'])
                     AdminReporteDocumentoController::class,
                     'pdf'
                 ])->name('reportes.pdf');
+
+                // FINANZAS: ventas y ganancias por evento
+
+                Route::get('/finanzas', [
+                    FinanzasController::class,
+                    'index'
+                ])->name('finanzas');
+
+                // BITÁCORA (solo lectura): quién hizo qué y cuándo
+
+                Route::get('/bitacora', [
+                    BitacoraController::class,
+                    'index'
+                ])->name('bitacora');
+
+                // REEMBOLSOS: solicitudes y reintento de la devolución
+                // (aprobar/rechazar: PATCH /api/reembolsos/{id}/resolver)
+
+                Route::get('/reembolsos', [
+                    AdminReembolsoController::class,
+                    'index'
+                ])->name('reembolsos');
+
+                Route::post('/reembolsos/{id}/procesar', [
+                    AdminReembolsoController::class,
+                    'procesar'
+                ])->whereNumber('id')->middleware('throttle:10,1')->name('reembolsos.procesar');
 
                 // REPORTES CSV
 

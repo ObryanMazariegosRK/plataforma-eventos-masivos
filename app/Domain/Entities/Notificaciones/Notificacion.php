@@ -16,6 +16,9 @@ class Notificacion
         private string $mensaje,
         private EstadoNotificacion $estado,
         private ?DateTimeImmutable $enviadaEn = null,
+        // Qué pasó y a dónde lleva (bandeja dentro de Soirée y push)
+        private ?string $tipo = null,
+        private ?string $url = null,
     ) {
         $this->validar();
     }
@@ -50,4 +53,6 @@ class Notificacion
     public function getMensaje(): string { return $this->mensaje; }
     public function getEstado(): EstadoNotificacion { return $this->estado; }
     public function getEnviadaEn(): ?DateTimeImmutable { return $this->enviadaEn; }
+    public function getTipo(): ?string { return $this->tipo; }
+    public function getUrl(): ?string { return $this->url; }
 }

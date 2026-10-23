@@ -46,6 +46,9 @@ class EditarEventoUseCase
             $evento->descripcion =
                 $datos['descripcion'] ?? null;
 
+            // Encabeza la primera escena de la experiencia (opcional)
+            $evento->frase_destacada = $datos['frase_destacada'] ?? null;
+
             $evento->recinto_id = $datos['recinto_id'];
 
             $evento->fecha_evento = $datos['fecha_evento'];

@@ -8,6 +8,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#0d0c0b">
@@ -21,6 +22,8 @@
     {{-- Cabecera, pie y paleta del catálogo; catalogo.js arma el menú de la cuenta --}}
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v={{ filemtime(public_path('css/catalogo.css')) }}">
     <script src="{{ asset('js/catalogo.js') }}?v={{ filemtime(public_path('js/catalogo.js')) }}" defer></script>
+    @include('partials.avisos')
+    @include('partials.iconos')
 </head>
 <body class="pagina-legal">
 
@@ -69,8 +72,12 @@
                 <li><strong>Cuando compras:</strong> el evento, los asientos que elegiste, el monto pagado, la fecha
                     del pago y los boletos emitidos con su código QR.</li>
                 <li><strong>Al usar el sitio:</strong> la sesión se guarda en tu navegador para no pedirte la
-                    contraseña en cada página, y usamos cookies técnicas indispensables para que el sitio funcione.
+                    contraseña en cada página; termina al cerrar sesión, al cerrar el navegador o, como máximo,
+                    12 horas después de iniciarla. Usamos cookies técnicas indispensables para que el sitio funcione.
                     No usamos cookies de publicidad ni de rastreo.</li>
+                <li><strong>Si activas los avisos en tu dispositivo:</strong> la dirección que tu navegador crea para
+                    recibirlos (no incluye tu nombre ni tu ubicación). Puedes desactivarlos cuando quieras tocando la
+                    campana; también se borra si retiras el permiso en tu navegador.</li>
             </ul>
             <p class="legal__nota">
                 <strong>No pedimos</strong> tu número de teléfono, tu dirección, tu documento de identificación ni tu
@@ -85,8 +92,9 @@
                     y, si olvidas tu contraseña, otro para recuperarla.</li>
                 <li><strong>Venderte tus boletos:</strong> apartamos tus asientos por {{ $minutos }} minutos mientras
                     pagas, registramos la compra y emitimos un boleto con código QR por cada asiento.</li>
-                <li><strong>Mantenerte informado:</strong> te enviamos por correo la confirmación de tu compra y un
-                    recordatorio 24 horas antes de la función.</li>
+                <li><strong>Mantenerte informado:</strong> te avisamos por correo cuando tus boletos están listos,
+                    24 horas antes de la función, si la función cambia de fecha o se cancela y cuando se resuelve un
+                    reembolso; si activaste la campana, también como notificación en tu dispositivo.</li>
                 <li><strong>Dejarte entrar:</strong> en la entrada se escanea el código QR de tu boleto para
                     comprobar que es válido y que no se ha usado.</li>
                 <li><strong>Que la venta sea justa:</strong> limitamos las compras a {{ $maximo }} boletos por persona
@@ -115,6 +123,9 @@
                 <li><strong>Google</strong>, solo si eliges entrar con tu cuenta de Google.</li>
                 <li><strong>El servicio de correo</strong> que entrega nuestros mensajes, que recibe tu correo
                     electrónico y el contenido del mensaje.</li>
+                <li><strong>El servicio de notificaciones de tu navegador</strong> (Google, Mozilla, Apple o Microsoft,
+                    según el que uses), solo si activas los avisos en tu dispositivo: recibe el texto del aviso para
+                    entregártelo.</li>
                 <li><strong>Autoridades</strong>, únicamente si una ley nos obliga a hacerlo.</li>
             </ul>
         </section>

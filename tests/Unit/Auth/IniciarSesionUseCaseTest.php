@@ -7,8 +7,10 @@ use App\Application\UseCases\Auth\IniciarSesionUseCase;
 use App\Domain\Entities\Auth\Usuario;
 use App\Domain\Enums\Auth\EstadoUsuario;
 use App\Domain\Enums\Auth\RolUsuario;
+use App\Domain\Exceptions\Auth\AccesoDePersonalException;
 use App\Domain\Exceptions\Auth\CorreoNoVerificadoException;
 use App\Domain\Exceptions\Auth\CredencialesInvalidasException;
+use App\Domain\Exceptions\Auth\SinAccesoAlPanelException;
 use App\Domain\Exceptions\Auth\UsuarioBloqueadoException;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
@@ -29,15 +31,42 @@ class IniciarSesionUseCaseTest extends TestCase
         $this->useCase = new IniciarSesionUseCase($this->repo, new PasswordHasherFalso(), $this->tokens);
     }
 
-    public function test_inicia_sesion_y_respeta_recordar(): void
+    public function test_inicia_sesion(): void
     {
         $this->crearUsuario();
 
-        $sesion = $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'Secreto#123', recordar: true));
+        $sesion = $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'Secreto#123'));
 
         $this->assertSame('token-1', $sesion->token);
         $this->assertSame('ana@example.com', $sesion->usuario->getEmail());
-        $this->assertTrue($this->tokens->creados[0]['recordar']);
+        $this->assertCount(1, $this->tokens->creados);
+    }
+
+    public function test_el_personal_entra_solo_por_su_acceso(): void
+    {
+        $this->crearUsuario(rol: RolUsuario::ORGANIZADOR);
+
+        $sesion = $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'Secreto#123', personal: true));
+        $this->assertSame(RolUsuario::ORGANIZADOR, $sesion->usuario->getRol());
+
+        $this->expectException(AccesoDePersonalException::class);
+        $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'Secreto#123'));
+    }
+
+    public function test_un_cliente_no_entra_por_el_acceso_del_personal(): void
+    {
+        $this->crearUsuario();
+
+        $this->expectException(SinAccesoAlPanelException::class);
+        $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'Secreto#123', personal: true));
+    }
+
+    public function test_con_contrasena_incorrecta_no_revela_si_la_cuenta_es_del_personal(): void
+    {
+        $this->crearUsuario(rol: RolUsuario::ADMIN);
+
+        $this->expectException(CredencialesInvalidasException::class);
+        $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'otra'));
     }
 
     public function test_contrasena_incorrecta(): void
@@ -83,14 +112,14 @@ class IniciarSesionUseCaseTest extends TestCase
         $this->useCase->execute(new IniciarSesionDTO('ana@example.com', 'otra'));
     }
 
-    private function crearUsuario(bool $verificado = true, EstadoUsuario $estado = EstadoUsuario::ACTIVO): void
+    private function crearUsuario(bool $verificado = true, EstadoUsuario $estado = EstadoUsuario::ACTIVO, RolUsuario $rol = RolUsuario::CLIENTE): void
     {
         $this->repo->guardar(new Usuario(
             id: null,
             nombre: 'Ana',
             apellido: 'López',
             email: 'ana@example.com',
-            rol: RolUsuario::CLIENTE,
+            rol: $rol,
             estado: $estado,
             passwordHash: 'hash:Secreto#123',
             emailVerificadoEn: $verificado ? new DateTimeImmutable() : null,

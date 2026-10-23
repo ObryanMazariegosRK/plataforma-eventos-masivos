@@ -9,6 +9,7 @@ use DateTimeImmutable;
  *   1. crearOrden(): la pasarela prepara el cobro y da una URL para que la persona lo apruebe.
  *   2. (la persona aprueba o rechaza en la página de la pasarela)
  *   3. capturar(): se cobra de verdad. Hasta aquí no se ha movido dinero.
+ * Después, reembolsar() devuelve todo o parte de un cobro capturado.
  */
 interface IPasarelaPago
 {
@@ -24,4 +25,10 @@ interface IPasarelaPago
     ): OrdenPasarela;
 
     public function capturar(string $ordenId): ResultadoCaptura;
+
+    /**
+     * Devuelve $monto del cobro $referenciaCobro (la referencia que dio capturar()).
+     * Con la misma $claveIdempotencia no se devuelve dos veces: responde la misma devolución.
+     */
+    public function reembolsar(string $referenciaCobro, float $monto, string $claveIdempotencia): ResultadoReembolso;
 }

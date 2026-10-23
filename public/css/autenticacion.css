@@ -466,3 +466,13 @@ a.boton:hover { text-decoration: none; }
     .auth__form h1 { font-size: 32px; }
     .fila { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* Acceso del personal (/admin/login y su recuperación): rótulo sobre el título */
+.etiqueta-acceso {
+    margin: 0 0 10px;
+    color: var(--champan);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}

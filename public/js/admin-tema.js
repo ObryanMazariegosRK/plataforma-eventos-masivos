@@ -58,3 +58,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     })();
 });
+
+// Celular y tableta (≤ 850 px): la barra lateral se vuelve un menú que se despliega desde la
+// izquierda con ícono y nombre de cada sección. La barra de arriba dice en qué sección estás.
+document.addEventListener('DOMContentLoaded', () => {
+    const menu = document.getElementById('menu-lateral');
+    const abrir = document.getElementById('btnMenu');
+    const cerrar = document.getElementById('btnCerrarMenu');
+    const velo = document.getElementById('menuVelo');
+    const seccion = document.getElementById('barraSeccion');
+    const movil = window.matchMedia('(max-width: 850px)');
+
+    if (!menu || !abrir) {
+        return;
+    }
+
+    menu.tabIndex = -1;
+
+    function alternar(abierto) {
+        document.body.classList.toggle('menu-abierto', abierto);
+        abrir.setAttribute('aria-expanded', String(abierto));
+        velo.hidden = !abierto;
+
+        if (abierto) {
+            // El foco entra al menú (Tab recorre las secciones) sin marcar ninguna
+            menu.focus({ preventScroll: true });
+        } else if (menu.contains(document.activeElement)) {
+            abrir.focus({ preventScroll: true });
+        }
+    }
+
+    abrir.addEventListener('click', () => alternar(true));
+    cerrar.addEventListener('click', () => alternar(false));
+    velo.addEventListener('click', () => alternar(false));
+    document.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Escape' && document.body.classList.contains('menu-abierto')) alternar(false);
+    });
+    // Elegir una sección cierra el menú (admin.js ya se encarga de mostrarla)
+    menu.addEventListener('click', (evento) => {
+        if (movil.matches && evento.target.closest('.nav-item')) alternar(false);
+    });
+    // Al pasar a pantalla ancha (girar la tableta) el menú vuelve a ser la barra fija
+    movil.addEventListener('change', () => alternar(false));
+
+    // Nombre de la sección actual en la barra de arriba
+    document.addEventListener('admin:recargar', (evento) => {
+        const boton = menu.querySelector(`.nav-item[data-section="${evento.detail?.section}"]`);
+        seccion.textContent = boton?.querySelector('span')?.textContent.trim() || '';
+    });
+});

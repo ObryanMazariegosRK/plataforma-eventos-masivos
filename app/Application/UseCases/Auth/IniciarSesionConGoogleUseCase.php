@@ -9,12 +9,15 @@ use App\Domain\Abstractions\Auth\IUsuarioRepository;
 use App\Domain\Entities\Auth\Usuario;
 use App\Domain\Enums\Auth\EstadoUsuario;
 use App\Domain\Enums\Auth\RolUsuario;
+use App\Domain\Exceptions\Auth\AccesoDePersonalException;
 use App\Domain\Exceptions\Auth\CorreoNoVerificadoException;
 use App\Domain\Exceptions\Auth\UsuarioBloqueadoException;
 use DateTimeImmutable;
 
 class IniciarSesionConGoogleUseCase implements IIniciarSesionConGoogleUseCase
 {
+    private const SOLO_CONTRASENA = 'Las cuentas del personal no pueden entrar con Google. Usa el acceso del personal con tu correo y contraseña.';
+
     public function __construct(
         private IUsuarioRepository $usuarios,
         private ITokenService $tokens,
@@ -50,6 +53,10 @@ class IniciarSesionConGoogleUseCase implements IIniciarSesionConGoogleUseCase
             if ($usuario->estaBloqueado()) {
                 throw new UsuarioBloqueadoException();
             }
+            // Ni a una del personal: su acceso queda solo con contraseña (no depende de su cuenta de Google)
+            if ($usuario->esPersonal()) {
+                throw new AccesoDePersonalException(self::SOLO_CONTRASENA);
+            }
 
             $usuario->vincularGoogle($dto->googleId, $ahora);
             $usuario = $this->usuarios->guardar($usuario);
@@ -58,7 +65,11 @@ class IniciarSesionConGoogleUseCase implements IIniciarSesionConGoogleUseCase
         if ($usuario->estaBloqueado()) {
             throw new UsuarioBloqueadoException();
         }
+        // Ya vinculada antes (p. ej. un cliente que luego pasó a ser personal)
+        if ($usuario->esPersonal()) {
+            throw new AccesoDePersonalException(self::SOLO_CONTRASENA);
+        }
 
-        return new SesionDTO($this->tokens->crear($usuario, false), $usuario);
+        return new SesionDTO($this->tokens->crear($usuario), $usuario);
     }
 }

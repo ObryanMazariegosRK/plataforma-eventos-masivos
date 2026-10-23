@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resumen = document.getElementById('catalogo-resumen');
     const verMas = document.getElementById('catalogo-ver-mas');
     const selectorRecinto = document.getElementById('catalogo-recinto');
+    const estados = document.getElementById('catalogo-estados');
+    const totalEstados = document.getElementById('catalogo-estados-total');
 
     if (!panel || !formulario) {
         return;
@@ -123,6 +125,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return articulo;
     }
 
+    // ---- Estados de los eventos (cada uno filtra el catálogo al tocarlo) ----
+    function pintarEstados(porEstado) {
+        if (!estados || !porEstado) return;
+        const total = porEstado.reduce((suma, e) => suma + e.total, 0);
+        const elegido = formulario.elements.namedItem('estado').value;
+        totalEstados.textContent = `Total: ${total}`;
+
+        estados.replaceChildren(...porEstado.map((estado) => {
+            const boton = crear('button', 'bar-row estados-tira__estado');
+            boton.type = 'button';
+            boton.dataset.estado = estado.estado;
+            boton.setAttribute('aria-pressed', String(elegido === estado.estado));
+            boton.setAttribute('aria-label', `${estado.etiqueta}: ${estado.total} eventos. Filtrar por este estado`);
+
+            const etiqueta = crear('div', 'bar-label');
+            etiqueta.append(crear('span', '', estado.etiqueta), crear('b', '', String(estado.total)));
+            const pista = crear('div', 'track');
+            const relleno = crear('div', 'fill');
+            relleno.style.width = `${total ? (estado.total / total) * 100 : 0}%`;
+            pista.append(relleno);
+            boton.append(etiqueta, pista);
+            return boton;
+        }));
+    }
+
+    estados?.addEventListener('click', (evento) => {
+        const boton = evento.target.closest('[data-estado]');
+        if (!boton) return;
+        const selector = formulario.elements.namedItem('estado');
+        // Tocar el estado ya elegido quita el filtro
+        selector.value = selector.value === boton.dataset.estado ? '' : boton.dataset.estado;
+        buscar();
+    });
+
     function pintarResumen() {
         const hay = Array.from(new FormData(formulario).values()).some((v) => String(v).trim());
         resumen.textContent = total === 0
@@ -159,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.append(...data.map(tarjeta));
             mostrados += data.length;
             pintarResumen();
+            pintarEstados(meta.por_estado);
         } catch (error) {
             if (error.name === 'AbortError') return;
             resumen.textContent = 'No se pudo consultar el catálogo. Inténtalo de nuevo.';

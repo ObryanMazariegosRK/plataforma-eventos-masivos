@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
     <title>Ocupación en vivo · {{ config('marca.nombre') }}</title>
@@ -9,13 +10,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/asientos.css') }}?v={{ filemtime(public_path('css/asientos.css')) }}">
+    @include('partials.iconos')
 </head>
 <body class="pagina-asientos">
     <header class="cabecera">
-        <a href="{{ route('catalogo.index') }}" class="marca">{{ config('marca.nombre') }}</a>
-        <nav class="cabecera__enlaces">
-            <a href="/admin">Panel de administración</a>
-        </nav>
+        <div class="cabecera__inicio">
+            {{-- Regresar al catálogo de eventos del panel --}}
+            <a href="/admin?seccion=catalogo" class="cabecera__volver" aria-label="Volver al catálogo de eventos">
+                <span class="cabecera__flecha" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+                </span>
+                <span class="cabecera__volver-texto">Catálogo de eventos</span>
+            </a>
+        </div>
     </header>
 
     <main class="contenido contenido--admin asientos-app" id="pagina" data-evento="{{ $eventoId }}">
@@ -120,7 +127,7 @@
 
         (async () => {
             if (!(await verificarAdmin())) {
-                location.href = `/login?tipo=aviso&mensaje=${encodeURIComponent('Inicia sesión como administrador para ver la ocupación.')}`;
+                location.href = `/admin/login?volver=${encodeURIComponent(location.pathname)}&tipo=aviso&mensaje=${encodeURIComponent('Inicia sesión como administrador para ver la ocupación.')}`;
                 return;
             }
             await refrescar();

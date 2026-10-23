@@ -87,6 +87,14 @@ class CrearReservaUseCase implements ICrearReservaUseCase
                     'evento_id' => 'El evento no está disponible para reservas.',
                 ]);
             }
+
+            // Un evento que ya empezó no vende más boletos (aunque siga "publicado")
+            if ($evento->fecha_evento !== null
+                && new DateTimeImmutable($evento->fecha_evento, new \DateTimeZone('UTC')) <= new DateTimeImmutable()) {
+                throw ValidationException::withMessages([
+                    'evento_id' => 'Este evento ya ocurrió: ya no se venden boletos.',
+                ]);
+            }
             
             // Verificar autorización de Cola Virtual.
             // Los eventos sin cola conservan su funcionamiento normal.

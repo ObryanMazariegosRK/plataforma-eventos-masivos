@@ -13,7 +13,9 @@ use App\Http\Controllers\Pagos\PagoController;
 use App\Http\Controllers\Pasarelas\PasarelaController;
 use App\Http\Controllers\Inventario\DisponibilidadController;
 use App\Http\Controllers\Transacciones\TransaccionController;
+use App\Http\Controllers\Notificaciones\PushController;
 use App\Http\Controllers\Reembolsos\ReembolsoController;
+use App\Http\Controllers\Reembolsos\ReembolsoCompraController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +54,12 @@ Route::prefix('auth')->group(function () {
         AuthController::class,
         'login'
     ])->middleware('throttle:10,1');
+
+    // Acceso del personal (admin y operador): más estricto con los intentos
+    Route::post('/login-personal', [
+        AuthController::class,
+        'loginPersonal'
+    ])->middleware('throttle:5,1');
 
     Route::post('/olvide-password', [
         AuthController::class,
@@ -171,6 +179,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 // ======================================================
+// 4.1 NOTIFICACIONES PUSH (activarlas o quitarlas en este dispositivo)
+// ======================================================
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/push/suscribir', [PushController::class, 'suscribir'])->middleware('throttle:10,1');
+    Route::post('/push/desuscribir', [PushController::class, 'desuscribir'])->middleware('throttle:10,1');
+});
+
+
+// ======================================================
 // 5. BOLETOS
 // ======================================================
 
@@ -181,6 +199,12 @@ Route::middleware('auth:sanctum')->group(function () {
         BoletoController::class,
         'qr'
     ])->whereNumber('id');
+
+    // QR escaneado: qué ve quien lo escanea (personal, dueño u otra persona).
+    Route::post('/boletos/consultar', [
+        \App\Http\Controllers\Boletos\EscaneoBoletoController::class,
+        'consultar'
+    ])->middleware('throttle:60,1');
 
     // Validar boleto.
     Route::post('/boletos/validar', [
@@ -254,6 +278,19 @@ Route::middleware('auth:sanctum')->group(function () {
 // ======================================================
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Mis compras: vista previa y solicitud del reembolso de una compra propia.
+    Route::get('/reservas/{id}/reembolso', [
+        ReembolsoCompraController::class,
+        'show'
+    ])->whereNumber('id');
+
+    Route::post('/reservas/{id}/reembolso', [
+        ReembolsoCompraController::class,
+        'store'
+    ])
+    ->whereNumber('id')
+    ->middleware('throttle:10,1');
 
     // Solicitar reembolso.
     Route::post('/reembolsos', [

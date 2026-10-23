@@ -1,0 +1,102 @@
+/* Tarjeta de verificación de un boleto (verificacion-boleto.js): página /b y Panel → Control de acceso.
+   Paleta propia (marfil, como el talón del boleto) para verse igual sobre fondo claro u oscuro. */
+
+.verificacion {
+    --v-papel: #faf7f1;
+    --v-tinta: #1a1714;
+    --v-piedra: #5b544a;
+    --v-hilo: rgba(26, 23, 20, .12);
+    --v-tono: #2f6b45;
+    --v-tono-fondo: #e3efe6;
+    width: 100%;
+    max-width: 520px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: var(--v-papel);
+    color: var(--v-tinta);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    animation: verificacion-entra .35s cubic-bezier(.2, .7, .15, 1);
+}
+.verificacion--aviso { --v-tono: #8a5a0b; --v-tono-fondo: #f6ead2; }
+.verificacion--no { --v-tono: #9b2c22; --v-tono-fondo: #f6e1dc; }
+@keyframes verificacion-entra { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+
+.verificacion__estado {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--v-tono-fondo);
+    color: var(--v-tono);
+}
+.verificacion__icono {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--v-tono);
+    color: #fff;
+    font-size: 24px;
+    font-weight: 600;
+}
+.verificacion__titulo { display: block; font-family: "Cormorant Garamond", "Times New Roman", serif; font-size: 30px; font-weight: 500; line-height: 1.05; }
+.verificacion__detalle { display: block; margin-top: 4px; font-size: 14px; line-height: 1.4; }
+.verificacion--registrada .verificacion__icono { animation: verificacion-pulso .6s ease; }
+@keyframes verificacion-pulso { 50% { transform: scale(1.15); } }
+
+.verificacion__cuerpo { padding: 22px 24px 4px; }
+.verificacion__numero { color: var(--v-piedra); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .06em; }
+.verificacion__evento { margin: 6px 0 4px; font-family: "Cormorant Garamond", "Times New Roman", serif; font-size: 30px; font-weight: 500; line-height: 1.05; }
+.verificacion__fecha { margin: 0; color: var(--v-piedra); font-size: 13.5px; }
+.verificacion__fecha::first-letter { text-transform: uppercase; }
+
+.verificacion__lugar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 14px 18px;
+    margin: 18px 0 0;
+    padding: 16px 0 0 14px;
+    border-top: 1px solid var(--v-hilo);
+    border-left: 3px solid var(--color-zona, #c8b48c);
+}
+.verificacion__lugar dt { color: var(--v-piedra); font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+.verificacion__lugar dd { margin: 3px 0 0; font-family: "Cormorant Garamond", "Times New Roman", serif; font-size: 24px; line-height: 1.1; overflow-wrap: anywhere; }
+.verificacion__lugar div:last-child { grid-column: 1 / -1; }
+.verificacion__lugar div:last-child dd { font-family: inherit; font-size: 16px; font-weight: 500; }
+
+.verificacion__mensaje { margin: 14px 24px 0; color: #9b2c22; font-size: 13.5px; }
+.verificacion__mensaje[hidden] { display: none; }
+.verificacion__acciones { padding: 20px 24px 24px; }
+.verificacion__acciones:empty { padding: 0 0 20px; }
+.verificacion__boton {
+    width: 100%;
+    min-height: 56px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--v-tono);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    cursor: pointer;
+    transition: filter .2s ease, transform .1s ease;
+}
+.verificacion__boton:hover:not(:disabled) { filter: brightness(1.08); }
+.verificacion__boton:active:not(:disabled) { transform: scale(.99); }
+.verificacion__boton:disabled { opacity: .7; cursor: default; }
+.verificacion__boton:focus-visible { outline: 3px solid var(--v-tono); outline-offset: 3px; }
+
+@media (max-width: 480px) {
+    .verificacion { border-radius: 16px; }
+    .verificacion__estado { padding: 18px; }
+    .verificacion__cuerpo { padding: 20px 18px 4px; }
+    .verificacion__acciones { padding: 18px; }
+    .verificacion__titulo, .verificacion__evento { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .verificacion, .verificacion--registrada .verificacion__icono { animation: none; }
+}

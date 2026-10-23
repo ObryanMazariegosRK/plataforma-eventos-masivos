@@ -33,18 +33,21 @@ class NotificarCambioEventoUseCase
         return $this->notificarCompradores(
             eventoId: $eventoId,
             asunto: 'Evento cancelado: ' . $evento->nombre,
-            mensaje: 'Te informamos que el evento '
+            mensaje: 'Lamentamos informarte que la función de '
                 . $evento->nombre
-                . ' ha sido cancelado. '
-                . 'La gestión de los reembolsos '
-                . 'se realizará según el proceso correspondiente.',
-            claveBase: 'evento_cancelado:' . $eventoId
+                . ' fue cancelada. '
+                . 'Te devolvemos el 100 % de tu compra automáticamente: '
+                . 'recibirás otro aviso cuando se haga la devolución.',
+            claveBase: 'evento_cancelado:' . $eventoId,
+            tipo: 'evento_cancelado'
         );
     }
 
     public function notificarCambioFecha(
         int $eventoId,
-        string $fechaAnterior
+        string $fechaAnterior,
+        // Las fechas se guardan en UTC; el correo las muestra en hora local
+        string $zonaHoraria = 'America/Guatemala'
     ): int {
         $evento = $this->obtenerEvento($eventoId);
 
@@ -73,17 +76,23 @@ class NotificarCambioEventoUseCase
             );
         }
 
+        $texto = fn (Carbon $fecha) => $fecha->copy()
+            ->setTimezone($zonaHoraria)
+            ->locale('es')
+            ->isoFormat('dddd D [de] MMMM [de] YYYY, h:mm a');
+
         return $this->notificarCompradores(
             eventoId: $eventoId,
             asunto: 'Cambio de fecha: ' . $evento->nombre,
-            mensaje: 'La fecha del evento '
-                . $evento->nombre
-                . ' ha cambiado. Nueva fecha: '
-                . $nueva->format('d/m/Y H:i')
-                . '. Conserva tu boleto digital '
-                . 'y revisa la información del evento.',
+            mensaje: 'La función de ' . $evento->nombre . ' cambió de fecha.'
+                . "\n\nAntes: " . $texto($anterior)
+                . "\nAhora: " . $texto($nueva)
+                . "\n\nTus boletos siguen siendo válidos para la nueva fecha: no necesitas hacer nada. "
+                . 'Si la nueva fecha no te funciona, puedes pedir el reembolso del 100 % '
+                . 'desde Mis compras, en cualquier momento antes de que empiece la función.',
             claveBase: 'evento_fecha:' . $eventoId
-                . ':' . $nueva->format('YmdHis')
+                . ':' . $nueva->format('YmdHis'),
+            tipo: 'cambio_fecha'
         );
     }
 
@@ -113,7 +122,8 @@ class NotificarCambioEventoUseCase
         int $eventoId,
         string $asunto,
         string $mensaje,
-        string $claveBase
+        string $claveBase,
+        ?string $tipo = null
     ): int {
         $programados = 0;
 
@@ -131,6 +141,7 @@ class NotificarCambioEventoUseCase
                 $asunto,
                 $mensaje,
                 $claveBase,
+                $tipo,
                 &$programados
             ) {
                 foreach ($compradores as $comprador) {
@@ -142,7 +153,9 @@ class NotificarCambioEventoUseCase
                         canal: CanalNotificacion::EMAIL,
                         asunto: $asunto,
                         mensaje: $mensaje,
-                        estado: EstadoNotificacion::PENDIENTE
+                        estado: EstadoNotificacion::PENDIENTE,
+                        tipo: $tipo,
+                        url: '/mis-compras'
                     );
 
                     $guardada = $this->notificaciones->guardarUnica(

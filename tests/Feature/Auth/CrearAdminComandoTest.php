@@ -27,7 +27,7 @@ class CrearAdminComandoTest extends TestCase
         $this->assertTrue(Hash::check('Secreto#123', $admin->password));
 
         // y puede iniciar sesión
-        $this->postJson('/api/auth/login', ['email' => 'ana@correo.com', 'password' => 'Secreto#123'])
+        $this->postJson('/api/auth/login-personal', ['email' => 'ana@correo.com', 'password' => 'Secreto#123'])
             ->assertOk()
             ->assertJsonPath('usuario.rol', 'admin');
     }

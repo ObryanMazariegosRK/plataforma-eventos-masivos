@@ -35,6 +35,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    @include('partials.sesion')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
     <meta name="color-scheme" content="dark">
@@ -43,6 +44,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/pasarela-simulada.css') }}?v={{ filemtime(public_path('css/pasarela-simulada.css')) }}">
+    @include('partials.iconos')
 </head>
 <body>
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">

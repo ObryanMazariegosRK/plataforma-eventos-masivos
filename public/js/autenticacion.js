@@ -1,6 +1,7 @@
 
-// Utilidades compartidas por las vistas de autenticación.
-// En producción conviene utilizar cookies httpOnly para los tokens.
+// Utilidades compartidas por las vistas de autenticación (tienda: /login…, personal: /admin/login…).
+// El token vive en localStorage, pero sesion.js lo descarta al cerrar el navegador; además
+// el servidor lo vence a las 12 h (config/autenticacion.php).
 
 const Auth = {
     claveToken: 'auth_token',
@@ -28,7 +29,7 @@ const Auth = {
     volverValido(ruta) {
         return typeof ruta === 'string'
             && /^\/(?!\/)/.test(ruta)
-            && !/^\/(login|registro|verificar|olvide-password|restablecer-password|oauth)\b/.test(ruta);
+            && !/^\/(admin\/)?(login|registro|verificar|olvide-password|restablecer-password|oauth)\b/.test(ruta);
     },
 
     // En /login y /registro se guarda el ?volver para que sobreviva a los pasos intermedios
@@ -37,11 +38,11 @@ const Auth = {
     // se llega a él desde el login con "Regístrate").
     recordarVolver() {
         const pagina = window.location.pathname;
-        if (!/^\/(login|registro)\b/.test(pagina)) return;
+        if (!/^\/(admin\/)?(login|registro)\b/.test(pagina)) return;
         try {
             const volver = new URLSearchParams(window.location.search).get('volver');
             if (this.volverValido(volver)) sessionStorage.setItem(this.claveVolver, volver);
-            else if (/^\/login\b/.test(pagina)) sessionStorage.removeItem(this.claveVolver);
+            else if (/^\/(admin\/)?login\b/.test(pagina)) sessionStorage.removeItem(this.claveVolver);
         } catch { /* sin almacenamiento: solo funciona el ?volver directo */ }
     },
 
@@ -54,9 +55,14 @@ const Auth = {
         return this.volverValido(volver) ? volver : null;
     },
 
-    // Tras iniciar sesión: a la página de donde venía (cualquier rol; el personal también
-    // puede comprar como cliente). Sin origen: administradores y agentes operativos
-    // (organizador) van al panel; los clientes, a la cartelera.
+    // Inicio de cada rol cuando no hay a dónde volver: el admin, al Dashboard; el operador, al
+    // Catálogo de eventos (su vista principal); el cliente, a la cartelera
+    inicioDe(rol) {
+        return { admin: '/admin', organizador: '/admin?seccion=catalogo' }[rol] || '/catalogo';
+    },
+
+    // Tras iniciar sesión: a la página de donde venía (p. ej. sus boletos al tocar una notificación
+    // o la sección del panel donde le venció la sesión). Un cliente nunca vuelve al panel.
     redirigirSegunRol(usuario) {
         const rol = String(usuario?.rol ?? '')
             .trim()
@@ -67,20 +73,24 @@ const Auth = {
             return false;
         }
 
-        const destino = this.destinoVolver() || (rol === 'cliente' ? '/catalogo' : '/admin');
+        const volver = this.destinoVolver();
+        const destino = volver && !(rol === 'cliente' && /^\/admin\b/.test(volver)) ? volver : this.inicioDe(rol);
         window.location.replace(destino);
         return true;
     },
 
     // CONSULTAR SESIÓN ACTUAL
 
-    async entrarConSesion() {
+    // Al abrir un login con una sesión ya abierta: si es de esa misma puerta (personal en
+    // /admin/login, cliente en /login) entra directo; si no, se queda en el formulario
+    async entrarConSesion(personal = false) {
         const respuesta = await this.api('/auth/perfil', {
             metodo: 'GET',
             conToken: true
         });
 
-        return respuesta.ok &&
+        const esPersonal = ['admin', 'organizador'].includes(respuesta.data?.rol);
+        return respuesta.ok && esPersonal === personal &&
             this.redirigirSegunRol(respuesta.data);
     },
 

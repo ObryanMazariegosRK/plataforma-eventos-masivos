@@ -78,7 +78,18 @@ class AuthController extends Controller
         $sesion = $iniciarSesion->execute(new IniciarSesionDTO(
             email: $request->validated('email'),
             password: $request->validated('password'),
-            recordar: $request->boolean('recordar'),
+        ));
+
+        return $this->sesionJson('Inicio de sesión exitoso.', $sesion);
+    }
+
+    // Acceso del personal (/admin/login): mismo flujo, pero solo admin y operador (sin Google)
+    public function loginPersonal(IniciarSesionRequest $request, IIniciarSesionUseCase $iniciarSesion): JsonResponse
+    {
+        $sesion = $iniciarSesion->execute(new IniciarSesionDTO(
+            email: $request->validated('email'),
+            password: $request->validated('password'),
+            personal: true,
         ));
 
         return $this->sesionJson('Inicio de sesión exitoso.', $sesion);

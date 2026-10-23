@@ -1,31 +1,29 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notificación de Eventos</title>
-</head>
-<body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 24px;">
+{{-- Avisos de Soirée (EnviarNotificacionCorreoJob → NotificacionCorreo) con el diseño común de correos --}}
+@extends('correos.layout')
 
-    <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 8px;">
+@php
+    $parrafos = preg_split('/\R\s*\R/', trim($mensaje));
+@endphp
 
-        <h2 style="color: #222222;">
-            Plataforma de Eventos Masivos
-        </h2>
+@section('titulo', $asunto)
+@section('previa', \Illuminate\Support\Str::limit(preg_replace('/\s+/', ' ', $parrafos[0] ?? ''), 140))
 
-        <hr style="border: 0; border-top: 1px solid #dddddd;">
+@section('contenido')
+    @if (! empty($nombre))
+        <p style="margin: 0 0 14px;">Hola {{ $nombre }},</p>
+    @endif
 
-        <h3>Notificación importante</h3>
+    @foreach ($parrafos as $parrafo)
+        <p style="margin: 0 0 14px; white-space: pre-line;">{{ $parrafo }}</p>
+    @endforeach
 
-        <p style="color: #444444; line-height: 1.7; white-space: pre-line;">{{ $mensaje }}</p>
-
-        <hr style="border: 0; border-top: 1px solid #dddddd;">
-
-        <p style="color: #777777; font-size: 12px;">
-            Este es un mensaje automático de la Plataforma de Eventos Masivos.
-        </p>
-
-    </div>
-
-</body>
-</html>
+    @if (! empty($enlace))
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 26px 0 4px;">
+            <tr>
+                <td style="border-radius: 999px; background-color: #1c1916;">
+                    <a href="{{ $enlace }}" style="display: inline-block; padding: 13px 28px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #f2ede4; text-decoration: none; border-radius: 999px;">{{ $textoBoton ?? 'Ver en '.config('marca.nombre') }}</a>
+                </td>
+            </tr>
+        </table>
+    @endif
+@endsection

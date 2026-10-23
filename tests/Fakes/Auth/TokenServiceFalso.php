@@ -7,7 +7,7 @@ use App\Domain\Entities\Auth\Usuario;
 
 class TokenServiceFalso implements ITokenService
 {
-    /** @var list<array{usuarioId: int, recordar: bool}> */
+    /** @var list<array{usuarioId: int}> */
     public array $creados = [];
 
     /** @var list<int> */
@@ -19,9 +19,9 @@ class TokenServiceFalso implements ITokenService
     /** @var list<int|null> token conservado en cada revocarTodos() */
     public array $tokensConservados = [];
 
-    public function crear(Usuario $usuario, bool $recordar): string
+    public function crear(Usuario $usuario): string
     {
-        $this->creados[] = ['usuarioId' => $usuario->getId(), 'recordar' => $recordar];
+        $this->creados[] = ['usuarioId' => $usuario->getId()];
 
         return 'token-'.$usuario->getId();
     }

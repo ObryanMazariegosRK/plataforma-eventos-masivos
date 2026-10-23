@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Application\Abstractions\Finanzas\IGuardarCostosEventoUseCase;
+use App\Application\DTOs\Finanzas\GuardarCostosEventoDTO;
 use App\Application\UseCases\Admin\Eventos\CrearEventoUseCase;
 use App\Application\UseCases\Admin\Eventos\EditarEventoUseCase;
 use App\Application\UseCases\Admin\Eventos\PublicarEventoUseCase;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Finanzas\CostoEventoController;
 use App\Http\Requests\Admin\GuardarEventoRequest;
 use App\Models\Recintos\Evento;
 use Illuminate\Http\JsonResponse;
@@ -72,7 +75,10 @@ class AdminEventoController extends Controller
         $evento = Evento::findOrFail($id);
 
         return response()->json([
-            'data' => $evento,
+            // Con el nombre del recinto, para el detalle del evento en el panel
+            'data' => $evento->toArray() + [
+                'recinto' => DB::table('recintos')->where('id', $evento->recinto_id)->value('nombre'),
+            ],
         ]);
     }
 
@@ -81,7 +87,8 @@ class AdminEventoController extends Controller
      */
     public function store(
         GuardarEventoRequest $request,
-        CrearEventoUseCase $crearEvento
+        CrearEventoUseCase $crearEvento,
+        IGuardarCostosEventoUseCase $guardarCostos
     ): JsonResponse {
         $precios = $request->validate([
             'precios' => ['required', 'array', 'min:1'],
@@ -97,15 +104,32 @@ class AdminEventoController extends Controller
             ],
         ]);
 
+        // Costos de producción (opcionales): se validan antes de crear nada
+        $costos = $request->validate(
+            ['costos' => ['required', 'array', 'min:1']] + CostoEventoController::reglas(),
+            ['costos.required' => 'Registra los costos del evento: al menos el alquiler del recinto y los artistas.'],
+        )['costos'];
+
         $datos = array_merge(
             $request->validated(),
             $precios
         );
 
-        $evento = $crearEvento->ejecutar(
-            $datos,
-            (int) $request->user()->id
-        );
+        $evento = DB::transaction(function () use ($crearEvento, $guardarCostos, $datos, $costos, $request) {
+            $evento = $crearEvento->ejecutar(
+                $datos,
+                (int) $request->user()->id
+            );
+
+            $guardarCostos->execute(new GuardarCostosEventoDTO(
+                eventoId: (int) $evento->id,
+                usuarioId: (int) $request->user()->id,
+                costos: $costos,
+                maximo: config('finanzas.max_costos_por_evento'),
+            ));
+
+            return $evento;
+        });
 
         return response()->json([
             'message' =>
@@ -156,35 +180,39 @@ class AdminEventoController extends Controller
     /**
      * Modificar contenido informativo de un evento publicado.
      *
-     * No modifica fecha, recinto, precios ni inventario.
+     * No modifica recinto, precios ni inventario. La fecha solo
+     * se puede aplazar (nunca adelantar) y, si cambia, se avisa
+     * por correo a quienes compraron boletos.
      * La ruta es exclusiva del Administrador.
      */
     public function actualizarContenidoPublicado(
         Request $request,
-        int $id
+        int $id,
+        \App\Application\UseCases\Notificaciones\NotificarCambioEventoUseCase $notificar
     ): JsonResponse {
+        $fechaAnterior = \Carbon\CarbonImmutable::parse(Evento::query()->findOrFail($id)->fecha_evento);
+
         $datos = $request->validate([
+            // Opcional: hora de Guatemala, igual o posterior a la fecha actual del evento
+            'fecha_evento' => ['sometimes', 'required', 'date', new \App\Rules\FechaDeFuncion(noAntesDe: $fechaAnterior)],
             'nombre' => [
                 'required', 'string', 'min:3', 'max:255',
             ],
             'descripcion' => [
-                'nullable', 'string', 'max:10000',
+                'nullable', 'string', 'max:600',
             ],
-            'imagen_url' => [
-                'nullable', 'string', 'url',
-                'starts_with:https://', 'max:2048',
-            ],
-            'imagen_url_2' => [
-                'nullable', 'string', 'url',
-                'starts_with:https://', 'max:2048',
-            ],
-            'imagen_url_3' => [
-                'nullable', 'string', 'url',
-                'starts_with:https://', 'max:2048',
-            ],
+            'frase_destacada' => ['nullable', 'string', 'max:70'],
+            'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
+            'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
+            'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
         ]);
 
-        $evento = DB::transaction(function () use ($request, $id, $datos) {
+        $nuevaFecha = isset($datos['fecha_evento'])
+            ? \App\Rules\FechaDeFuncion::aUtc($datos['fecha_evento'])
+            : null;
+        $fechaCambio = false;
+
+        $evento = DB::transaction(function () use ($request, $id, $datos, $nuevaFecha, &$fechaCambio) {
             $evento = Evento::query()
                 ->lockForUpdate()
                 ->findOrFail($id);
@@ -199,9 +227,18 @@ class AdminEventoController extends Controller
 
             $evento->nombre = $datos['nombre'];
             $evento->descripcion = $datos['descripcion'] ?? null;
+            $evento->frase_destacada = $datos['frase_destacada'] ?? null;
             $evento->imagen_url = $datos['imagen_url'] ?? null;
             $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;
             $evento->imagen_url_3 = $datos['imagen_url_3'] ?? null;
+
+            // Mismo minuto = sin cambio (el formulario no muestra segundos)
+            if ($nuevaFecha !== null && $evento->fecha_evento->format('Y-m-d H:i') !== substr($nuevaFecha, 0, 16)) {
+                $evento->fecha_evento = $nuevaFecha;
+                // Desde ahora, quien compró puede pedir el 100 % (ver CalcularReembolsoUseCase)
+                $evento->reprogramado_en = now();
+                $fechaCambio = true;
+            }
 
             $evento->updated_by = (int) $request->user()->id;
             $evento->save();
@@ -209,8 +246,17 @@ class AdminEventoController extends Controller
             return $evento->refresh();
         });
 
+        // Un correo por comprador (en cola, una sola vez por cada nueva fecha)
+        $avisados = $fechaCambio
+            ? $notificar->notificarCambioFecha($id, $fechaAnterior->format('Y-m-d H:i:s'), config('catalogo.zona_horaria'))
+            : 0;
+
         return response()->json([
-            'message' => 'Información y fotografías actualizadas correctamente.',
+            'message' => $fechaCambio
+                ? 'Evento reprogramado. Avisamos por correo a quienes compraron boletos.'
+                : 'Información y fotografías actualizadas correctamente.',
+            'fecha_cambiada' => $fechaCambio,
+            'compradores_avisados' => $avisados,
             'data' => $evento,
         ]);
     }
@@ -231,9 +277,7 @@ class AdminEventoController extends Controller
                 'present',
                 'nullable',
                 'string',
-                'url',
-                'starts_with:https://',
-                'max:2048',
+                new \App\Rules\ImagenDeEvento,
             ],
         ], [
             'imagen_url.present' =>

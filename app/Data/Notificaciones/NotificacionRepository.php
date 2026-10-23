@@ -22,8 +22,10 @@ class NotificacionRepository implements INotificacionRepository
         $datos = [
             'usuario_id' => $notificacion->getUsuarioId(),
             'canal' => $notificacion->getCanal()->value,
+            'tipo' => $notificacion->getTipo(),
             'asunto' => $notificacion->getAsunto(),
             'mensaje' => $notificacion->getMensaje(),
+            'url' => $notificacion->getUrl(),
             'estado' => $notificacion->getEstado()->value,
             'enviada_en' => $notificacion->getEnviadaEn()
                 ?->format('Y-m-d H:i:s'),
@@ -83,7 +85,9 @@ class NotificacionRepository implements INotificacionRepository
             estado: EstadoNotificacion::from($registro->estado),
             enviadaEn: $registro->enviada_en
                 ? new DateTimeImmutable($registro->enviada_en)
-                : null
+                : null,
+            tipo: $registro->tipo,
+            url: $registro->url
         );
     }
 
@@ -123,6 +127,8 @@ class NotificacionRepository implements INotificacionRepository
             // Crear una notificacion con clave unica.
             $id = DB::table('notificaciones')->insertGetId([
                 ...$datos,
+                'tipo' => $notificacion->getTipo(),
+                'url' => $notificacion->getUrl(),
                 'clave_idempotencia' => $claveIdempotencia,
                 'enviada_en' => $notificacion->getEnviadaEn()
                     ?->format('Y-m-d H:i:s'),
@@ -184,4 +190,13 @@ class NotificacionRepository implements INotificacionRepository
         }
     }
 
+    public function marcarPushEnviado(int $id): void
+    {
+        DB::table('notificaciones')->where('id', $id)->update(['push_en' => now()]);
+    }
+
+    public function pushEnviado(int $id): bool
+    {
+        return DB::table('notificaciones')->where('id', $id)->whereNotNull('push_en')->exists();
+    }
 }

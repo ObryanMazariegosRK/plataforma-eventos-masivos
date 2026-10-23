@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Notificaciones;
 
+use App\Domain\Abstractions\Notificaciones\IEnviadorPush;
 use App\Domain\Abstractions\Notificaciones\INotificacionRepository;
 use App\Domain\Enums\Notificaciones\CanalNotificacion;
 use App\Domain\Enums\Notificaciones\EstadoNotificacion;
@@ -31,8 +32,11 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
 
 
     public function handle(
-        INotificacionRepository $repositorio
+        INotificacionRepository $repositorio,
+        ?IEnviadorPush $push = null
     ): void {
+        $push ??= app(IEnviadorPush::class);
+
 
         // Evitar envios simultaneos de la misma notificacion.
         $bloqueo = Cache::lock(
@@ -57,6 +61,23 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 return;
             }
 
+            // 1.1 Push a los dispositivos donde la persona lo activó: una sola
+            // vez (aunque el correo se reintente) y sin bloquear el correo si falla.
+            if (!$repositorio->pushEnviado($this->notificacionId)) {
+                try {
+                    $push->enviar(
+                        $notificacion->getUsuarioId(),
+                        self::tituloPush($notificacion->getTipo(), $notificacion->getAsunto()),
+                        self::resumen($notificacion->getMensaje()),
+                        $notificacion->getUrl()
+                    );
+                } catch (Throwable $e) {
+                    report($e);
+                }
+
+                $repositorio->marcarPushEnviado($this->notificacionId);
+            }
+
             // 2. No volver a enviar una notificacion enviada.
             if (
                 $notificacion->getEstado()
@@ -65,20 +86,25 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 return;
             }
 
-            // 3. Solo procesar correos.
+            // 3. Solo procesar correos. Los avisos del panel
+            // (canal push) no van por correo: con el push basta.
             if (
                 $notificacion->getCanal()
                 !== CanalNotificacion::EMAIL
             ) {
+                $notificacion->marcarEnviada(new DateTimeImmutable());
+                $repositorio->guardar($notificacion);
+
                 return;
             }
 
             try {
 
                 // 4. Buscar el destinatario.
-                $correo = DB::table('usuarios')
+                $destinatario = DB::table('usuarios')
                     ->where('id', $notificacion->getUsuarioId())
-                    ->value('email');
+                    ->first(['email', 'nombre']);
+                $correo = $destinatario?->email;
 
                 if (
                     !is_string($correo) ||
@@ -93,7 +119,10 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                 Mail::to($correo)->send(
                     new NotificacionCorreo(
                         asunto: $notificacion->getAsunto(),
-                        mensaje: $notificacion->getMensaje()
+                        mensaje: $notificacion->getMensaje(),
+                        enlace: $notificacion->getUrl() ? url($notificacion->getUrl()) : null,
+                        nombre: $destinatario->nombre ?: null,
+                        textoBoton: self::BOTONES[$notificacion->getTipo()] ?? null
                     )
                 );
 
@@ -119,5 +148,48 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
             // Liberar siempre el bloqueo.
             $bloqueo->release();
         }
+    }
+
+    // Un emoji por tipo, como en las notificaciones de las tiendas: se reconoce de un vistazo
+    private const EMOJIS = [
+        'compra_confirmada' => '🎟️',
+        'recordatorio' => '⏰',
+        'cambio_fecha' => '📅',
+        'evento_cancelado' => '❌',
+        'reembolso_procesado' => '💸',
+        'reembolso_rechazado' => '📄',
+        'reembolso_solicitado' => '↩️',
+        'devolucion_pendiente' => '⚠️',
+        'evento_casi_lleno' => '🔥',
+        'evento_agotado' => '🎉',
+    ];
+
+    // Texto del botón del correo según lo que el aviso invita a hacer
+    private const BOTONES = [
+        'compra_confirmada' => 'Ver mis boletos',
+        'recordatorio' => 'Ver mis boletos',
+        'cambio_fecha' => 'Ver mis compras',
+        'evento_cancelado' => 'Ver mis compras',
+        'reembolso_procesado' => 'Ver mis compras',
+        'reembolso_rechazado' => 'Ver mis compras',
+        'reembolso_solicitado' => 'Revisar la solicitud',
+        'devolucion_pendiente' => 'Ir a Reembolsos',
+        'evento_casi_lleno' => 'Ver el evento',
+        'evento_agotado' => 'Ver el evento',
+    ];
+
+    private static function tituloPush(?string $tipo, string $asunto): string
+    {
+        $emoji = self::EMOJIS[$tipo] ?? null;
+
+        return $emoji ? "{$emoji} {$asunto}" : $asunto;
+    }
+
+    // El push muestra poco texto: el primer párrafo del mensaje, recortado
+    private static function resumen(string $mensaje): string
+    {
+        $primero = trim(preg_split('/\R\s*\R/', trim($mensaje))[0] ?? '');
+
+        return \Illuminate\Support\Str::limit(preg_replace('/\s+/', ' ', $primero), 160);
     }
 }

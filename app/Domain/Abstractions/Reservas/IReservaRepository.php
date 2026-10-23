@@ -31,4 +31,10 @@ interface IReservaRepository
      * solicitudes suyas al mismo tiempo se atiendan de una en una.
      */
     public function lugaresDePersonaEnEvento(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora, bool $bloquear = false): int;
+
+    /**
+     * Reservas de la persona en el evento que siguen apartadas sin pagar (activas y sin vencer):
+     * [{reserva_id, lugares, total, expira_en (UTC 'Y-m-d H:i:s')}], la que vence primero arriba.
+     */
+    public function apartadasSinPagar(int $usuarioId, int $eventoId, \DateTimeImmutable $ahora): array;
 }

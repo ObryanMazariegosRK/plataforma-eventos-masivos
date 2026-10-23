@@ -127,3 +127,70 @@ Artisan::command('usuario:crear-admin {--email=} {--nombre=} {--apellido=}', fun
     $this->info("Listo: {$usuario->email} es administrador. Inicia sesión en /login y entrarás a /admin.");
     return 0;
 })->purpose('Crea un usuario administrador o promueve una cuenta existente');
+
+// Instala (o actualiza) la bitácora en su propia base: crea la base y un usuario que solo puede
+// leer y agregar registros, y aplica database/migrations/bitacora (tabla + triggers que impiden
+// editar o borrar). Se puede correr las veces que haga falta.
+// Uso: php artisan bitacora:instalar
+Artisan::command('bitacora:instalar', function () {
+    $admin = config('database.connections.bitacora_admin');
+    $app = config('database.connections.bitacora');
+
+    if ($app['driver'] !== 'mysql') {
+        // SQLite (tests): no hay usuarios ni permisos, solo las tablas
+        return $this->call('migrate', ['--database' => 'bitacora', '--path' => 'database/migrations/bitacora', '--force' => true]);
+    }
+
+    if (empty($app['password'])) {
+        $this->error('Falta BITACORA_DB_PASSWORD en el .env (copia las líneas BITACORA_* de .env.example).');
+        return 1;
+    }
+
+    // Como root y sin base elegida, porque la base todavía puede no existir
+    config(['database.connections.bitacora_instalacion' => ['database' => null] + $admin]);
+    $root = \Illuminate\Support\Facades\DB::connection('bitacora_instalacion');
+    $base = str_replace('`', '', $app['database']);
+    $usuario = str_replace("'", '', $app['username']);
+    $clave = $root->getPdo()->quote($app['password']);
+
+    $root->statement("CREATE DATABASE IF NOT EXISTS `{$base}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    $root->statement("CREATE USER IF NOT EXISTS '{$usuario}'@'%' IDENTIFIED BY {$clave}");
+    $root->statement("ALTER USER '{$usuario}'@'%' IDENTIFIED BY {$clave}");
+    // Solo leer y agregar: ni UPDATE ni DELETE (y los triggers lo impiden aunque alguien tuviera permiso)
+    $root->statement("GRANT SELECT, INSERT ON `{$base}`.* TO '{$usuario}'@'%'");
+    $root->statement('FLUSH PRIVILEGES');
+    $this->info("Base {$base} y usuario {$usuario} (SELECT, INSERT) listos.");
+
+    $this->call('migrate', ['--database' => 'bitacora_admin', '--path' => 'database/migrations/bitacora', '--force' => true]);
+
+    $registros = \Illuminate\Support\Facades\DB::connection('bitacora')->table('bitacora')->count();
+    $this->info("La app ya escribe en la bitácora ({$registros} registros).");
+    return 0;
+})->purpose('Crea la base de la bitácora, su usuario de solo lectura/escritura y sus tablas');
+
+// Borra las fotos de eventos que se subieron desde el formulario pero nunca se guardaron en un
+// evento (formularios abandonados o fotos reemplazadas). Solo toca archivos de más de un día.
+// Uso: php artisan eventos:limpiar-imagenes
+Artisan::command('eventos:limpiar-imagenes', function () {
+    $disco = \Illuminate\Support\Facades\Storage::disk('public');
+    $carpeta = \App\Application\UseCases\Admin\SubirImagenEventoUseCase::CARPETA;
+    $enUso = \Illuminate\Support\Facades\DB::table('eventos')
+        ->get(['imagen_url', 'imagen_url_2', 'imagen_url_3'])
+        ->flatMap(fn ($e) => [$e->imagen_url, $e->imagen_url_2, $e->imagen_url_3])
+        ->filter()
+        ->map(fn ($url) => ltrim((string) parse_url($url, PHP_URL_PATH), '/'))
+        ->map(fn ($ruta) => preg_replace('#^storage/#', '', $ruta))
+        ->flip();
+    $limite = now()->subDay()->getTimestamp();
+
+    $borrados = 0;
+    foreach ($disco->allFiles($carpeta) as $archivo) {
+        if (! isset($enUso[$archivo]) && $disco->lastModified($archivo) < $limite) {
+            $disco->delete($archivo);
+            $borrados++;
+        }
+    }
+    $this->info("Fotos sin usar borradas: {$borrados}.");
+})->purpose('Borra las fotos de eventos subidas que ningún evento usa');
+
+Schedule::command('eventos:limpiar-imagenes')->dailyAt('03:30');

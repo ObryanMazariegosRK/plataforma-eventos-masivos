@@ -61,6 +61,22 @@ class GoogleAuthTest extends TestCase
             ->assertRedirectContains(urlencode('bloqueada'));
     }
 
+    public function test_el_personal_no_puede_entrar_ni_vincularse_con_google(): void
+    {
+        UsuarioModel::create([
+            'nombre' => 'Ana', 'apellido' => 'López', 'email' => 'ana@example.com',
+            'password' => Hash::make('Secreto#123'), 'rol' => RolUsuario::ADMIN,
+            'estado' => EstadoUsuario::ACTIVO, 'email_verified_at' => now(),
+        ]);
+        $this->simularGoogle();
+
+        $this->get('/auth/google/callback?code=x&state=x')
+            ->assertRedirectContains('/login?tipo=error')
+            ->assertRedirectContains(urlencode('acceso del personal'));
+        $this->assertDatabaseHas('usuarios', ['email' => 'ana@example.com', 'google_id' => null]);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
     public function test_un_error_de_google_regresa_al_login(): void
     {
         Socialite::shouldReceive('driver->user')->andThrow(new \RuntimeException('Google rechazó el código'));

@@ -48,12 +48,16 @@ class BoletoController extends Controller
         \App\Application\UseCases\Boletos\ValidarBoletoUseCase $validarBoleto
     ): \Illuminate\Http\JsonResponse {
 
-        // 1. Verificar que el usuario sea administrador.
+        // 1. Verificar que sea personal de Soirée: administrador
+        // u operador (el "portero" que registra las entradas).
         $usuario = $request->user();
 
         if (
             $usuario === null ||
-            $usuario->rol !== \App\Domain\Enums\Auth\RolUsuario::ADMIN
+            !in_array($usuario->rol, [
+                \App\Domain\Enums\Auth\RolUsuario::ADMIN,
+                \App\Domain\Enums\Auth\RolUsuario::ORGANIZADOR,
+            ], true)
         ) {
             return response()->json([
                 'mensaje' => 'No tienes permisos para validar boletos.'

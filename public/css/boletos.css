@@ -115,21 +115,37 @@
 .boleto__codigo { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .08em; color: #4a443c; }
 .boleto__estado { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #6b5a33; }
 
-/* Boleto usado o anulado: el QR ya no sirve, se tapa con un sello */
-.boleto--inactivo .boleto__qr img { opacity: .12; filter: grayscale(1); }
+/* El boleto cuyo QR se acaba de escanear (/b → #boleto-{id}) */
+.boleto--resaltado { scroll-margin: 120px; }
+.boleto--resaltado::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border: 1px solid var(--champan);
+    border-radius: 22px;
+    pointer-events: none;
+    animation: boleto-resalta 2.4s ease-out 2;
+}
+@keyframes boleto-resalta { 0% { opacity: 0; } 20% { opacity: 1; box-shadow: 0 0 0 6px rgba(200, 180, 140, .18); } 100% { opacity: .55; box-shadow: none; } }
+
+/* Boleto que ya no sirve (función pasada, usado o anulado): QR en gris con una leyenda fina */
+.boleto--inactivo .boleto__qr img,
+.boleto__qr-adorno { width: 100%; height: 100%; display: block; color: #1a1714; opacity: .2; filter: grayscale(1); }
 .boleto--inactivo .boleto__cuerpo { opacity: .65; }
+.boleto--inactivo .boleto__estado { color: #7c766d; }
 .boleto__sello {
     position: absolute;
-    padding: 6px 12px;
-    border: 2px solid #9b2c22;
-    border-radius: 6px;
-    color: #9b2c22;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: .2em;
-    text-transform: uppercase;
-    transform: rotate(-14deg);
-    background: rgba(242, 237, 228, .85);
+    padding: 8px 16px;
+    border: 1px solid rgba(26, 23, 20, .28);
+    border-radius: 999px;
+    background: rgba(250, 247, 241, .94);
+    box-shadow: 0 6px 18px rgba(26, 23, 20, .1);
+    color: #4a443c;
+    font-family: "Cormorant Garamond", "Times New Roman", serif;
+    font-size: 17px;
+    font-style: italic;
+    letter-spacing: .02em;
+    white-space: nowrap;
 }
 .boleto__error { margin: 0; color: #9b2c22; font-size: 12px; line-height: 1.5; }
 

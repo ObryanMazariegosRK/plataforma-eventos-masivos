@@ -86,7 +86,9 @@ class NotificarCompraConfirmadaUseCase
                 mensaje: 'Tu compra fue confirmada correctamente. '
                     . 'Tus boletos digitales ya están disponibles '
                     . 'para consultar y presentar en el evento.',
-                estado: EstadoNotificacion::PENDIENTE
+                estado: EstadoNotificacion::PENDIENTE,
+                tipo: 'compra_confirmada',
+                url: '/mis-compras/' . $reserva->id . '/boletos'
             );
 
             // 6. Crear una clave unica para este pago.

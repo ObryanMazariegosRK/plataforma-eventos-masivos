@@ -20,10 +20,10 @@ class ListarMisComprasUseCase implements IListarMisComprasUseCase
             $fecha >= $ahora ? $proximas[] = $compra : $pasadas[] = $compra;
         }
 
-        // Próximas: la más cercana primero. Pasadas: la más reciente primero.
-        $porFecha = fn (array $a, array $b) => strcmp($a['evento']['fecha_evento'], $b['evento']['fecha_evento']);
-        usort($proximas, $porFecha);
-        usort($pasadas, fn ($a, $b) => $porFecha($b, $a));
+        // En las dos pestañas, la última compra primero (por cuándo se pagó; a igual fecha, la más nueva)
+        $porCompra = fn (array $a, array $b) => [$b['pagado_en'] ?? '', $b['id']] <=> [$a['pagado_en'] ?? '', $a['id']];
+        usort($proximas, $porCompra);
+        usort($pasadas, $porCompra);
 
         return ['proximas' => $proximas, 'pasadas' => $pasadas];
     }
