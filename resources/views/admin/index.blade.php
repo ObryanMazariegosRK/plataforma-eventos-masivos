@@ -348,12 +348,9 @@
 
         </div>
 
+        {{-- Sin enlace a la tienda: el panel y la tienda son accesos separados. El rol lo pone admin.js --}}
         <div class="sidebar-bottom">
-            <a href="/catalogo">
-                ← Volver al catálogo
-            </a>
-
-            <small>Administrador · Soirée</small>
+            <small id="so-rol-pie">Soirée</small>
         </div>
 
     </aside>

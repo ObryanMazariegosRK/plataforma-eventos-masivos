@@ -152,6 +152,8 @@
 
         currentRole = profile.rol;
         currentProfile = profile;
+        const pieRol = $('so-rol-pie');
+        if (pieRol) pieRol.textContent = (profile.rol === 'admin' ? 'Administrador' : 'Operador') + ' · Soirée';
         renderConfiguracion();
         document.querySelectorAll('#nav [data-section]').forEach(item => {
             item.hidden = !canAccessSection(item.dataset.section);
