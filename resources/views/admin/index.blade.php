@@ -50,6 +50,7 @@
     <script defer src="{{ asset('js/admin-banner.js') }}?v={{ filemtime(public_path('js/admin-banner.js')) }}"></script>
 
 
+    @include('partials.iconos')
 </head>
 
 <body class="tema-soiree">

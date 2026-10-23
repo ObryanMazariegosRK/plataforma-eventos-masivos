@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v={{ filemtime(public_path('css/catalogo.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/detalle-evento.css') }}?v={{ filemtime(public_path('css/detalle-evento.css')) }}">
     <script src="{{ asset('js/detalle-evento.js') }}?v={{ filemtime(public_path('js/detalle-evento.js')) }}" defer></script>
+    @include('partials.iconos')
 </head>
 <body data-marca="{{ config('marca.nombre') }}">
     @php($eventoId = request()->route('id'))

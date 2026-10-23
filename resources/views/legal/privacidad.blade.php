@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}?v={{ filemtime(public_path('css/catalogo.css')) }}">
     <script src="{{ asset('js/catalogo.js') }}?v={{ filemtime(public_path('js/catalogo.js')) }}" defer></script>
     @include('partials.avisos')
+    @include('partials.iconos')
 </head>
 <body class="pagina-legal">
 

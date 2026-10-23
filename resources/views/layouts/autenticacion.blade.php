@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     {{-- ?v=: cambia cuando cambia el archivo, así el navegador no usa una versión vieja --}}
     <link rel="stylesheet" href="{{ asset('css/autenticacion.css') }}?v={{ filemtime(public_path('css/autenticacion.css')) }}">
+    @include('partials.iconos')
 </head>
 <body>
     <main class="auth">

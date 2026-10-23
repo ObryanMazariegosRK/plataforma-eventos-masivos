@@ -19,6 +19,7 @@
     <script src="{{ asset('js/catalogo.js') }}?v={{ filemtime(public_path('js/catalogo.js')) }}" defer></script>
     @include('partials.avisos')
     <script src="{{ asset('js/boletos.js') }}?v={{ filemtime(public_path('js/boletos.js')) }}" defer></script>
+    @include('partials.iconos')
 </head>
 <body class="pagina-boletos" data-marca="{{ config('marca.nombre') }}">
 

@@ -31,6 +31,7 @@
     @foreach (array_unique(array_column($paradas, 'imagen')) as $imagen)
         <link rel="preload" as="image" href="{{ asset($imagen) }}">
     @endforeach
+    @include('partials.iconos')
 </head>
 <body>
     <header class="cabecera" data-cabecera>

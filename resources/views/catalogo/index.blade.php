@@ -17,6 +17,7 @@
 
     <script src="{{ asset('js/catalogo.js') }}?v={{ filemtime(public_path('js/catalogo.js')) }}" defer></script>
     @include('partials.avisos')
+    @include('partials.iconos')
 </head>
 
 <body class="pagina-catalogo">

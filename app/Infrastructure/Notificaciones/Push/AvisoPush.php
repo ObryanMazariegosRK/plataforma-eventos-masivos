@@ -25,8 +25,8 @@ class AvisoPush extends Notification
         return (new WebPushMessage)
             ->title($this->titulo)
             ->body($this->cuerpo)
-            ->icon('/img/notificacion.png')
-            ->badge('/img/notificacion-insignia.png')
+            ->icon('/img/notificacion.png?v=2')
+            ->badge('/img/notificacion-insignia.png?v=2')
             ->data(['url' => $this->url ?: '/']);
     }
 }

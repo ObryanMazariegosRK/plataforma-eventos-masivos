@@ -101,9 +101,10 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
             try {
 
                 // 4. Buscar el destinatario.
-                $correo = DB::table('usuarios')
+                $destinatario = DB::table('usuarios')
                     ->where('id', $notificacion->getUsuarioId())
-                    ->value('email');
+                    ->first(['email', 'nombre']);
+                $correo = $destinatario?->email;
 
                 if (
                     !is_string($correo) ||
@@ -119,7 +120,9 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
                     new NotificacionCorreo(
                         asunto: $notificacion->getAsunto(),
                         mensaje: $notificacion->getMensaje(),
-                        enlace: $notificacion->getUrl() ? url($notificacion->getUrl()) : null
+                        enlace: $notificacion->getUrl() ? url($notificacion->getUrl()) : null,
+                        nombre: $destinatario->nombre ?: null,
+                        textoBoton: self::BOTONES[$notificacion->getTipo()] ?? null
                     )
                 );
 
@@ -159,6 +162,20 @@ class EnviarNotificacionCorreoJob implements ShouldQueue
         'devolucion_pendiente' => '⚠️',
         'evento_casi_lleno' => '🔥',
         'evento_agotado' => '🎉',
+    ];
+
+    // Texto del botón del correo según lo que el aviso invita a hacer
+    private const BOTONES = [
+        'compra_confirmada' => 'Ver mis boletos',
+        'recordatorio' => 'Ver mis boletos',
+        'cambio_fecha' => 'Ver mis compras',
+        'evento_cancelado' => 'Ver mis compras',
+        'reembolso_procesado' => 'Ver mis compras',
+        'reembolso_rechazado' => 'Ver mis compras',
+        'reembolso_solicitado' => 'Revisar la solicitud',
+        'devolucion_pendiente' => 'Ir a Reembolsos',
+        'evento_casi_lleno' => 'Ver el evento',
+        'evento_agotado' => 'Ver el evento',
     ];
 
     private static function tituloPush(?string $tipo, string $asunto): string

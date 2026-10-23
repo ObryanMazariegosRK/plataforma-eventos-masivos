@@ -26,6 +26,7 @@
     </style>
     <script src="{{ asset('js/verificacion-boleto.js') }}?v={{ filemtime(public_path('js/verificacion-boleto.js')) }}" defer></script>
     <script src="{{ asset('js/entrada-boleto.js') }}?v={{ filemtime(public_path('js/entrada-boleto.js')) }}" defer></script>
+    @include('partials.iconos')
 </head>
 <body>
     <main class="entrada">

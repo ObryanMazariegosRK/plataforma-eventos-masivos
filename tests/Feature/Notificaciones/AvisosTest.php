@@ -64,7 +64,12 @@ class AvisosTest extends TestCase
 
         $this->assertSame([['usuario_id' => $cliente->id, 'titulo' => '🎟️ Confirmación de compra', 'cuerpo' => 'Tus boletos están listos.', 'url' => '/mis-compras/1/boletos']], $this->push->enviados);
         Mail::assertSentCount(1);
-        Mail::assertSent(NotificacionCorreo::class, fn ($correo) => $correo->enlace === url('/mis-compras/1/boletos'));
+        Mail::assertSent(NotificacionCorreo::class, function (NotificacionCorreo $correo) {
+            $html = $correo->render();
+
+            return $correo->enlace === url('/mis-compras/1/boletos')
+                && str_contains($html, 'Hola Ana,') && str_contains($html, 'Ver mis boletos') && str_contains($html, 'Soirée');
+        });
         $this->assertNotNull(DB::table('notificaciones')->value('push_en'));
     }
 

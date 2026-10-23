@@ -12,7 +12,9 @@ class NotificacionCorreo extends Mailable
         public readonly string $asunto,
         public readonly string $mensaje,
         // Dirección completa de lo que el aviso pide revisar (boletos, Reembolsos del panel…)
-        public readonly ?string $enlace = null
+        public readonly ?string $enlace = null,
+        public readonly ?string $nombre = null,
+        public readonly ?string $textoBoton = null
     ) {}
 
     public function envelope(): Envelope
@@ -29,6 +31,9 @@ class NotificacionCorreo extends Mailable
             with: [
                 'mensaje' => $this->mensaje,
                 'enlace' => $this->enlace,
+                'nombre' => $this->nombre,
+                'textoBoton' => $this->textoBoton,
+                'asunto' => $this->asunto,
             ]
         );
     }

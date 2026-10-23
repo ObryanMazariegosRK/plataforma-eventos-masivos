@@ -1,11 +1,10 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><title>Recupera tu contraseña</title></head>
-<body style="font-family: Arial, sans-serif; color: #222;">
-    <p>Hola {{ $nombre }},</p>
-    <p>Recibimos una solicitud para restablecer tu contraseña. Tu código es:</p>
-    <p style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">{{ $codigo }}</p>
-    <p>El código vence en {{ $minutosValidez }} minutos. Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>
-    <p style="margin-top: 28px; color: #777;">— El equipo de {{ config('marca.nombre') }}</p>
-</body>
-</html>
+@extends('correos.layout')
+
+@section('titulo', 'Restablece tu contraseña')
+@section('previa', "Tu código es {$codigo}. Vence en {$minutosValidez} minutos.")
+
+@section('contenido')
+    <p style="margin: 0 0 14px;">Hola {{ $nombre }}, recibimos una solicitud para restablecer tu contraseña. Tu código es:</p>
+    @include('correos.partes.codigo', ['codigo' => $codigo])
+    <p style="margin: 0; font-size: 13.5px; color: #6f665d;">Vence en {{ $minutosValidez }} minutos. Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>
+@endsection
