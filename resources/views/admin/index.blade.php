@@ -619,6 +619,7 @@
                 <input
                     name="fecha_evento"
                     type="datetime-local"
+                    data-max-meses="{{ config('catalogo.max_meses_evento') }}"
                     required>
             </label>
 

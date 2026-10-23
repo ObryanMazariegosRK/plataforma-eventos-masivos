@@ -1795,7 +1795,7 @@
         if (recinto) recinto.disabled = false;
 
         const fecha = $('evento-form')?.elements.namedItem('fecha_evento');
-        if (fecha) fecha.readOnly = false;
+        if (fecha) delete fecha.dataset.original;
 
         show('evento-form-panel', false);
 
@@ -2380,14 +2380,34 @@
         }
     }
 
+    // La API da la fecha en UTC; el campo datetime-local se llena en hora de Guatemala
+    // (el servidor interpreta lo que se escribe como hora de Guatemala)
     function dateForInput(value) {
         if (!value) {
             return '';
         }
 
-        return String(value)
-            .replace(' ', 'T')
-            .slice(0, 16);
+        const fecha = new Date(String(value).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? '' : 'Z'));
+        if (Number.isNaN(fecha.getTime())) return '';
+
+        const partes = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Guatemala', year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+        }).formatToParts(fecha).map(p => [p.type, p.value]));
+
+        return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}`;
+    }
+
+    // Rango del campo de fecha: desde ahora (o la fecha actual del evento publicado, que solo
+    // se puede aplazar) hasta N meses adelante (catalogo.max_meses_evento en data-max-meses)
+    function limitarFecha(campo, minimo) {
+        const meses = Number(campo.dataset.maxMeses || 3);
+        const ahora = dateForInput(new Date().toISOString());
+        const limite = new Date();
+        limite.setMonth(limite.getMonth() + meses);
+        campo.min = minimo && minimo > ahora ? minimo : ahora;
+        campo.max = dateForInput(limite.toISOString()).slice(0, 10) + 'T23:59';
+        campo.dataset.original = minimo || '';
     }
 
     // =====================================================
@@ -2681,8 +2701,9 @@
         const recintoCampo = $('evento-recinto');
         if (recintoCampo) recintoCampo.disabled = editingPublished;
 
+        // La fecha de un publicado se puede aplazar (nunca adelantar): si cambia, se avisa a los compradores
         const fechaCampo = form.elements.namedItem('fecha_evento');
-        if (fechaCampo) fechaCampo.readOnly = editingPublished;
+        if (fechaCampo) limitarFecha(fechaCampo, editingPublished ? fechaCampo.value : null);
 
         // Aviso para fotos, costos, plano y borrador (admin-evento-formulario.js, admin-costos.js)
         document.dispatchEvent(new CustomEvent('admin:formulario-evento', {
@@ -3170,6 +3191,22 @@
                 }
                 : payload;
 
+            // Reprogramar un evento publicado: se confirma porque avisa por correo a los compradores
+            const fechaOriginal = eventForm.elements.namedItem('fecha_evento')?.dataset.original || '';
+            const fechaCambiada = isPublishedEdit && fechaOriginal && payload.fecha_evento !== fechaOriginal;
+            if (fechaCambiada) {
+                const formato = new Intl.DateTimeFormat('es-GT', { dateStyle: 'full', timeStyle: 'short' });
+                const seguir = await window.AdminEventoFormulario?.confirmar({
+                    icono: '↻',
+                    titulo: '¿Reprogramar la función?',
+                    texto: `La función pasará al ${formato.format(new Date(payload.fecha_evento)).replace(/\.$/, "")}. `
+                        + 'Avisaremos por correo a todas las personas que compraron boletos; sus boletos siguen siendo válidos.',
+                    aceptar: 'Reprogramar y avisar',
+                }) ?? window.confirm('¿Reprogramar la función y avisar a los compradores?');
+                if (!seguir) return;
+                datosEnviar.fecha_evento = payload.fecha_evento;
+            }
+
             savingEvent = true;
 
             const saveButton = $('btn-guardar-evento');
@@ -3199,7 +3236,13 @@
 
                 // El borrador del formulario ya no hace falta (admin-evento-formulario.js)
                 document.dispatchEvent(new CustomEvent('admin:evento-guardado', {
-                    detail: { creado: !isEditing, nombre: payload.nombre, publicado: isPublishedEdit }
+                    detail: {
+                        creado: !isEditing,
+                        nombre: payload.nombre,
+                        publicado: isPublishedEdit,
+                        reprogramado: Boolean(result.fecha_cambiada),
+                        avisados: result.compradores_avisados ?? 0
+                    }
                 }));
 
                 closeEventForm();

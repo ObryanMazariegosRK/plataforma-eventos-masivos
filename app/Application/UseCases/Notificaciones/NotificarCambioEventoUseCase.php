@@ -44,7 +44,9 @@ class NotificarCambioEventoUseCase
 
     public function notificarCambioFecha(
         int $eventoId,
-        string $fechaAnterior
+        string $fechaAnterior,
+        // Las fechas se guardan en UTC; el correo las muestra en hora local
+        string $zonaHoraria = 'America/Guatemala'
     ): int {
         $evento = $this->obtenerEvento($eventoId);
 
@@ -73,15 +75,19 @@ class NotificarCambioEventoUseCase
             );
         }
 
+        $texto = fn (Carbon $fecha) => $fecha->copy()
+            ->setTimezone($zonaHoraria)
+            ->locale('es')
+            ->isoFormat('dddd D [de] MMMM [de] YYYY, h:mm a');
+
         return $this->notificarCompradores(
             eventoId: $eventoId,
             asunto: 'Cambio de fecha: ' . $evento->nombre,
-            mensaje: 'La fecha del evento '
-                . $evento->nombre
-                . ' ha cambiado. Nueva fecha: '
-                . $nueva->format('d/m/Y H:i')
-                . '. Conserva tu boleto digital '
-                . 'y revisa la información del evento.',
+            mensaje: 'La función de ' . $evento->nombre . ' cambió de fecha.'
+                . "\n\nAntes: " . $texto($anterior)
+                . "\nAhora: " . $texto($nueva)
+                . "\n\nTus boletos siguen siendo válidos para la nueva fecha: no necesitas hacer nada. "
+                . 'Si la nueva fecha no te funciona, puedes solicitar un reembolso desde Mis compras.',
             claveBase: 'evento_fecha:' . $eventoId
                 . ':' . $nueva->format('YmdHis')
         );

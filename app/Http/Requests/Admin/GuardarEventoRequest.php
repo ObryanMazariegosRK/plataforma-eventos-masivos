@@ -63,9 +63,11 @@ class GuardarEventoRequest extends FormRequest
                     ->whereNull('deleted_at'),
             ],
 
+            // Hora de Guatemala; futura y hasta catalogo.max_meses_evento meses adelante
             'fecha_evento' => [
                 'required',
                 'date',
+                new \App\Rules\FechaDeFuncion(),
             ],
 
             'estado' => [
@@ -75,6 +77,19 @@ class GuardarEventoRequest extends FormRequest
                 ]),
             ],
         ];
+    }
+
+    /**
+     * La fecha llega en hora de Guatemala y se guarda en UTC.
+     */
+    public function validated($key = null, $default = null)
+    {
+        $datos = parent::validated();
+        if (isset($datos['fecha_evento'])) {
+            $datos['fecha_evento'] = \App\Rules\FechaDeFuncion::aUtc($datos['fecha_evento']);
+        }
+
+        return data_get($datos, $key, $default);
     }
 
     /**

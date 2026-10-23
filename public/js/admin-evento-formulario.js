@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.append(modal);
         modal.showModal();
         acciones.querySelector('.es-principal')?.focus();
+        return modal;
     }
 
     // =====================================================
@@ -513,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subtitulo.textContent = modoNuevo
                 ? 'Completa la información para guardar el evento como borrador.'
                 : evento.detail?.publicado
-                    ? 'Los cambios se verán en la cartelera al guardarlos. Fecha, recinto y precios ya no se pueden cambiar.'
+                    ? 'Los cambios se verán en la cartelera al guardarlos. Recinto y precios ya no se pueden cambiar; la fecha solo se puede aplazar y, si cambia, avisamos por correo a quienes compraron.'
                     : 'Revisa los datos y guarda los cambios. Sigue siendo un borrador.';
         }
         // Los precios quedan fijos al publicar: se avisa mientras todavía se pueden cambiar
@@ -540,8 +541,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 0);
     });
 
+    // Para admin.js: confirmar antes de una acción (p. ej. reprogramar). Cerrar el modal = no.
+    window.AdminEventoFormulario = {
+        confirmar: ({ icono = '?', titulo, texto, aceptar = 'Aceptar' }) => new Promise((responder) => {
+            let elegido = false;
+            const modal = dialogo({
+                icono, titulo, texto,
+                botones: [
+                    { texto: 'Volver' },
+                    { texto: aceptar, principal: true, alElegir: () => { elegido = true; } },
+                ],
+            });
+            modal.addEventListener('close', () => responder(elegido), { once: true });
+        }),
+    };
+
     document.addEventListener('admin:evento-guardado', (evento) => {
-        const { creado, nombre, publicado } = evento.detail || {};
+        const { creado, nombre, publicado, reprogramado, avisados } = evento.detail || {};
 
         if (creado) {
             clearTimeout(espera);
@@ -557,6 +573,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     { texto: 'Ir al catálogo', alElegir: () => document.querySelector('#nav [data-section="catalogo"]')?.click() },
                     { texto: 'Crear otro evento', principal: true },
                 ],
+            });
+            return;
+        }
+
+        if (reprogramado) {
+            dialogo({
+                titulo: 'Función reprogramada',
+                texto: avisados > 0
+                    ? `Enviamos la nueva fecha de «${nombre}» por correo a ${avisados} ${avisados === 1 ? 'persona' : 'personas'} que compraron boletos.`
+                    : `La nueva fecha de «${nombre}» ya se ve en la cartelera. Aún nadie había comprado boletos, así que no hubo a quién avisar.`,
+                botones: [{ texto: 'Aceptar', principal: true }],
             });
             return;
         }

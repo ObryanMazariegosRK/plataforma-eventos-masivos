@@ -183,8 +183,10 @@ class CatalogoBitacora
             ],
             'PATCH api/admin/eventos/{id}/contenido' => [
                 'categoria' => C::EVENTO, 'accion' => 'evento.contenido_editado', 'entidad' => 'evento',
-                'campos' => ['nombre', 'descripcion', 'imagen_url'], 'antes' => $evento,
-                'describir' => fn (Request $r, $antes) => "Modificó el evento publicado {$nombreEvento($antes, $r)}",
+                'campos' => ['nombre', 'descripcion', 'imagen_url', 'fecha_evento'], 'antes' => $evento,
+                'describir' => fn (Request $r, $antes) => $r->filled('fecha_evento')
+                    ? "Reprogramó el evento publicado {$nombreEvento($antes, $r)} para el ".str_replace('T', ' ', $r->input('fecha_evento')).' (hora de Guatemala) y avisó a los compradores'
+                    : "Modificó el evento publicado {$nombreEvento($antes, $r)}",
             ],
             'PATCH api/admin/eventos/{id}/publicar' => [
                 'categoria' => C::EVENTO, 'accion' => 'evento.publicado', 'entidad' => 'evento',

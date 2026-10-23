@@ -180,14 +180,21 @@ class AdminEventoController extends Controller
     /**
      * Modificar contenido informativo de un evento publicado.
      *
-     * No modifica fecha, recinto, precios ni inventario.
+     * No modifica recinto, precios ni inventario. La fecha solo
+     * se puede aplazar (nunca adelantar) y, si cambia, se avisa
+     * por correo a quienes compraron boletos.
      * La ruta es exclusiva del Administrador.
      */
     public function actualizarContenidoPublicado(
         Request $request,
-        int $id
+        int $id,
+        \App\Application\UseCases\Notificaciones\NotificarCambioEventoUseCase $notificar
     ): JsonResponse {
+        $fechaAnterior = \Carbon\CarbonImmutable::parse(Evento::query()->findOrFail($id)->fecha_evento);
+
         $datos = $request->validate([
+            // Opcional: hora de Guatemala, igual o posterior a la fecha actual del evento
+            'fecha_evento' => ['sometimes', 'required', 'date', new \App\Rules\FechaDeFuncion(noAntesDe: $fechaAnterior)],
             'nombre' => [
                 'required', 'string', 'min:3', 'max:255',
             ],
@@ -200,7 +207,12 @@ class AdminEventoController extends Controller
             'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
         ]);
 
-        $evento = DB::transaction(function () use ($request, $id, $datos) {
+        $nuevaFecha = isset($datos['fecha_evento'])
+            ? \App\Rules\FechaDeFuncion::aUtc($datos['fecha_evento'])
+            : null;
+        $fechaCambio = false;
+
+        $evento = DB::transaction(function () use ($request, $id, $datos, $nuevaFecha, &$fechaCambio) {
             $evento = Evento::query()
                 ->lockForUpdate()
                 ->findOrFail($id);
@@ -220,14 +232,29 @@ class AdminEventoController extends Controller
             $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;
             $evento->imagen_url_3 = $datos['imagen_url_3'] ?? null;
 
+            // Mismo minuto = sin cambio (el formulario no muestra segundos)
+            if ($nuevaFecha !== null && $evento->fecha_evento->format('Y-m-d H:i') !== substr($nuevaFecha, 0, 16)) {
+                $evento->fecha_evento = $nuevaFecha;
+                $fechaCambio = true;
+            }
+
             $evento->updated_by = (int) $request->user()->id;
             $evento->save();
 
             return $evento->refresh();
         });
 
+        // Un correo por comprador (en cola, una sola vez por cada nueva fecha)
+        $avisados = $fechaCambio
+            ? $notificar->notificarCambioFecha($id, $fechaAnterior->format('Y-m-d H:i:s'), config('catalogo.zona_horaria'))
+            : 0;
+
         return response()->json([
-            'message' => 'Información y fotografías actualizadas correctamente.',
+            'message' => $fechaCambio
+                ? 'Evento reprogramado. Avisamos por correo a quienes compraron boletos.'
+                : 'Información y fotografías actualizadas correctamente.',
+            'fecha_cambiada' => $fechaCambio,
+            'compradores_avisados' => $avisados,
             'data' => $evento,
         ]);
     }

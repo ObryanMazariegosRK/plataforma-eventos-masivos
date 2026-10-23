@@ -66,6 +66,7 @@ class EscaneoBoletoTest extends TestCase
     public function test_el_qr_lleva_la_direccion_publica_si_esta_configurada(): void
     {
         $generador = new \App\Infrastructure\Boletos\GeneradorQrBoletoSvg();
+        config(['boletos.url_publica' => null]);   // sin importar lo que tenga el .env local
 
         $this->assertSame(route('boletos.entrada').'#abc', $generador->enlace('abc'));
         config(['boletos.url_publica' => 'https://soiree-demo.ngrok-free.app/']);
