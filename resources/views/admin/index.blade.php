@@ -1419,8 +1419,8 @@
             <h2>Reportes de Soirée</h2>
 
             <p class="muted">
-                Exporta información real de MySQL en formato CSV,
-                compatible con Microsoft Excel.
+                Descarga eventos, reservas, pagos o usuarios en Excel, PDF o CSV.
+                Deja las fechas vacías para incluir todo el historial.
             </p>
 
             <form id="report-form">
@@ -1458,13 +1458,13 @@
 
     <select id="soiree-formato" name="formato">
         <option value="excel">
-            Excel profesional (.xlsx)
+            Excel (.xlsx)
         </option>
         <option value="pdf">
-            Documento PDF (.pdf)
+            PDF (.pdf)
         </option>
         <option value="csv">
-            Datos CSV (.csv)
+            CSV (.csv)
         </option>
     </select>
 </div>

@@ -1704,3 +1704,57 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 @media (prefers-reduced-motion: reduce) {
     .tema-soiree .so-cancel-dialog[open], .tema-soiree .so-cancel-dialog[open]::backdrop { animation: none; }
 }
+
+/* ---------- Centro de reportes (formulario de Luis en admin.css): legible en claro y oscuro ---------- */
+/* admin.css le da colores fijos (#report-form, #soiree-formato) y un margen extra al campo de formato,
+   que lo desalineaba. Aquí: cuatro campos iguales en una fila y el botón al final. */
+.tema-soiree #report-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 16px;
+    margin-top: 26px;
+    padding-top: 24px;
+    border-top: 1px solid var(--t-hilo);
+}
+.tema-soiree #report-form label,
+.tema-soiree #report-form .soiree-export-field {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    color: var(--t-piedra);
+    font: 600 12.5px var(--t-cuerpo);
+    letter-spacing: .02em;
+}
+.tema-soiree #report-form .soiree-export-field label { gap: 0; }
+.tema-soiree #report-form :is(select, input) {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid var(--t-hilo-2);
+    border-radius: 12px;
+    background: var(--t-campo);
+    color: var(--t-texto);
+    font: 400 14px var(--t-cuerpo);
+    cursor: pointer;
+    transition: border-color .2s ease, background-color .2s ease;
+}
+.tema-soiree #report-form :is(select, input):hover { border-color: var(--t-acento-borde); }
+.tema-soiree #report-form :is(select, input):focus { outline: none; border-color: var(--t-acento); background: var(--t-campo-foco); }
+.tema-soiree #report-form :is(select, input):focus-visible { outline: 2px solid var(--t-acento-borde); outline-offset: 2px; }
+.tema-soiree #report-form input[type="date"]::-webkit-calendar-picker-indicator { opacity: .7; cursor: pointer; }
+.tema-soiree #report-form button.primary {
+    min-height: 46px;
+    min-width: 170px;
+    padding: 0 24px;
+    border-radius: 999px;
+    font: 600 14px var(--t-cuerpo);
+}
+@media (max-width: 1100px) {
+    .tema-soiree #report-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tema-soiree #report-form button.primary { grid-column: 1 / -1; justify-self: start; }
+}
+@media (max-width: 560px) {
+    .tema-soiree #report-form { grid-template-columns: 1fr; }
+    .tema-soiree #report-form button.primary { justify-self: stretch; }
+}
