@@ -41,7 +41,10 @@
     // ---- Selección ----
     const cantidadElegida = () => seleccion.size + [...cupos.values()].reduce((a, b) => a + b, 0);
     let eventoPasado = false;   // ya ocurrió: el plano se ve, pero no se venden boletos
-    const puedeAgregar = () => !eventoPasado && cantidadElegida() < restantes;
+    // Fila virtual: sin turno vigente no se reserva ("soloPago": entró solo para pagar lo que ya apartó)
+    let soloPago = false;
+    const FILA = `/eventos/${eventoId}/fila`;
+    const puedeAgregar = () => !eventoPasado && !soloPago && cantidadElegida() < restantes;
 
     function mostrarAviso(texto, tipo = 'error') {
         aviso.textContent = texto;
@@ -133,9 +136,11 @@
 
         clavesPrevias = claves;
         animarTotal(items.reduce((suma, item) => suma + item.precio, 0));
-        boton.disabled = eventoPasado || items.length === 0 || restantes === 0;
+        boton.disabled = eventoPasado || soloPago || items.length === 0 || restantes === 0;
         boton.textContent = eventoPasado
             ? 'Evento finalizado'
+            : soloPago
+            ? 'Haz fila para elegir lugares'
             : restantes === 0
             ? 'Límite alcanzado'
             : items.length ? `Reservar ${cantidadElegida()} y pagar` : 'Reservar y pagar';
@@ -330,8 +335,60 @@
         }
     }
 
+    // ---- Fila virtual ----
+    // El evento la usa: se necesita un turno habilitado y vigente. Sin turno → a la sala de espera,
+    // salvo que tenga lugares apartados sin pagar (entra solo a pagarlos o liberarlos).
+    // Devuelve false si la página se va a otra parte.
+    async function prepararFila() {
+        if (!Auth.obtenerToken()) {
+            const mensaje = encodeURIComponent('Este evento vende con fila virtual: inicia sesión para tomar tu turno.');
+            location.href = `/login?volver=${encodeURIComponent(FILA)}&tipo=aviso&mensaje=${mensaje}`;
+            return false;
+        }
+
+        const turno = await Auth.api(`/cola-virtual/mi-turno/${eventoId}`, { metodo: 'GET', conToken: true });
+        if (turno.ok && turno.data.estado === 'habilitado' && turno.data.habilitado_hasta) {
+            contarTurno(new Date(turno.data.habilitado_hasta));
+            return true;
+        }
+
+        const cupo = await Auth.api(`/eventos/${eventoId}/mi-cupo`, { metodo: 'GET', conToken: true });
+        if (cupo.ok && (cupo.data.pendientes || []).length) {
+            soloPago = true;
+            mostrarAviso('Este evento vende con fila virtual. Aquí puedes pagar o liberar lo que ya apartaste; para elegir otros lugares, toma tu turno en la fila.', 'info');
+            const enlace = document.createElement('a');
+            enlace.href = FILA;
+            enlace.textContent = ' Ir a la fila';
+            aviso.append(enlace);
+            return true;
+        }
+
+        location.replace(FILA);
+        return false;
+    }
+
+    function contarTurno(vence) {
+        const caja = document.getElementById('turnoFila');
+        const reloj = document.getElementById('turnoFilaReloj');
+        caja.hidden = false;
+        const tic = () => {
+            const segundos = Math.max(0, Math.round((vence - Date.now()) / 1000));
+            reloj.textContent = `${String(Math.floor(segundos / 60)).padStart(2, '0')}:${String(segundos % 60).padStart(2, '0')}`;
+            caja.classList.toggle('turno-fila--poco', segundos <= 60);
+            if (segundos > 0) return;
+            clearInterval(intervalo);
+            soloPago = true;
+            actualizar();
+            document.getElementById('turnoFilaTexto').textContent = 'Se acabó tu tiempo. Te regresamos a la fila…';
+            setTimeout(() => location.replace(FILA), 2500);
+        };
+        const intervalo = setInterval(tic, 1000);
+        tic();
+    }
+
     async function iniciar() {
         if (!(await cargar())) return;
+        if (datos.evento.cola_virtual && !(await prepararFila())) return;
 
         const llenar = (selector, valor) => document.querySelectorAll(selector).forEach((n) => { n.textContent = valor; });
         llenar('[data-nombre-evento]', datos.evento.nombre);
@@ -360,15 +417,31 @@
         depurarSeleccion();
         actualizar();
 
-        // en vivo: cada 8 s se ve lo que otros van apartando (y si se liberó cupo propio
-        // porque venció una reserva sin pagar)
-        setInterval(async () => {
-            if (document.hidden || !(await cargar())) return;
+        // En vivo: cada 1.5 s se pregunta por la huella del mapa (unos bytes, en caché 1 s en el
+        // servidor) y solo si cambió se descargan el mapa y el cupo: lo que otros apartan o compran
+        // se ve casi al instante, sin descargar el mapa entero a cada rato
+        let version = null;
+        const revisar = async () => {
+            if (document.hidden) return;
+            try {
+                const respuesta = await fetch(`/api/eventos/${eventoId}/disponibilidad/version`, { headers: { Accept: 'application/json' } });
+                if (!respuesta.ok) return;
+                const actual = (await respuesta.json()).version;
+                if (actual === version) return;
+                const primera = version === null;
+                version = actual;
+                if (primera) return;   // el mapa recién se cargó
+            } catch {
+                return;   // sin red: se reintenta en la próxima vuelta
+            }
+            if (!(await cargar())) return;
             await cargarCupo();
-            if (huellaDatos() === huellaDibujada) return;   // nada cambió: no se toca el plano
+            if (huellaDatos() === huellaDibujada) return;   // nada cambió en el plano: no se redibuja
             depurarSeleccion();
             actualizar();
-        }, 8000);
+        };
+        setInterval(revisar, 1500);
+        document.addEventListener('visibilitychange', revisar);   // al volver a la pestaña, de inmediato
     }
 
     // ---- Reservar ----
@@ -403,6 +476,12 @@
         }
 
         Auth.cargando(boton, false);
+        // Su turno de la fila venció justo ahora (o no tenía): de vuelta a la sala de espera
+        if (respuesta.data?.errors?.cola_virtual) {
+            mostrarAviso(Auth.mensajeDeError(respuesta) + ' Te llevamos a la fila…', 'info');
+            setTimeout(() => location.replace(FILA), 2500);
+            return;
+        }
         if (respuesta.status === 401) {
             location.href = `/login?volver=${encodeURIComponent(VOLVER)}&tipo=aviso&mensaje=${encodeURIComponent('Tu sesión expiró. Inicia sesión de nuevo.')}`;
             return;

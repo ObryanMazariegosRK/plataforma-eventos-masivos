@@ -37,7 +37,7 @@
                 <p class="evento__datos" id="datosEvento"></p>
             </div>
 
-            <span class="vivo mayus">En vivo · cada 4 s</span>
+            <span class="vivo mayus">En vivo</span>
 
             <div class="cifra">
                 <span class="mayus">Vendidos</span>
@@ -58,6 +58,17 @@
                 <div class="cifra__valor" id="recaudado">—</div>
                 <div class="cifra__detalle">Lugares vendidos × precio de su zona</div>
             </div>
+
+            {{-- Fila virtual en vivo (solo si el evento la usa): GET /api/admin/eventos/{id}/cola --}}
+            <section class="fila-admin" id="filaAdmin" hidden aria-live="polite">
+                <span class="mayus">Fila virtual</span>
+                <div class="fila-admin__cifras">
+                    <div><strong id="filaEsperando">—</strong><span>en espera</span></div>
+                    <div><strong id="filaComprando">—</strong><span id="filaComprandoTexto">comprando ahora</span></div>
+                    <div><strong id="filaAtendidos">—</strong><span>ya reservaron</span></div>
+                    <div><strong id="filaExpirados">—</strong><span>turnos vencidos</span></div>
+                </div>
+            </section>
 
             <label class="selector">
                 <span class="mayus">Ver otro evento</span>
@@ -134,7 +145,36 @@
             }
             await refrescar();
             cargarSelector();
-            setInterval(() => { if (!document.hidden) refrescar(); }, 4000);
+
+            // Huella del mapa cada 1.5 s (en caché 1 s en el servidor): solo se recarga si algo cambió
+            let version = null;
+            const revisar = async () => {
+                if (document.hidden) return;
+                const respuesta = await Auth.api(`/eventos/${eventoId}/disponibilidad/version`, { metodo: 'GET' });
+                if (!respuesta.ok || respuesta.data.version === version) return;
+                const primera = version === null;
+                version = respuesta.data.version;
+                if (!primera) refrescar();
+            };
+            setInterval(revisar, 1500);
+            document.addEventListener('visibilitychange', revisar);
+
+            // Fila virtual: cuántos esperan, compran y ya reservaron (cada 3 s; también la hace avanzar)
+            const filaAdmin = document.getElementById('filaAdmin');
+            const revisarFila = async () => {
+                if (document.hidden) return;
+                const respuesta = await Auth.api(`/admin/eventos/${eventoId}/cola`, { metodo: 'GET', conToken: true });
+                if (!respuesta.ok) return;
+                const fila = respuesta.data.data;
+                filaAdmin.hidden = !fila.activa;
+                if (!fila.activa) return;
+                texto('filaEsperando', fila.esperando);
+                texto('filaComprando', `${fila.comprando} / ${fila.simultaneos}`);
+                texto('filaAtendidos', fila.atendidos);
+                texto('filaExpirados', fila.expirados);
+            };
+            revisarFila();
+            setInterval(revisarFila, 3000);
         })();
     })();
     </script>

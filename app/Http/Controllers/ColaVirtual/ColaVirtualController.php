@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\ColaVirtual;
 
 use App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase;
+use App\Application\Abstractions\ColaVirtual\IProcesarColaVirtualUseCase;
+use App\Domain\Abstractions\ColaVirtual\ITurnoRepository;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\Controller;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -10,9 +13,29 @@ use Illuminate\Http\Request;
 
 class ColaVirtualController extends Controller
 {
+    public function __construct(
+        private readonly IProcesarColaVirtualUseCase $procesar,
+    ) {}
+
+    /**
+     * Avance inmediato: la fila de este evento se procesa al entrar y al consultar el turno
+     * (la sala de espera consulta cada pocos segundos), como mucho una vez por segundo por
+     * evento. Así nadie espera al minuto del Scheduler si ya hay lugares libres.
+     */
+    private function avanzar(int $eventoId): void
+    {
+        if (! config('cola_virtual.procesamiento_automatico_habilitado', false)) {
+            return;
+        }
+        if (Cache::add("cola_virtual:avance:{$eventoId}", true, 1)) {
+            rescue(fn () => $this->procesar->execute($eventoId));
+        }
+    }
+
     public function ingresar(
         Request $request,
-        IIngresarColaVirtualUseCase $ingresarCola
+        IIngresarColaVirtualUseCase $ingresarCola,
+        ITurnoRepository $turnos
     ): JsonResponse {
 
         // 1. Validar el identificador del evento.
@@ -30,6 +53,10 @@ class ColaVirtualController extends Controller
                 (int) $datos['evento_id'],
                 $usuarioId
             );
+
+            // Si hay lugares libres, pasa en este mismo momento
+            $this->avanzar((int) $datos['evento_id']);
+            $turno = $turnos->buscarPorEventoYUsuario((int) $datos['evento_id'], $usuarioId) ?? $turno;
 
             // 4. Devolver la información del turno.
             return response()->json([
@@ -57,6 +84,19 @@ class ColaVirtualController extends Controller
     }
 
     /**
+     * Panel (admin y operador): cómo va la fila de un evento. "Ver asientos" lo muestra en vivo.
+     */
+    public function resumen(int $id, ITurnoRepository $turnos): JsonResponse
+    {
+        $this->avanzar($id);
+
+        return response()->json(['data' => $turnos->resumen($id) + [
+            'simultaneos' => (int) config('cola_virtual.max_turnos_simultaneos'),
+            'ventana_minutos' => (int) config('cola_virtual.ventana_compra_minutos'),
+        ]]);
+    }
+
+    /**
      * Consultar la posición y el estado del turno
      * del usuario autenticado.
      */
@@ -68,6 +108,9 @@ class ColaVirtualController extends Controller
 
         // Obtener el usuario desde la autenticación.
         $usuarioId = (int) $request->user()->id;
+
+        // Primero la fila avanza (vence ventanas, habilita a los siguientes)
+        $this->avanzar($eventoId);
 
         // Consultar su turno en el evento solicitado.
         $turno = $consultar->execute(
@@ -82,7 +125,10 @@ class ColaVirtualController extends Controller
             ], 404);
         }
 
-        // Devolver su posición y estado actual.
-        return response()->json($turno, 200);
+        // Devolver su posición y estado actual, con las reglas de la fila para la sala de espera
+        return response()->json($turno + [
+            'simultaneos' => (int) config('cola_virtual.max_turnos_simultaneos'),
+            'ventana_minutos' => (int) config('cola_virtual.ventana_compra_minutos'),
+        ], 200);
     }
 }

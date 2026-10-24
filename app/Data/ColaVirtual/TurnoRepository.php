@@ -124,11 +124,33 @@ class TurnoRepository implements ITurnoRepository
                     return $this->aEntidad($actualizado);
                 }
 
-                // Los turnos atendidos no pueden volver a ingresar.
+                // Ya reservó con su turno: puede volver a la fila (al final) para comprar más
+                // o si su pago no se completó. El límite de boletos por persona sigue aplicando
+                // en la reserva, y empieza de nuevo con sus dos oportunidades.
                 if ($existente->estado === EstadoTurno::ATENDIDO->value) {
-                    throw new DomainException(
-                        'Ya utilizaste tu turno de compra para este evento.'
-                    );
+                    DB::table('cola_virtual_intentos')->insert([
+                        'turno_id' => $existente->id,
+                        'intento' => $intentoActual,
+                        'posicion' => $existente->posicion,
+                        'estado' => EstadoTurno::ATENDIDO->value,
+                        'habilitado_hasta' => $existente->habilitado_hasta,
+                        'finalizado_en' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    DB::table('cola_virtual')
+                        ->where('id', $existente->id)
+                        ->update([
+                            'posicion' => ((int) DB::table('cola_virtual')->where('evento_id', $eventoId)->max('posicion')) + 1,
+                            'token' => bin2hex(random_bytes(32)),
+                            'estado' => EstadoTurno::ESPERANDO->value,
+                            'habilitado_hasta' => null,
+                            'intento' => 1,
+                            'updated_at' => now(),
+                        ]);
+
+                    return $this->aEntidad(DB::table('cola_virtual')->where('id', $existente->id)->first());
                 }
 
                 // Si está esperando o habilitado, conservar el turno.
@@ -166,6 +188,28 @@ class TurnoRepository implements ITurnoRepository
                 estado: EstadoTurno::ESPERANDO
             );
         });
+    }
+
+    public function resumen(int $eventoId): array
+    {
+        $ahora = now();
+        $base = fn () => DB::table('cola_virtual')->where('evento_id', $eventoId)->whereNull('deleted_at');
+
+        return [
+            'activa' => (bool) DB::table('eventos')->where('id', $eventoId)->whereNull('deleted_at')->value('cola_virtual_activa'),
+            'esperando' => $base()->where('estado', EstadoTurno::ESPERANDO->value)->count(),
+            'comprando' => $base()->where('estado', EstadoTurno::HABILITADO->value)->where('habilitado_hasta', '>', $ahora)->count(),
+            'atendidos' => $base()->where('estado', EstadoTurno::ATENDIDO->value)->count()
+                + DB::table('cola_virtual_intentos')
+                    ->join('cola_virtual', 'cola_virtual.id', '=', 'cola_virtual_intentos.turno_id')
+                    ->where('cola_virtual.evento_id', $eventoId)
+                    ->where('cola_virtual_intentos.estado', EstadoTurno::ATENDIDO->value)->count(),
+            // Ventanas que vencieron sin reservar (las ya marcadas y las que el Scheduler aún no marca)
+            'expirados' => $base()->where(function ($consulta) use ($ahora) {
+                $consulta->where('estado', EstadoTurno::EXPIRADO->value)
+                    ->orWhere(fn ($vencido) => $vencido->where('estado', EstadoTurno::HABILITADO->value)->where('habilitado_hasta', '<=', $ahora));
+            })->count(),
+        ];
     }
 
     private function aEntidad(object $registro): Turno

@@ -62,6 +62,8 @@ class ConsultarMiTurnoUseCase implements IConsultarMiTurnoUseCase
             'posicion' => (int) $turno->posicion,
             'personas_delante' => $personasDelante,
             'estado' => $estado,
+            // 1 = primera oportunidad; 2 = la última (al vencer ya no puede volver a la fila)
+            'intento' => (int) ($turno->intento ?? 1),
             'habilitado_hasta' => $turno->habilitado_hasta
                 ? Carbon::parse($turno->habilitado_hasta)->toAtomString()
                 : null,

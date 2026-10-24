@@ -1029,12 +1029,13 @@ class TurnoRepositoryTest extends TestCase
                 'estado' => 'expirado',
             ]);
 
-        // La consulta no debe modificar la base de datos.
-        // El Scheduler actualizará el estado posteriormente.
+        // Avance inmediato: consultar el turno también hace avanzar la fila
+        // (antes solo lo hacía el Scheduler cada minuto), así que la ventana
+        // vencida ya queda marcada como expirada en la base de datos.
         $this->assertDatabaseHas('cola_virtual', [
             'evento_id' => $eventoId,
             'usuario_id' => $usuario->id,
-            'estado' => 'habilitado',
+            'estado' => 'expirado',
         ]);
     }
 
@@ -2324,32 +2325,32 @@ class TurnoRepositoryTest extends TestCase
         ]);
     }
 
-    public function test_procesador_habilita_maximo_20_compradores(): void
+    public function test_procesador_habilita_maximo_10_compradores(): void
     {
         // No ejecutar trabajos reales de correo.
         \Illuminate\Support\Facades\Bus::fake([
             \App\Jobs\Notificaciones\EnviarNotificacionCorreoJob::class,
         ]);
 
-        // Verificar el nuevo límite predeterminado.
+        // Límite predeterminado: 10 compradores a la vez (recintos de ≤ 100 lugares).
         $this->assertSame(
-            20,
+            10,
             (int) config('cola_virtual.max_turnos_simultaneos')
         );
 
         $eventoId = $this->crearEvento();
 
-        // Preparar 25 boletos disponibles.
-        $this->crearInventarioDisponible($eventoId, 25);
+        // Preparar 15 boletos disponibles.
+        $this->crearInventarioDisponible($eventoId, 15);
 
         $ingresar = app(
             \App\Application\Abstractions\ColaVirtual\IIngresarColaVirtualUseCase::class
         );
 
-        // Registrar 25 usuarios en la cola.
-        for ($numero = 1; $numero <= 25; $numero++) {
+        // Registrar 15 usuarios en la cola.
+        for ($numero = 1; $numero <= 15; $numero++) {
             $usuario = $this->crearUsuario(
-                "usuario-limite20-{$numero}@example.com"
+                "usuario-limite10-{$numero}@example.com"
             );
 
             $ingresar->execute($eventoId, $usuario->id);
@@ -2361,12 +2362,12 @@ class TurnoRepositoryTest extends TestCase
 
         $resultado = $procesador->execute();
 
-        // Debe habilitar solamente a 20 usuarios.
-        $this->assertSame(20, $resultado['habilitados']);
+        // Debe habilitar solamente a 10 usuarios.
+        $this->assertSame(10, $resultado['habilitados']);
 
-        // Los primeros 20 quedan habilitados.
+        // Los primeros 10 quedan habilitados.
         $this->assertSame(
-            20,
+            10,
             DB::table('cola_virtual')
                 ->where('evento_id', $eventoId)
                 ->where('estado', 'habilitado')
@@ -2388,7 +2389,7 @@ class TurnoRepositoryTest extends TestCase
         $this->assertSame(0, $segundoResultado['habilitados']);
 
         $this->assertSame(
-            20,
+            10,
             DB::table('cola_virtual')
                 ->where('evento_id', $eventoId)
                 ->where('estado', 'habilitado')

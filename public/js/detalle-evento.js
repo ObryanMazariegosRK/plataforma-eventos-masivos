@@ -92,7 +92,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.title = `${evento.nombre || 'Evento'} · ${document.body.dataset.marca || ''}`;
         texto('detalleNombre', evento.nombre || 'Evento sin nombre');
-        texto('detalleEstado', evento.estado === 'agotado' ? 'Entradas agotadas' : 'En venta');
+        texto('detalleEstado', evento.estado === 'agotado'
+            ? 'Entradas agotadas'
+            : Number(evento.cola_virtual_activa) === 1 ? 'En venta · con fila virtual' : 'En venta');
         document.getElementById('detalleEstado')?.classList.toggle('agotado', evento.estado === 'agotado');
         texto('detalleFecha', fechaGT(evento.fecha_evento));
         texto('detalleLugar', [evento.recinto, evento.ciudad].filter(Boolean).join(' · ') || 'Lugar por confirmar');

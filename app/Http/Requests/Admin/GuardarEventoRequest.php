@@ -45,6 +45,8 @@ class GuardarEventoRequest extends FormRequest
 
             // Título de la primera escena de la experiencia (si falta, el nombre del evento)
             'frase_destacada' => ['nullable', 'string', 'max:70'],
+            // Venta con fila virtual: los compradores esperan su turno (ColaVirtual)
+            'cola_virtual_activa' => ['sometimes', 'boolean'],
             // Fotos subidas desde el formulario (o URL HTTPS en eventos antiguos)
             'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
 

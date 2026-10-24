@@ -49,6 +49,11 @@ class EditarEventoUseCase
             // Encabeza la primera escena de la experiencia (opcional)
             $evento->frase_destacada = $datos['frase_destacada'] ?? null;
 
+            // Venta con fila virtual (si el formulario no la manda, se conserva)
+            if (array_key_exists('cola_virtual_activa', $datos)) {
+                $evento->cola_virtual_activa = (bool) $datos['cola_virtual_activa'];
+            }
+
             $evento->recinto_id = $datos['recinto_id'];
 
             $evento->fecha_evento = $datos['fecha_evento'];

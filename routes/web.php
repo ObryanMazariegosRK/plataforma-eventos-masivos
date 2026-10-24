@@ -148,6 +148,11 @@ Route::view('/eventos/{eventoId}/asientos', 'asientos.seleccion')
     ->whereNumber('eventoId')
     ->name('asientos.seleccion');
 
+// Sala de espera de la fila virtual (eventos con cola_virtual_activa): fila-virtual.js
+Route::view('/eventos/{eventoId}/fila', 'colavirtual.fila')
+    ->whereNumber('eventoId')
+    ->name('colavirtual.fila');
+
 // Admin: ocupación en vivo (la vista comprueba el rol con la API).
 Route::view('/admin/eventos/{eventoId}/asientos', 'asientos.admin')
     ->whereNumber('eventoId')

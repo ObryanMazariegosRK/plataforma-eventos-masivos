@@ -328,6 +328,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Application\Abstractions\Inventario\IConsultarDisponibilidadUseCase::class,
             \App\Application\UseCases\Inventario\ConsultarDisponibilidadUseCase::class,
         );
+        $this->app->bind(
+            \App\Application\Abstractions\Inventario\IConsultarHuellaDisponibilidadUseCase::class,
+            \App\Application\UseCases\Inventario\ConsultarHuellaDisponibilidadUseCase::class,
+        );
 
         // ---- Pagos y Pasarelas ----
         // repositorios

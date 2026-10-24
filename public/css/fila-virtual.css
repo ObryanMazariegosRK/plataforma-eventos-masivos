@@ -1,0 +1,112 @@
+/* Sala de espera de la fila virtual (colavirtual/fila.blade.php + fila-virtual.js).
+   Usa los tokens y la cabecera de asientos.css (mismo negro cálido, marfil y champán). */
+
+.pagina-fila { min-height: 100dvh; }
+
+.fila {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: calc(100dvh - 72px);
+    padding: 40px 16px 56px;
+    overflow: hidden;
+}
+
+/* Foto del evento muy oscurecida detrás de la tarjeta */
+.fila__fondo {
+    position: absolute;
+    inset: 0;
+    background: center / cover no-repeat;
+    opacity: .22;
+    filter: saturate(.7) blur(2px);
+    transform: scale(1.04);
+}
+.fila__fondo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(80% 70% at 50% 40%, rgba(13, 12, 11, .55), var(--tinta) 85%);
+}
+
+.fila__tarjeta {
+    position: relative;
+    width: min(520px, 100%);
+    padding: 40px 36px 34px;
+    border: 1px solid var(--hilo);
+    border-radius: 22px;
+    background: rgba(19, 18, 16, .88);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
+    text-align: center;
+}
+
+.fila__etiqueta { margin: 0 0 12px; color: var(--champan); font-size: 11px; letter-spacing: .24em; }
+.fila__evento { margin: 0; font: 400 clamp(30px, 6vw, 40px)/1.08 var(--titulo); color: var(--marfil); }
+.fila__datos { margin: 8px 0 26px; color: var(--piedra); font-size: 13.5px; }
+
+.fila__estado {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 26px 0 6px;
+    border-top: 1px solid var(--hilo);
+}
+
+/* Personas delante: el número grande que se va reduciendo */
+.fila__numero {
+    margin: 0;
+    font: 500 76px/1 var(--titulo);
+    color: var(--marfil);
+    font-variant-numeric: lining-nums tabular-nums;   /* el "1" de Cormorant parece una "I" */
+    animation: fila-latido 2.4s ease-in-out infinite;
+}
+@keyframes fila-latido { 50% { opacity: .72; } }
+.fila__leyenda { margin: -2px 0 6px; color: var(--champan); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+.fila__texto { margin: 0; max-width: 40ch; color: var(--piedra); font-size: 14px; line-height: 1.6; }
+.fila__posicion { margin: 4px 0 0; color: var(--tenue); font-size: 12.5px; }
+.fila__alerta {
+    margin: 6px 0 0;
+    padding: 10px 14px;
+    border: 1px solid rgba(217, 163, 91, .45);
+    border-radius: var(--radio);
+    background: rgba(217, 163, 91, .08);
+    color: var(--marfil);
+    font-size: 13px;
+    line-height: 1.5;
+}
+.fila__exito { margin: 0; font: 500 34px/1.1 var(--titulo); color: var(--exito); }
+.fila__titulo-estado { margin: 0; font: 500 30px/1.1 var(--titulo); color: var(--marfil); }
+
+.fila__boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 240px;
+    margin-top: 8px;
+    padding: 13px 26px;
+    border: 1px solid var(--marfil);
+    border-radius: 999px;
+    background: var(--marfil);
+    color: var(--tinta);
+    font: 500 14px var(--cuerpo);
+    letter-spacing: .02em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity .2s ease, background-color .2s ease, color .2s ease;
+}
+.fila__boton:hover { opacity: .88; }
+.fila__boton--secundario { border-color: var(--hilo-fuerte); background: transparent; color: var(--marfil); }
+.fila__boton--secundario:hover { opacity: 1; border-color: var(--champan); color: var(--champan); }
+.fila__boton:focus-visible { outline: 2px solid var(--champan); outline-offset: 3px; }
+
+.fila__nota { margin: 26px 0 0; color: var(--tenue); font-size: 12.5px; line-height: 1.6; }
+.fila__nota[hidden] { display: none; }
+
+@media (max-width: 560px) {
+    .fila__tarjeta { padding: 32px 20px 26px; border-radius: 18px; }
+    .fila__numero { font-size: 64px; }
+    .fila__boton { min-width: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fila__numero { animation: none; }
+}

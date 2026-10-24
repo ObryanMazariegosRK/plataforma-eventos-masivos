@@ -202,6 +202,8 @@ class AdminEventoController extends Controller
                 'nullable', 'string', 'max:600',
             ],
             'frase_destacada' => ['nullable', 'string', 'max:70'],
+            // Activar o quitar la fila virtual también en plena venta
+            'cola_virtual_activa' => ['sometimes', 'boolean'],
             'imagen_url' => ['required', 'string', new \App\Rules\ImagenDeEvento],
             'imagen_url_2' => ['required', 'string', new \App\Rules\ImagenDeEvento],
             'imagen_url_3' => ['required', 'string', new \App\Rules\ImagenDeEvento],
@@ -231,6 +233,9 @@ class AdminEventoController extends Controller
             $evento->imagen_url = $datos['imagen_url'] ?? null;
             $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;
             $evento->imagen_url_3 = $datos['imagen_url_3'] ?? null;
+            if (array_key_exists('cola_virtual_activa', $datos)) {
+                $evento->cola_virtual_activa = (bool) $datos['cola_virtual_activa'];
+            }
 
             // Mismo minuto = sin cambio (el formulario no muestra segundos)
             if ($nuevaFecha !== null && $evento->fecha_evento->format('Y-m-d H:i') !== substr($nuevaFecha, 0, 16)) {

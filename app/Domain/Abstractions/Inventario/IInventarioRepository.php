@@ -46,6 +46,13 @@ interface IInventarioRepository
     public function disponibilidad(int $eventoId): ?array;
 
     /**
+     * Huella corta del estado de los lugares de un evento a la venta: cambia en cuanto un lugar
+     * se aparta, se vende o se libera. El mapa la consulta seguido y solo descarga
+     * disponibilidad() cuando cambió. null si el evento no está a la venta.
+     */
+    public function huellaDisponibilidad(int $eventoId): ?string;
+
+    /**
      * Plano de un recinto activo con el mismo formato que disponibilidad() (todos los lugares
      * libres y sin precio), para verlo antes de crear un evento. null si no existe.
      */

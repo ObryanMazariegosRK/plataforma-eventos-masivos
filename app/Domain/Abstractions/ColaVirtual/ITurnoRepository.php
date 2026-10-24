@@ -25,4 +25,11 @@ interface ITurnoRepository
         int $eventoId,
         int $usuarioId
     ): Turno;
+
+    /**
+     * Cómo va la fila de un evento, para el panel:
+     * {activa, esperando, comprando, atendidos, expirados}
+     * (comprando = habilitados con su ventana vigente).
+     */
+    public function resumen(int $eventoId): array;
 }
