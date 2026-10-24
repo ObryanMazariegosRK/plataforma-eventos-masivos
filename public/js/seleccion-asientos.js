@@ -346,8 +346,18 @@
             return false;
         }
 
-        const turno = await Auth.api(`/cola-virtual/mi-turno/${eventoId}`, { metodo: 'GET', conToken: true });
-        if (turno.ok && turno.data.estado === 'habilitado' && turno.data.habilitado_hasta) {
+        const habilitado = (t) => t?.estado === 'habilitado' && t.habilitado_hasta;
+        let turno = await Auth.api(`/cola-virtual/mi-turno/${eventoId}`, { metodo: 'GET', conToken: true });
+
+        // Sin turno, o ya usó el anterior (reservó y quiere más): toma su lugar aquí mismo. Si hay
+        // menos de 10 comprando entra en el acto y se queda en el mapa, sin pasar por la sala de
+        // espera. Un turno VENCIDO no: en la sala decide si usa su última oportunidad.
+        if (turno.status === 404 || (turno.ok && turno.data.estado === 'atendido')) {
+            const ingreso = await Auth.api('/cola-virtual/ingresar', { conToken: true, cuerpo: { evento_id: eventoId } });
+            if (ingreso.ok) turno = { ok: true, data: ingreso.data };
+        }
+
+        if (turno.ok && habilitado(turno.data)) {
             contarTurno(new Date(turno.data.habilitado_hasta));
             return true;
         }

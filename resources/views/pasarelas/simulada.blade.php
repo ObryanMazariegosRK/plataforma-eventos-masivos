@@ -254,6 +254,7 @@
 
         // ---- Llenado automático con la tarjeta de prueba (se "escribe" para que se vea) ----
         const autollenar = document.getElementById('autollenar');
+        const TITULAR = @json($datos['titular'] ?? null) || 'Cliente de prueba';
         const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
         const sinAnimacion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -270,7 +271,8 @@
         autollenar.addEventListener('click', async () => {
             autollenar.disabled = true;
             error.hidden = true;
-            if (!titular.value.trim()) await escribir(titular, 'Cliente de prueba');
+            // Nombre de quien paga (un nombre y un apellido, lo manda Soirée al crear la orden)
+            if (!titular.value.trim()) await escribir(titular, TITULAR);
             await escribir(numero, PRUEBA.numero);
             await escribir(vence, PRUEBA.vence.replace('/', ''));
             await escribir(cvv, PRUEBA.cvv);

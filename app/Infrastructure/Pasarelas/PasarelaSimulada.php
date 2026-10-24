@@ -21,7 +21,7 @@ class PasarelaSimulada implements IPasarelaPago
     public const RECHAZADA = 'rechazada';   // p. ej. fondos insuficientes
     public const CAPTURADA = 'capturada';   // cobrada
 
-    public function crearOrden(float $monto, string $moneda, string $referencia, string $urlRetorno, string $urlCancelacion, DateTimeImmutable $venceEn): OrdenPasarela
+    public function crearOrden(float $monto, string $moneda, string $referencia, string $urlRetorno, string $urlCancelacion, DateTimeImmutable $venceEn, ?string $titular = null): OrdenPasarela
     {
         $id = 'SIM-'.Str::upper(Str::random(16));
 
@@ -31,6 +31,8 @@ class PasarelaSimulada implements IPasarelaPago
             'referencia'      => $referencia,
             'url_retorno'     => $urlRetorno,
             'url_cancelacion' => $urlCancelacion,
+            // El "Llenado automático" de la página lo usa como nombre en la tarjeta
+            'titular'         => $titular,
             'estado'          => self::PENDIENTE,
             'captura'         => null,
             // Se puede pagar hasta que vence la reserva ("minutos_orden" es solo un tope).

@@ -22,6 +22,9 @@ interface IPasarelaPago
         // Después de esta hora la orden ya no se puede aprobar (se pasa la expiración de la
         // reserva: pagar un asiento que ya se liberó no tiene sentido)
         DateTimeImmutable $venceEn,
+        // Nombre de quien paga (un nombre y un apellido), como lo mandan las tiendas a las
+        // pasarelas reales para precargar el formulario. Opcional.
+        ?string $titular = null,
     ): OrdenPasarela;
 
     public function capturar(string $ordenId): ResultadoCaptura;

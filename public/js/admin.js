@@ -3074,7 +3074,7 @@
 
     // =====================================================
     // =====================================================
-    // REPORTES SOIRÉE: EXCEL, PDF Y CSV
+    // REPORTES SOIRÉE: EXCEL Y PDF
     // =====================================================
 
     const reportForm = $('report-form');
@@ -3092,7 +3092,7 @@
             const desde = args.get('desde') || '';
             const hasta = args.get('hasta') || '';
 
-            if (!['excel', 'pdf', 'csv'].includes(formato)) {
+            if (!['excel', 'pdf'].includes(formato)) {
                 feedback('Formato de reporte no válido.', true);
                 return;
             }

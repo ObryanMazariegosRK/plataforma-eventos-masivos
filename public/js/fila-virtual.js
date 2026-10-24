@@ -21,6 +21,7 @@
     let turno = null;
     let consultando = false;
     let yendoAlMapa = false;
+    let esperoAqui = false;   // vio la fila: solo así tiene sentido el "¡Es tu turno!"
     let lugaresLibres = null;
 
     const crear = (etiqueta, clase, texto) => {
@@ -91,7 +92,14 @@
         const respuesta = await Auth.api('/cola-virtual/ingresar', { conToken: true, cuerpo: { evento_id: eventoId } });
         if (respuesta.status === 401) return irAlLogin();
         if (!respuesta.ok) {
-            pintar([crear('p', 'fila__texto', Auth.mensajeDeError(respuesta)), enlace('Volver a la cartelera', '/catalogo')]);
+            // Error del servidor o demasiados intentos: mensaje claro y la opción de reintentar
+            const texto = respuesta.status >= 500
+                ? 'No pudimos tomar tu lugar en la fila. Inténtalo de nuevo en unos segundos.'
+                : Auth.mensajeDeError(respuesta);
+            const nodos = [crear('p', 'fila__texto', texto)];
+            if (respuesta.status >= 500 || respuesta.status === 429) nodos.push(boton('Intentar de nuevo', entrar));
+            nodos.push(enlace('Volver a la cartelera', '/catalogo'));
+            pintar(nodos);
             nota.hidden = true;
             return;
         }
@@ -115,6 +123,8 @@
         const ultima = turno.intento >= 2;
 
         if (turno.estado === 'esperando') {
+            esperoAqui = true;
+            // Lugar real = personas delante + 1 (turno.posicion es un consecutivo del evento que solo crece)
             const delante = turno.personas_delante;
             const numero = crear('p', 'fila__numero', String(delante));
             const leyenda = crear('p', 'fila__leyenda', delante === 1 ? 'persona delante de ti' : 'personas delante de ti');
@@ -123,7 +133,7 @@
             const estimado = delante === 0
                 ? 'Eres el siguiente: en cuanto se libere un lugar, entras.'
                 : `Como mucho unos ${minutos(tandas * (turno.ventana_minutos || 5))} (suele ser menos: muchos terminan antes).`;
-            const nodos = [numero, leyenda, crear('p', 'fila__texto', estimado), crear('p', 'fila__posicion', `Tu lugar en la fila: #${turno.posicion}`)];
+            const nodos = [numero, leyenda, crear('p', 'fila__texto', estimado), crear('p', 'fila__posicion', `Eres el #${delante + 1} en la fila`)];
             if (lugaresLibres === 0) {
                 nodos.push(crear('p', 'fila__alerta', 'Por ahora no quedan lugares libres. Si alguien libera los suyos, la fila avanzará.'));
             }
@@ -134,6 +144,11 @@
 
         if (turno.estado === 'habilitado') {
             yendoAlMapa = true;
+            // Entró sin esperar (había lugar): directo al mapa, sin el aviso
+            if (!esperoAqui) {
+                location.replace(MAPA);
+                return;
+            }
             const ventana = turno.ventana_minutos || 5;
             pintar([
                 crear('p', 'fila__exito', '¡Es tu turno!'),

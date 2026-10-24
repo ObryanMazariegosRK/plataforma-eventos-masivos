@@ -87,7 +87,9 @@ class TurnoRepository implements ITurnoRepository
                     // Conservar el historial del primer intento.
                     DB::table('cola_virtual_intentos')->insert([
                         'turno_id' => $existente->id,
-                        'intento' => $intentoActual,
+                        // Número consecutivo en el historial del turno (único por turno): una
+                        // misma persona puede pasar varias veces por la fila (reservó, volvió…)
+                        'intento' => $this->siguienteEnHistorial((int) $existente->id),
                         'posicion' => $existente->posicion,
                         'estado' => $estadoEfectivo,
                         'habilitado_hasta' => $existente->habilitado_hasta,
@@ -130,7 +132,9 @@ class TurnoRepository implements ITurnoRepository
                 if ($existente->estado === EstadoTurno::ATENDIDO->value) {
                     DB::table('cola_virtual_intentos')->insert([
                         'turno_id' => $existente->id,
-                        'intento' => $intentoActual,
+                        // Número consecutivo en el historial del turno (único por turno): una
+                        // misma persona puede pasar varias veces por la fila (reservó, volvió…)
+                        'intento' => $this->siguienteEnHistorial((int) $existente->id),
                         'posicion' => $existente->posicion,
                         'estado' => EstadoTurno::ATENDIDO->value,
                         'habilitado_hasta' => $existente->habilitado_hasta,
@@ -188,6 +192,12 @@ class TurnoRepository implements ITurnoRepository
                 estado: EstadoTurno::ESPERANDO
             );
         });
+    }
+
+    // El primer registro de un turno es el 1 (como antes); los siguientes, 2, 3…
+    private function siguienteEnHistorial(int $turnoId): int
+    {
+        return (int) DB::table('cola_virtual_intentos')->where('turno_id', $turnoId)->max('intento') + 1;
     }
 
     public function resumen(int $eventoId): array
