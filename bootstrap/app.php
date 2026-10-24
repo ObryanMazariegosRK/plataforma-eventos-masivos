@@ -47,6 +47,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
+            // Cada ruta con su propio contador (antes todas compartían uno por persona)
+            'throttle' => \App\Http\Middleware\LimitarPeticionesPorRuta::class,
             'rol' => VerificarRol::class,
         ]);
 
