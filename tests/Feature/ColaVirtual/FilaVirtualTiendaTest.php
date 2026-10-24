@@ -96,6 +96,16 @@ class FilaVirtualTiendaTest extends TestCase
         $this->getJson("/api/cola-virtual/mi-turno/{$evento}")->assertOk()->assertJsonPath('estado', 'habilitado');
     }
 
+    public function test_al_entrar_justo_despues_de_consultar_igual_pasa_si_hay_lugar(): void
+    {
+        [$evento] = $this->evento();
+        Sanctum::actingAs($this->usuario('ana@test.com'));
+
+        // La sala de espera primero consulta (404: sin turno) y en el mismo segundo entra
+        $this->getJson("/api/cola-virtual/mi-turno/{$evento}")->assertNotFound();
+        $this->postJson('/api/cola-virtual/ingresar', ['evento_id' => $evento])->assertOk()->assertJsonPath('estado', 'habilitado');
+    }
+
     public function test_reservar_con_el_turno_lo_usa_y_luego_se_puede_volver_a_la_fila(): void
     {
         [$evento, $inventario] = $this->evento();

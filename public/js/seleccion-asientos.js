@@ -43,7 +43,9 @@
     let eventoPasado = false;   // ya ocurrió: el plano se ve, pero no se venden boletos
     // Fila virtual: sin turno vigente no se reserva ("soloPago": entró solo para pagar lo que ya apartó)
     let soloPago = false;
-    const FILA = `/eventos/${eventoId}/fila`;
+    // La sala de espera devuelve a esta misma página (p. ej. la experiencia del evento, con sus
+    // fotos arriba y el mapa al final), no a la página suelta del mapa
+    const FILA = `/eventos/${eventoId}/fila?volver=${encodeURIComponent(VOLVER)}`;
     const puedeAgregar = () => !eventoPasado && !soloPago && cantidadElegida() < restantes;
 
     function mostrarAviso(texto, tipo = 'error') {
