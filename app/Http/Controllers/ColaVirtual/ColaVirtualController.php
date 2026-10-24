@@ -22,12 +22,15 @@ class ColaVirtualController extends Controller
      * (la sala de espera consulta cada pocos segundos), como mucho una vez por segundo por
      * evento. Así nadie espera al minuto del Scheduler si ya hay lugares libres.
      */
-    private function avanzar(int $eventoId): void
+    private function avanzar(int $eventoId, bool $siempre = false): void
     {
         if (! config('cola_virtual.procesamiento_automatico_habilitado', false)) {
             return;
         }
-        if (Cache::add("cola_virtual:avance:{$eventoId}", true, 1)) {
+        // Al ENTRAR siempre avanza: si no, quien llega justo después de otra consulta (la de su
+        // propia página, p. ej.) esperaría sin razón aunque haya lugar. Entrar ya tiene su límite
+        // (throttle 10/min por persona) y el procesador bloquea el evento, así que no se pisan.
+        if ($siempre || Cache::add("cola_virtual:avance:{$eventoId}", true, 1)) {
             rescue(fn () => $this->procesar->execute($eventoId));
         }
     }
@@ -55,7 +58,7 @@ class ColaVirtualController extends Controller
             );
 
             // Si hay lugares libres, pasa en este mismo momento
-            $this->avanzar((int) $datos['evento_id']);
+            $this->avanzar((int) $datos['evento_id'], siempre: true);
             $turno = $turnos->buscarPorEventoYUsuario((int) $datos['evento_id'], $usuarioId) ?? $turno;
 
             // 4. Devolver la información del turno.
