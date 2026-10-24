@@ -26,6 +26,6 @@ class CodigoVerificacionMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
-        return new Content(view: 'correos.auth.codigo-verificacion');
+        return new Content(view: 'correos.auth.codigo-verificacion', text: 'correos.texto.codigo-verificacion');
     }
 }

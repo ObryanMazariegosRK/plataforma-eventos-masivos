@@ -28,6 +28,7 @@ class NotificacionCorreo extends Mailable
     {
         return new Content(
             view: 'emails.notificaciones.mensaje',
+            text: 'correos.texto.aviso',
             with: [
                 'mensaje' => $this->mensaje,
                 'enlace' => $this->enlace,

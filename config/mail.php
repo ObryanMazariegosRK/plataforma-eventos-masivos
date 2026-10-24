@@ -45,7 +45,9 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            // Segundos máximos esperando a Gmail: si la conexión se cae, falla rápido y la cola
+            // reintenta, en vez de quedarse colgada hasta que maten al trabajador
+            'timeout' => (int) env('MAIL_TIMEOUT', 20),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 

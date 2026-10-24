@@ -75,10 +75,12 @@
         const texto = (id, valor) => { document.getElementById(id).textContent = valor; };
 
         // Solo administradores. Los datos del mapa son públicos, pero esta vista es del panel.
-        async function verificarAdmin() {
+        // Admin u operador: los mismos que entran al panel. Si aquí se pidiera otro rol que el
+        // del acceso del personal, el login (que sí lo acepta) devolvería aquí y se formaría un ciclo.
+        async function verificarPersonal() {
             if (!Auth.obtenerToken()) return false;
             const perfil = await Auth.api('/auth/perfil', { metodo: 'GET', conToken: true });
-            return perfil.ok && String(perfil.data.rol).toLowerCase() === 'admin';
+            return perfil.ok && ['admin', 'organizador'].includes(String(perfil.data.rol).toLowerCase());
         }
 
         async function refrescar() {
@@ -126,8 +128,8 @@
         }
 
         (async () => {
-            if (!(await verificarAdmin())) {
-                location.href = `/admin/login?volver=${encodeURIComponent(location.pathname)}&tipo=aviso&mensaje=${encodeURIComponent('Inicia sesión como administrador para ver la ocupación.')}`;
+            if (!(await verificarPersonal())) {
+                location.href = `/admin/login?volver=${encodeURIComponent(location.pathname)}&tipo=aviso&mensaje=${encodeURIComponent('Inicia sesión con una cuenta del personal para ver la ocupación.')}`;
                 return;
             }
             await refrescar();
