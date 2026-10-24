@@ -24,6 +24,8 @@ class PagoController extends Controller
             moneda: config('pagos.moneda'),
             urlRetorno: route('pagos.retorno'),
             urlCancelacion: route('pagos.cancelado'),
+            nombre: $request->user()->nombre,
+            apellido: $request->user()->apellido,
         ));
 
         return response()->json([

@@ -334,12 +334,5 @@ Route::middleware(['auth:sanctum'])
                     AdminReembolsoController::class,
                     'procesar'
                 ])->whereNumber('id')->middleware('throttle:10,1')->name('reembolsos.procesar');
-
-                // REPORTES CSV
-
-                Route::get('/reportes/csv', [
-                    AdministracionController::class,
-                    'reporteCsv'
-                ])->name('csv');
             });
     });

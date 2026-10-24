@@ -28,9 +28,9 @@ class PasarelaPagoFalsa implements IPasarelaPago, IPasarelaPagoResolver
         return $this;
     }
 
-    public function crearOrden(float $monto, string $moneda, string $referencia, string $urlRetorno, string $urlCancelacion, DateTimeImmutable $venceEn): OrdenPasarela
+    public function crearOrden(float $monto, string $moneda, string $referencia, string $urlRetorno, string $urlCancelacion, DateTimeImmutable $venceEn, ?string $titular = null): OrdenPasarela
     {
-        $this->ordenes[] = compact('monto', 'referencia', 'urlRetorno', 'venceEn');
+        $this->ordenes[] = compact('monto', 'referencia', 'urlRetorno', 'venceEn', 'titular');
 
         return new OrdenPasarela('ORD-'.count($this->ordenes), 'https://pasarela.test/aprobar/ORD-'.count($this->ordenes));
     }

@@ -272,7 +272,6 @@ class CatalogoBitacora
             // ---------- Reportes ----------
             'GET api/admin/reportes/excel' => $this->reporte('Excel'),
             'GET api/admin/reportes/pdf' => $this->reporte('PDF'),
-            'GET api/admin/reportes/csv' => $this->reporte('CSV'),
 
             // ---------- Reembolsos ----------
             'POST api/reembolsos' => [
