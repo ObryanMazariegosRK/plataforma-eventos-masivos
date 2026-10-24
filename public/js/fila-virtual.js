@@ -13,8 +13,15 @@
     if (!raiz) return;
 
     const eventoId = Number(raiz.dataset.evento);
-    const ESTA_PAGINA = `/eventos/${eventoId}/fila`;
-    const MAPA = `/eventos/${eventoId}/asientos`;
+    const ESTA_PAGINA = location.pathname + location.search;
+    // A dónde volver cuando le toca: la página de donde vino (?volver=, solo rutas internas de
+    // este evento, como la experiencia con su mapa al final); si no, la página del mapa
+    const MAPA = (() => {
+        const volver = new URLSearchParams(location.search).get('volver') || '';
+        return /^\/eventos\/\d+\/(experiencia|asientos)\b/.test(volver) && volver.startsWith(`/eventos/${eventoId}/`)
+            ? volver
+            : `/eventos/${eventoId}/asientos`;
+    })();
     const estadoEl = document.getElementById('filaEstado');
     const nota = document.getElementById('filaNota');
 

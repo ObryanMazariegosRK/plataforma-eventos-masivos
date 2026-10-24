@@ -159,7 +159,7 @@
             setInterval(revisar, 1500);
             document.addEventListener('visibilitychange', revisar);
 
-            // Fila virtual: cuántos esperan, compran y ya reservaron (cada 3 s; también la hace avanzar)
+            // Fila virtual: cuántos esperan, compran y ya reservaron (cada 1.5 s; también la hace avanzar)
             const filaAdmin = document.getElementById('filaAdmin');
             const revisarFila = async () => {
                 if (document.hidden) return;
@@ -174,7 +174,8 @@
                 texto('filaExpirados', fila.expirados);
             };
             revisarFila();
-            setInterval(revisarFila, 3000);
+            setInterval(revisarFila, 1500);
+            document.addEventListener('visibilitychange', revisarFila);
         })();
     })();
     </script>

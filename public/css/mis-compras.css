@@ -150,18 +150,30 @@
 .compra__boletos button:disabled { color: var(--tenue); cursor: default; }
 
 /* Reembolso: enlace discreto para pedirlo y etiqueta con su estado */
+/* Solicitar reembolso: botón de contorno del mismo tamaño que "Ver boletos" (antes era un
+   texto tenue que casi no se veía), con el ícono de devolución */
 .compra__pedir-reembolso {
-    margin-top: 4px;
-    padding: 4px 0;
-    border: 0;
-    border-bottom: 1px solid transparent;
-    background: none;
-    color: var(--tenue);
-    font-size: 12px;
-    letter-spacing: .02em;
-    transition: color .3s ease, border-color .3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+    padding: 9px 15px;
+    border: 1px solid rgba(200, 180, 140, .45);
+    border-radius: 999px;
+    background: rgba(200, 180, 140, .06);
+    color: var(--champan);
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color .3s ease, background-color .3s ease, color .3s ease;
 }
-.compra__pedir-reembolso:hover { color: var(--marfil); border-bottom-color: var(--hilo); }
+.compra__pedir-reembolso::before { content: "↺"; font-size: 14px; letter-spacing: 0; line-height: 1; }
+.compra__pedir-reembolso:hover { border-color: var(--champan); background: var(--champan-suave); color: var(--marfil); }
+.compra__pedir-reembolso:focus-visible { outline: 2px solid var(--champan); outline-offset: 3px; }
+.compra__pedir-reembolso:disabled { opacity: .55; cursor: default; }
 .compra__reembolso {
     margin-top: 6px;
     padding: 5px 11px;
