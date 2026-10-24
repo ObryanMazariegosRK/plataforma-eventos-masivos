@@ -15,7 +15,7 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
     public function __construct(
     private readonly INotificacionRepository $notificaciones
     ) {}
-    public function execute(): array
+    public function execute(?int $eventoId = null): array
     {
         $limite = max(1, (int) config('cola_virtual.max_turnos_simultaneos', 5));
         $minutos = max(1, (int) config('cola_virtual.ventana_compra_minutos', 5));
@@ -30,6 +30,7 @@ class ProcesarColaVirtualUseCase implements IProcesarColaVirtualUseCase
             ->where('estado', 'publicado')
             ->where('cola_virtual_activa', true)
             ->whereNull('deleted_at')
+            ->when($eventoId !== null, fn ($consulta) => $consulta->where('id', $eventoId))
             ->pluck('id');
 
         foreach ($eventoIds as $eventoId) {

@@ -19,7 +19,7 @@ class CatalogoEventosAdminRepository implements ICatalogoEventosAdminRepository
         return $this->consulta($filtros)
             ->leftJoinSub($ocupacion, 'ocupacion', 'ocupacion.evento_id', '=', 'eventos.id')
             ->select(
-                'eventos.id', 'eventos.nombre', 'eventos.fecha_evento', 'eventos.estado', 'eventos.imagen_url',
+                'eventos.id', 'eventos.nombre', 'eventos.fecha_evento', 'eventos.estado', 'eventos.imagen_url', 'eventos.cola_virtual_activa',
                 'recintos.nombre as recinto', 'recintos.ciudad',
                 DB::raw('COALESCE(ocupacion.total, 0) as lugares'),
                 DB::raw('COALESCE(ocupacion.vendidos, 0) as vendidos'),
@@ -42,6 +42,7 @@ class CatalogoEventosAdminRepository implements ICatalogoEventosAdminRepository
                 'ciudad'       => $e->ciudad,
                 'lugares'      => (int) $e->lugares,
                 'vendidos'     => (int) $e->vendidos,
+                'cola_virtual' => (bool) $e->cola_virtual_activa,
             ])
             ->all();
     }

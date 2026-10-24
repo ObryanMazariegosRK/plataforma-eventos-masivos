@@ -113,7 +113,7 @@ class InventarioRepository implements IInventarioRepository
             ->whereIn('eventos.estado', ['publicado', 'agotado'])
             ->first(['eventos.id', 'eventos.nombre', 'eventos.fecha_evento', 'recintos.nombre as recinto',
                 'eventos.imagen_url', 'eventos.imagen_url_2', 'eventos.imagen_url_3',
-                'eventos.frase_destacada', 'eventos.descripcion']);
+                'eventos.frase_destacada', 'eventos.descripcion', 'eventos.cola_virtual_activa']);
 
         if ($evento === null) {
             return null;
@@ -183,10 +183,32 @@ class InventarioRepository implements IInventarioRepository
                 // Textos de la primera escena de la experiencia
                 'frase_destacada' => $evento->frase_destacada,
                 'descripcion'  => $evento->descripcion,
+                // Con fila virtual la tienda manda primero a la sala de espera (/eventos/{id}/fila)
+                'cola_virtual' => (bool) $evento->cola_virtual_activa,
             ],
             'localidades' => array_values($localidades),
             'resumen'     => $resumen,
         ];
+    }
+
+    public function huellaDisponibilidad(int $eventoId): ?string
+    {
+        $evento = DB::table('eventos')->where('id', $eventoId)->whereNull('deleted_at')
+            ->whereIn('estado', ['publicado', 'agotado'])->first(['estado', 'cola_virtual_activa']);
+        if ($evento === null) {
+            return null;
+        }
+
+        // ≤ 100 filas por recinto: barato, y el controlador lo guarda 1 s en caché
+        $lugares = DB::table('inventario')->where('evento_id', $eventoId)->whereNull('deleted_at')
+            ->orderBy('id')->pluck('estado', 'id');
+
+        $texto = $evento->estado.'|'.(int) $evento->cola_virtual_activa;
+        foreach ($lugares as $id => $estado) {
+            $texto .= "|{$id}:{$estado}";
+        }
+
+        return substr(md5($texto), 0, 16);
     }
 
     public function planoRecinto(int $recintoId): ?array

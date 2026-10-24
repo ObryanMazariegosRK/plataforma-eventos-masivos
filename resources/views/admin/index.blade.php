@@ -380,6 +380,11 @@
                     <svg class="icono-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
                 </button>
 
+                {{-- Cerrar sesión (antes estaba al fondo de Configuración): pide confirmación (admin.js) --}}
+                <button type="button" class="boton-tema boton-salir" id="btnSalir" aria-label="Cerrar sesión" title="Cerrar sesión">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg>
+                </button>
+
                 <span class="avatar">AD</span>
 
                 <span>Administrador</span>
@@ -645,6 +650,17 @@
                 <span class="evento-frase__pie">
                     <small id="evento-descripcion-ayuda">Se ve completa en la página del evento; la primera escena de la experiencia muestra los primeros 170 caracteres.</small>
                     <small class="evento-frase__contador" id="evento-descripcion-contador" aria-live="polite">0 / 600</small>
+                </span>
+            </label>
+
+            {{-- Venta con fila virtual (ColaVirtual): los compradores esperan su turno; se puede
+                 activar o quitar también con el evento ya publicado --}}
+            <label class="evento-full evento-fila">
+                <input type="checkbox" name="cola_virtual_activa" value="1" id="evento-fila">
+                <span class="evento-fila__interruptor" aria-hidden="true"></span>
+                <span class="evento-fila__texto">
+                    <strong>Vender con fila virtual</strong>
+                    <small>Para funciones muy esperadas: los compradores entran por turnos ({{ config('cola_virtual.max_turnos_simultaneos') }} a la vez, {{ config('cola_virtual.ventana_compra_minutos') }} minutos cada uno) y los demás esperan en una sala de espera.</small>
                 </span>
             </label>
 
@@ -1341,27 +1357,6 @@
                         Guardar cambios
                     </button>
                 </form>
-            </div>
-
-            <div class="so-config-security">
-                <h3>Seguridad y sesión</h3>
-                <p>
-                    Tu sesión está protegida mediante autenticación.
-                    Al salir deberás iniciar sesión nuevamente.
-                </p>
-
-                <button type="button"
-                        id="so-config-logout"
-                        class="so-config-logout">
-                    Cerrar sesión
-                </button>
-
-                <p id="so-config-mensaje"
-                   class="so-config-message"
-                   role="status"
-                   aria-live="polite">
-                    Puedes cerrar tu sesión de forma segura.
-                </p>
             </div>
 
             <div class="so-config-system">

@@ -2282,6 +2282,9 @@
             form.elements.namedItem('frase_destacada').value =
                 evento.frase_destacada || '';
 
+            const fila = form.elements.namedItem('cola_virtual_activa');
+            if (fila) fila.checked = Boolean(evento.cola_virtual_activa);
+
             form.elements.namedItem('fecha_evento').value =
                 dateForInput(evento.fecha_evento);
         }
@@ -2730,6 +2733,9 @@
                     formData.get('frase_destacada') || ''
                 ).trim() || null,
 
+                // Venta con fila virtual (casilla)
+                cola_virtual_activa: formData.get('cola_virtual_activa') === '1',
+
                 imagen_url: String(
                     formData.get('imagen_url') || ''
                 ).trim() || null,
@@ -2807,6 +2813,7 @@
                 ? {
                     nombre: payload.nombre,
                     frase_destacada: payload.frase_destacada,
+                    cola_virtual_activa: payload.cola_virtual_activa,
                     descripcion: payload.descripcion,
                     imagen_url: payload.imagen_url,
                     imagen_url_2: payload.imagen_url_2,
@@ -3171,26 +3178,29 @@
     // =====================================================
     // SOIRÉE — CIERRE DE SESIÓN SEGURO
 
-    $('so-config-logout')?.addEventListener('click', async () => {
-        const confirmado = window.confirm(
-            '¿Deseas cerrar tu sesión de Soirée?'
-        );
+    // Botón de la barra superior (junto a la campana y al tema), para admin y operador
+    $('btnSalir')?.addEventListener('click', async () => {
+        const preguntar = window.AdminEventoFormulario?.confirmar;
+        const confirmado = preguntar
+            ? await preguntar({
+                icono: '↪',
+                titulo: '¿Cerrar sesión?',
+                texto: 'Tendrás que volver a iniciar sesión para entrar al panel.',
+                aceptar: 'Cerrar sesión'
+            })
+            : window.confirm('¿Deseas cerrar tu sesión de Soirée?');
 
         if (!confirmado) return;
 
-        const boton = $('so-config-logout');
-        const mensaje = $('so-config-mensaje');
+        const boton = $('btnSalir');
         const accessToken = token();
 
         if (!accessToken) {
-            if (mensaje) {
-                mensaje.textContent = 'No hay una sesión activa.';
-            }
+            window.location.replace('/admin/login');
             return;
         }
 
         boton.disabled = true;
-        boton.textContent = 'Cerrando sesión...';
 
         try {
             const response = await fetch(
@@ -3219,12 +3229,8 @@
             window.location.replace('/admin/login');
 
         } catch (error) {
-            if (mensaje) {
-                mensaje.textContent = error.message;
-            }
-
+            feedback(error.message, true);
             boton.disabled = false;
-            boton.textContent = 'Cerrar sesión';
         }
     });
 

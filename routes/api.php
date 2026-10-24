@@ -347,6 +347,12 @@ Route::get('/eventos/{id}/disponibilidad', [
     'show'
 ])->whereNumber('id');
 
+// Huella para saber si el mapa cambió (la consulta seguido el mapa de asientos, sin descargarlo entero)
+Route::get('/eventos/{id}/disponibilidad/version', [
+    DisponibilidadController::class,
+    'version'
+])->whereNumber('id');
+
 
 // ======================================================
 // 12. CONFIGURACIÓN DEL PERFIL - SOIRÉE

@@ -121,6 +121,14 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('id')
                     ->name('eventos.costos.guardar');
 
+                // Cómo va la fila virtual del evento (Ver asientos)
+                Route::get('/eventos/{id}/cola', [
+                    \App\Http\Controllers\ColaVirtual\ColaVirtualController::class,
+                    'resumen'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.cola');
+
                 // CONSULTAR EVENTO
 
                 Route::get('/eventos/{id}', [

@@ -206,6 +206,8 @@ body.tema-soiree {
 .boton-tema .icono-sol { display: none; }
 html[data-tema="oscuro"] .boton-tema .icono-sol { display: block; }
 html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
+/* Cerrar sesión (admin.js, #btnSalir): mismo círculo que el botón de tema, sin girar y en rojo al pasar */
+.boton-salir:hover { transform: none; border-color: var(--t-rojo); background: var(--t-rojo-fondo); color: var(--t-rojo); }
 
 /* Campana de notificaciones push (campana.js + campana.css), junto al botón de tema */
 .tema-soiree .campana {
@@ -1757,4 +1759,66 @@ html[data-tema="oscuro"] .boton-tema .icono-luna { display: none; }
 @media (max-width: 560px) {
     .tema-soiree #report-form { grid-template-columns: 1fr; }
     .tema-soiree #report-form button.primary { justify-self: stretch; }
+}
+
+/* ---------- Formulario de evento: "Vender con fila virtual" (interruptor) ---------- */
+.tema-soiree .evento-fila {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--t-hilo);
+    border-radius: 14px;
+    background: var(--t-campo);
+    cursor: pointer;
+    transition: border-color .2s ease, background-color .2s ease;
+}
+.tema-soiree .evento-fila:hover { border-color: var(--t-acento-borde); }
+.tema-soiree .evento-fila input { position: absolute; opacity: 0; pointer-events: none; }
+.tema-soiree .evento-fila__interruptor {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    margin-top: 2px;
+    border: 1px solid var(--t-hilo-2);
+    border-radius: 999px;
+    background: var(--t-panel);
+    transition: background-color .2s ease, border-color .2s ease;
+}
+.tema-soiree .evento-fila__interruptor::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--t-tenue);
+    transition: transform .2s ease, background-color .2s ease;
+}
+.tema-soiree .evento-fila input:checked + .evento-fila__interruptor { border-color: var(--t-boton); background: var(--t-boton); }
+.tema-soiree .evento-fila input:checked + .evento-fila__interruptor::after { transform: translateX(18px); background: var(--t-boton-texto); }
+.tema-soiree .evento-fila input:focus-visible + .evento-fila__interruptor { outline: 2px solid var(--t-acento); outline-offset: 2px; }
+.tema-soiree .evento-fila:has(input:checked) { border-color: var(--t-acento-borde); background: var(--t-acento-suave); }
+.tema-soiree .evento-fila__texto { display: grid; gap: 4px; }
+.tema-soiree .evento-fila__texto strong { color: var(--t-texto); font-size: 14px; font-weight: 600; }
+.tema-soiree .evento-fila__texto small { color: var(--t-piedra); font-size: 12.5px; line-height: 1.5; font-weight: 400; }
+
+/* Etiqueta "Fila virtual" en la tarjeta del catálogo de eventos */
+.tema-soiree .catalogo-tarjeta__fila {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(13, 12, 11, .72);
+    color: #f2ede4;
+    font-size: 11.5px;
+    font-weight: 500;
+    backdrop-filter: blur(6px);
 }

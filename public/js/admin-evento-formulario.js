@@ -403,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             nombre: campo('nombre'),
             frase_destacada: campo('frase_destacada'),
+            cola_virtual: Boolean(form.elements.namedItem('cola_virtual_activa')?.checked),
             recinto_id: campo('recinto_id'),
             fecha_evento: campo('fecha_evento'),
             descripcion: campo('descripcion'),
@@ -453,6 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
         poner('nombre', datos.nombre);
         poner('frase_destacada', datos.frase_destacada);
         contarFrase();
+        const fila = form.elements.namedItem('cola_virtual_activa');
+        if (fila) fila.checked = Boolean(datos.cola_virtual);
         poner('fecha_evento', datos.fecha_evento);
         poner('descripcion', datos.descripcion);
         ['imagen_url', 'imagen_url_2', 'imagen_url_3'].forEach((nombre, i) => poner(nombre, datos.imagenes?.[i]));
