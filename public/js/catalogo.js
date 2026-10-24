@@ -184,7 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const estado = elemento(
             'span',
             `evento-estado${agotado ? ' agotado' : ''}`,
-            agotado ? 'Agotado' : 'En venta'
+            // Number(): MySQL puede devolver la casilla como "0"/"1"
+            agotado ? 'Agotado' : Number(evento.cola_virtual_activa) === 1 ? 'En venta · Fila virtual' : 'En venta'
         );
 
         const titulo = elemento(

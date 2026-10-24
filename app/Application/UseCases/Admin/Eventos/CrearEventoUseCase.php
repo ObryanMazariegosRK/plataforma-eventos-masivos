@@ -65,6 +65,8 @@ class CrearEventoUseCase
             $evento->descripcion = $datos['descripcion'] ?? null;
             // Encabeza la primera escena de la experiencia (opcional)
             $evento->frase_destacada = $datos['frase_destacada'] ?? null;
+            // Venta con fila virtual (se activa a mano en el formulario)
+            $evento->cola_virtual_activa = (bool) ($datos['cola_virtual_activa'] ?? false);
 
             $evento->imagen_url = $datos['imagen_url'] ?? null;
             $evento->imagen_url_2 = $datos['imagen_url_2'] ?? null;

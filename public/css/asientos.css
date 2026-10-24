@@ -578,3 +578,39 @@ body.pagina-asientos {
 @media (max-width: 640px) {
     .pagina-asientos .cabecera__inicio { gap: 12px; }
 }
+
+/* ---- Fila virtual: tiempo que le queda al turno (seleccion-asientos.js) ---- */
+.turno-fila {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 2px 12px;
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(200, 180, 140, .45);
+    border-radius: var(--radio);
+    background: rgba(200, 180, 140, .08);
+}
+.turno-fila[hidden] { display: none; }
+.turno-fila .mayus { grid-column: 1 / -1; color: var(--champan); font-size: 10.5px; letter-spacing: .2em; }
+.turno-fila strong { font-family: var(--titulo); font-size: 30px; font-weight: 500; line-height: 1; color: var(--marfil); font-variant-numeric: lining-nums tabular-nums; }
+.turno-fila span:last-child { color: var(--piedra); font-size: 13px; }
+.turno-fila--poco { border-color: rgba(224, 161, 152, .6); background: rgba(224, 161, 152, .1); }
+.turno-fila--poco strong { color: var(--error); }
+
+/* ---- Panel: fila virtual en vivo (asientos/admin.blade.php) ---- */
+.fila-admin {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid rgba(200, 180, 140, .4);
+    border-radius: var(--radio);
+    background: rgba(200, 180, 140, .06);
+}
+.fila-admin[hidden] { display: none; }
+.fila-admin > .mayus { color: var(--champan); font-size: 10.5px; letter-spacing: .2em; }
+.fila-admin__cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fila-admin__cifras div { display: grid; gap: 2px; }
+.fila-admin__cifras strong { font-family: var(--titulo); font-size: 28px; font-weight: 500; line-height: 1; color: var(--marfil); font-variant-numeric: lining-nums tabular-nums; }
+.fila-admin__cifras span { color: var(--piedra); font-size: 12px; }

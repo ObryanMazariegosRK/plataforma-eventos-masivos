@@ -25,6 +25,7 @@ class EventoRepository implements IEventoRepository
                 'eventos.imagen_url',
                 'eventos.fecha_evento',
                 'eventos.estado',
+                'eventos.cola_virtual_activa',   // venta con fila virtual (la tienda lo muestra)
                 'recintos.nombre as recinto',
                 'recintos.ciudad',
             ])
@@ -122,6 +123,7 @@ class EventoRepository implements IEventoRepository
                 'eventos.imagen_url',
                 'eventos.fecha_evento',
                 'eventos.estado',
+                'eventos.cola_virtual_activa',   // venta con fila virtual (la tienda lo muestra)
                 'recintos.nombre as recinto',
                 'recintos.ciudad',
                 'recintos.direccion',

@@ -34,6 +34,13 @@ Requiere: css/asientos.css, js/autenticacion.js, js/asientos.js y js/seleccion-a
 
         <div class="aviso" id="aviso" role="alert"></div>
 
+        {{-- Evento con fila virtual: tiempo que le queda a este turno (seleccion-asientos.js) --}}
+        <div class="turno-fila" id="turnoFila" role="status" hidden>
+            <span class="mayus">Tu turno</span>
+            <strong id="turnoFilaReloj">05:00</strong>
+            <span id="turnoFilaTexto">para elegir y reservar tus lugares</span>
+        </div>
+
         {{-- Lugares apartados sin pagar (cuentan para el máximo mientras no vencen):
              continuar el pago o liberarlos (seleccion-asientos.js) --}}
         <div class="pendientes" id="pendientes" hidden></div>

@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const estado = crear('span', 'so-event-status catalogo-tarjeta__estado', ESTADOS[evento.estado] || evento.estado);
         estado.dataset.status = evento.estado;
         foto.append(imagen, estado);
+        if (evento.cola_virtual) foto.append(crear('span', 'catalogo-tarjeta__fila', 'Fila virtual'));
 
         const cuerpo = crear('div', 'catalogo-tarjeta__cuerpo');
         cuerpo.append(

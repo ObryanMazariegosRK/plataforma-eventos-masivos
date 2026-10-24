@@ -27,5 +27,7 @@ class Evento extends Model
     protected $casts = [
         'fecha_evento' => 'datetime',
         'fecha_publicacion' => 'datetime',
+        // true/false en el JSON (el formulario marca la casilla con esto)
+        'cola_virtual_activa' => 'boolean',
     ];
 }
