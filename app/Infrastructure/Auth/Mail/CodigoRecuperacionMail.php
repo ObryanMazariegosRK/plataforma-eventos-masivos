@@ -26,6 +26,6 @@ class CodigoRecuperacionMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
-        return new Content(view: 'correos.auth.codigo-recuperacion');
+        return new Content(view: 'correos.auth.codigo-recuperacion', text: 'correos.texto.codigo-recuperacion');
     }
 }

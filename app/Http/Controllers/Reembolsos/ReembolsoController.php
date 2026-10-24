@@ -144,10 +144,10 @@ class ReembolsoController extends Controller
         NotificarCambioEventoUseCase $notificarCambio
     ): JsonResponse {
 
-        // 1. Solo los administradores pueden cancelar eventos.
-        if ($request->user()?->rol !== RolUsuario::ADMIN) {
+        // 1. Solo el personal (administrador u operador) puede cancelar eventos.
+        if (! in_array($request->user()?->rol, [RolUsuario::ADMIN, RolUsuario::ORGANIZADOR], true)) {
             return response()->json([
-                'mensaje' => 'Solo un administrador puede cancelar eventos.'
+                'mensaje' => 'Solo el personal de Soirée puede cancelar eventos.'
             ], 403);
         }
 

@@ -1073,8 +1073,8 @@
     // =====================================================
 
     async function cancelEvent(id) {
-        if (currentRole !== 'admin') {
-            feedback('Solo el Administrador puede cancelar eventos.', true);
+        if (!['admin', 'organizador'].includes(currentRole)) {
+            feedback('Solo el personal de Soirée puede cancelar eventos.', true);
             return;
         }
 
@@ -1310,8 +1310,8 @@
             }
 
         } else {
-            if (item.estado === 'publicado' &&
-                currentRole === 'admin') {
+            // Admin y operador gestionan igual los eventos publicados
+            if (item.estado === 'publicado') {
                 addOption(
                     'Modificar evento',
                     conRegreso(() => modifyPublishedEvent(item.id))
@@ -1328,10 +1328,7 @@
                 }
             );
 
-            if (
-                currentRole === 'admin' &&
-                ['publicado', 'agotado'].includes(item.estado)
-            ) {
+            if (['publicado', 'agotado'].includes(item.estado)) {
                 addOption(
                     'Cancelar evento',
                     () => cancelEvent(item.id),
@@ -2368,8 +2365,8 @@
     }
 
     async function modifyPublishedEvent(id) {
-        if (currentRole !== 'admin') {
-            feedback('Solo el Administrador puede modificar eventos publicados.', true);
+        if (!['admin', 'organizador'].includes(currentRole)) {
+            feedback('Solo el personal de Soirée puede modificar eventos publicados.', true);
             return;
         }
 

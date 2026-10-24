@@ -8,7 +8,11 @@ use App\Infrastructure\Boletos\GeneradorQrBoletoSvg;
 use App\Application\Abstractions\Boletos\IObtenerQrBoletoUseCase;
 use App\Application\UseCases\Boletos\ObtenerQrBoletoUseCase;
 
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Transport\Smtp\SmtpTransport;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
@@ -383,5 +387,16 @@ class AppServiceProvider extends ServiceProvider
         // Reglas de contraseña de toda la app: se usan con Password::defaults()
         // en el registro y al restablecer la contraseña.
         Password::defaults(fn () => Password::min(8)->mixedCase()->numbers()->symbols());
+
+        // Cierra la conexión SMTP en cuanto sale cada correo. El trabajador de la cola vive horas y
+        // reutilizaría la conexión, pero Azure corta en silencio las conexiones de salida inactivas
+        // (~4 min): el siguiente correo escribía en una conexión muerta y se quedaba colgado hasta
+        // que mataban al trabajador (el código llegaba 3–5 minutos tarde). Abrir una nueva tarda ~0.3 s.
+        Event::listen(MessageSent::class, function (): void {
+            $transporte = Mail::mailer()->getSymfonyTransport();
+            if ($transporte instanceof SmtpTransport) {
+                $transporte->stop();
+            }
+        });
     }
 }
