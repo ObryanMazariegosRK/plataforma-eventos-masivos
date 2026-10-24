@@ -148,6 +148,16 @@ Route::middleware(['auth:sanctum'])
                     ->whereNumber('id')
                     ->name('eventos.publicar');
 
+                // MODIFICAR CONTENIDO DE EVENTO PUBLICADO (incluye aplazar la fecha)
+                // Administrador y operador: el operador gestiona los eventos igual que el admin.
+
+                Route::patch('/eventos/{id}/contenido', [
+                    AdminEventoController::class,
+                    'actualizarContenidoPublicado'
+                ])
+                    ->whereNumber('id')
+                    ->name('eventos.contenido.actualizar');
+
                 // CAMBIAR IMAGEN
 
                 Route::patch('/eventos/{id}/imagen', [
@@ -194,16 +204,6 @@ Route::middleware(['auth:sanctum'])
                 ])
                     ->whereNumber('id')
                     ->name('eventos.eliminar');
-
-                // MODIFICAR CONTENIDO DE EVENTO PUBLICADO
-                // Exclusivo del Administrador.
-
-                Route::patch('/eventos/{id}/contenido', [
-                    AdminEventoController::class,
-                    'actualizarContenidoPublicado'
-                ])
-                    ->whereNumber('id')
-                    ->name('eventos.contenido.actualizar');
 
                 // RESUMEN
 

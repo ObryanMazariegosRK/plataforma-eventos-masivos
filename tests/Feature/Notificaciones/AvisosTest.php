@@ -70,6 +70,13 @@ class AvisosTest extends TestCase
             return $correo->enlace === url('/mis-compras/1/boletos')
                 && str_contains($html, 'Hola Ana,') && str_contains($html, 'Ver mis boletos') && str_contains($html, 'Soirée');
         });
+        // También va en texto plano (sin HTML), que ayuda a no caer en spam
+        Mail::assertSent(NotificacionCorreo::class, function (NotificacionCorreo $correo) {
+            $correo->assertSeeInText('Tus boletos están listos.');
+            $correo->assertSeeInText('Ver mis boletos: '.url('/mis-compras/1/boletos'));
+
+            return true;
+        });
         $this->assertNotNull(DB::table('notificaciones')->value('push_en'));
     }
 

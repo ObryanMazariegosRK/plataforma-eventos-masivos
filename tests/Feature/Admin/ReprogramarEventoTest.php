@@ -124,4 +124,33 @@ class ReprogramarEventoTest extends TestCase
             ->assertOk()->assertJsonPath('fecha_cambiada', false);
         $this->assertSame(2, DB::table('notificaciones')->count());
     }
+
+    public function test_el_operador_gestiona_los_eventos_publicados_igual_que_el_admin(): void
+    {
+        [$recinto] = $this->recinto();
+        $evento = DB::table('eventos')->insertGetId([
+            'recinto_id' => $recinto, 'nombre' => 'Gala de ópera', 'estado' => 'publicado',
+            'fecha_evento' => '2026-11-06 02:00:00',
+            'imagen_url' => '/storage/eventos/a.webp', 'imagen_url_2' => '/storage/eventos/b.webp', 'imagen_url_3' => '/storage/eventos/c.webp',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $contenido = [
+            'nombre' => 'Gala de ópera 2026', 'imagen_url' => '/storage/eventos/a.webp',
+            'imagen_url_2' => '/storage/eventos/b.webp', 'imagen_url_3' => '/storage/eventos/c.webp',
+        ];
+
+        // Un cliente no puede tocar nada
+        Sanctum::actingAs($this->usuario('cliente@test.com'));
+        $this->patchJson("/api/admin/eventos/{$evento}/contenido", $contenido)->assertForbidden();
+        $this->postJson("/api/eventos/{$evento}/cancelar")->assertForbidden();
+
+        // El operador modifica (y aplaza) y cancela, como el admin
+        Sanctum::actingAs($this->usuario('operador@test.com', RolUsuario::ORGANIZADOR));
+        $this->patchJson("/api/admin/eventos/{$evento}/contenido", $contenido + ['fecha_evento' => '2026-11-12T21:30'])
+            ->assertOk()->assertJsonPath('fecha_cambiada', true);
+        $this->assertSame('Gala de ópera 2026', DB::table('eventos')->value('nombre'));
+
+        $this->postJson("/api/eventos/{$evento}/cancelar")->assertOk();
+        $this->assertSame('cancelado', DB::table('eventos')->value('estado'));
+    }
 }
