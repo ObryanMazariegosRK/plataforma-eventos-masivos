@@ -1412,7 +1412,7 @@
             <h2>Reportes de Soirée</h2>
 
             <p class="muted">
-                Descarga eventos, reservas, pagos o usuarios en Excel, PDF o CSV.
+                Descarga eventos, reservas, pagos o usuarios en Excel o PDF.
                 Deja las fechas vacías para incluir todo el historial.
             </p>
 
@@ -1455,9 +1455,6 @@
         </option>
         <option value="pdf">
             PDF (.pdf)
-        </option>
-        <option value="csv">
-            CSV (.csv)
         </option>
     </select>
 </div>

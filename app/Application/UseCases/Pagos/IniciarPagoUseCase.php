@@ -64,12 +64,22 @@ class IniciarPagoUseCase implements IIniciarPagoUseCase
             urlRetorno: $this->conPago($dto->urlRetorno, $pago->getId()),
             urlCancelacion: $this->conPago($dto->urlCancelacion, $pago->getId()),
             venceEn: $reserva->getExpiraEn(),   // la orden muere junto con la reserva
+            titular: self::titular($dto->nombre, $dto->apellido),
         );
 
         $pago->asignarOrdenExterna($orden->id);
         $this->pagos->guardar($pago);
 
         return new PagoIniciadoDTO($pago->getId(), $orden->urlAprobacion);
+    }
+
+    // Solo un nombre y un apellido, como en una tarjeta: "Ana María" "López García" → "Ana López"
+    private static function titular(?string $nombre, ?string $apellido): ?string
+    {
+        $primera = fn (?string $texto) => strtok(trim((string) $texto), " \t") ?: '';
+        $titular = trim($primera($nombre).' '.$primera($apellido));
+
+        return $titular === '' ? null : $titular;
     }
 
     // La página de retorno necesita saber qué pago confirmar: /pagos/retorno?pago=15

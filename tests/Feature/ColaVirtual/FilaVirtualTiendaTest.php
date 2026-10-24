@@ -120,6 +120,30 @@ class FilaVirtualTiendaTest extends TestCase
         $this->assertDatabaseHas('cola_virtual_intentos', ['estado' => 'atendido', 'posicion' => 1]);
     }
 
+    public function test_reservar_volver_a_la_fila_y_que_se_venza_no_rompe_el_historial(): void
+    {
+        // Caso real (servidor): reservó → volvió a la fila → se le venció el turno → "Volver a la
+        // fila" daba 500 porque el historial repetía el intento 1 del mismo turno
+        [$evento, $inventario] = $this->evento();
+        $ana = $this->usuario('ana@test.com');
+        Sanctum::actingAs($ana);
+
+        $this->postJson('/api/cola-virtual/ingresar', ['evento_id' => $evento])->assertJsonPath('estado', 'habilitado');
+        $this->postJson('/api/reservas', ['evento_id' => $evento, 'inventario_ids' => [$inventario[0]]])->assertCreated();
+        $this->siguienteSegundo();
+        $this->postJson('/api/cola-virtual/ingresar', ['evento_id' => $evento])->assertJsonPath('estado', 'habilitado');
+
+        $this->travel(6)->minutes();   // la ventana de 5 minutos vence sin reservar
+        $this->getJson("/api/cola-virtual/mi-turno/{$evento}")->assertJsonPath('estado', 'expirado');
+        $this->siguienteSegundo();
+        $this->postJson('/api/cola-virtual/ingresar', ['evento_id' => $evento])->assertOk()
+            ->assertJsonPath('estado', 'habilitado');   // su segunda oportunidad, y como hay lugar, entra ya
+
+        $turno = DB::table('cola_virtual')->where('usuario_id', $ana->id)->value('id');
+        $this->assertSame([1, 2], DB::table('cola_virtual_intentos')->where('turno_id', $turno)->orderBy('intento')->pluck('intento')->map(fn ($n) => (int) $n)->all());
+        $this->assertSame(2, (int) DB::table('cola_virtual')->where('id', $turno)->value('intento'));
+    }
+
     public function test_el_panel_activa_la_fila_y_ve_como_va(): void
     {
         [$evento] = $this->evento(lugares: 5, fila: false);

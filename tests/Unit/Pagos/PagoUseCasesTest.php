@@ -90,6 +90,19 @@ class PagoUseCasesTest extends TestCase
         $this->assertSame(2, $this->pagos->buscarPorId($segundo->pagoId)->getIntento());
     }
 
+    public function test_iniciar_manda_a_la_pasarela_un_nombre_y_un_apellido_de_quien_paga(): void
+    {
+        $this->crearReserva();
+
+        $this->iniciar->execute(new IniciarPagoDTO(self::DUENO, 1, 'simulada', 'GTQ', 'https://app.test/r', 'https://app.test/c',
+            nombre: ' Ana María ', apellido: 'López García'));
+        $this->assertSame('Ana López', $this->pasarela->ordenes[0]['titular']);
+
+        // Sin nombre (p. ej. una cuenta antigua): la pasarela usa su texto de prueba
+        $this->iniciar->execute($this->dtoIniciar());
+        $this->assertNull($this->pasarela->ordenes[1]['titular']);
+    }
+
     public function test_iniciar_rechaza_la_reserva_de_otra_persona(): void
     {
         $this->crearReserva(usuarioId: 99);
