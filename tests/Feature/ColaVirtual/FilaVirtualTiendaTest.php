@@ -154,6 +154,20 @@ class FilaVirtualTiendaTest extends TestCase
         $this->assertSame(2, (int) DB::table('cola_virtual')->where('id', $turno)->value('intento'));
     }
 
+    public function test_consultar_el_turno_muchas_veces_no_agota_el_limite_de_reservar(): void
+    {
+        // Antes todos los "throttle" compartían un contador por persona: la sala de espera (que
+        // consulta cada pocos segundos) dejaba a la persona con "Demasiados intentos" al reservar
+        [$evento, $inventario] = $this->evento();
+        Sanctum::actingAs($this->usuario('ana@test.com'));
+
+        $this->postJson('/api/cola-virtual/ingresar', ['evento_id' => $evento])->assertJsonPath('estado', 'habilitado');
+        for ($i = 0; $i < 15; $i++) {
+            $this->getJson("/api/cola-virtual/mi-turno/{$evento}")->assertOk();
+        }
+        $this->postJson('/api/reservas', ['evento_id' => $evento, 'inventario_ids' => [$inventario[0]]])->assertCreated();
+    }
+
     public function test_el_panel_activa_la_fila_y_ve_como_va(): void
     {
         [$evento] = $this->evento(lugares: 5, fila: false);
